@@ -47,10 +47,12 @@ Produit dans `src-tauri/target/release/` : `hune.exe` et, dans `bundle/`, l'inst
 
 ## Publier une version
 
-1. Mettre le même numéro dans `package.json`, `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`.
-2. `git tag vX.Y.Z && git push --tags` : le workflow `release.yml` construit, signe et publie la release GitHub avec `latest.json`, que les applications installées interrogent.
+1. Mettre le même numéro dans `package.json`, `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`, puis commiter.
+2. `powershell -File scripts/publier.ps1 -Notes "ce qui change"` : vérifie les versions, lance tests et build signé, pose le tag, publie la release GitHub avec les installeurs et `latest.json`, que les applications installées interrogent.
 
-Secrets GitHub requis : `TAURI_SIGNING_PRIVATE_KEY` et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. **Ne perdez pas la clé** : sans elle, les applications déjà installées ne pourront plus se mettre à jour.
+La clé de signature (`~\.tauri\hune.key` et son mot de passe) reste sur le poste, elle n'est jamais envoyée à GitHub. **Sauvegardez-la** (gestionnaire de mots de passe) : sans elle, les applications déjà installées ne pourront plus se mettre à jour. Le workflow `release.yml` (manuel) permet de publier depuis GitHub si l'on ajoute les secrets correspondants.
+
+**Visibilité du dépôt** : l'application télécharge `latest.json` et l'installeur depuis les releases sans identifiant. Avec un dépôt **privé**, GitHub les refuse : la mise à jour automatique exige donc un dépôt public (ou un second dépôt public ne contenant que les releases).
 
 ## Structure
 
