@@ -75,11 +75,13 @@ $latest = [ordered]@{
   }
 }
 $fichierLatest = Join-Path $env:TEMP "latest.json"
-$latest | ConvertTo-Json -Depth 5 | Set-Content -Path $fichierLatest -Encoding utf8
+# UTF-8 SANS BOM : Set-Content -Encoding utf8 (PowerShell 5.1) en ajoute un, et l'analyseur JSON de l'application le refuse.
+$utf8SansBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($fichierLatest, ($latest | ConvertTo-Json -Depth 5), $utf8SansBom)
 
 git tag $tag
 git push origin $tag
 $fichierNotes = Join-Path $env:TEMP "notes-$tag.md"
-Set-Content -Path $fichierNotes -Value $Notes -Encoding utf8
+[System.IO.File]::WriteAllText($fichierNotes, $Notes, $utf8SansBom)
 gh release create $tag $setup.FullName "$($setup.FullName).sig" $msi.FullName $fichierLatest --repo $Depot --title "Hune $tag" --notes-file $fichierNotes
 Write-Host "Version $tag publiée : https://github.com/$Depot/releases/tag/$tag"
