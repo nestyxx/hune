@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/*
+ * Jetons de couleur. Les valeurs ci-dessous sont celles du thème sombre ; le thème clair les remplace
+ * plus bas via l'attribut data-theme posé sur <html> par theme.ts (réglage « Auto » = thème de Windows).
+ */
+@theme {
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, monospace;
+  --color-fond: #0e1117;
+  --color-carte: #161b24;
+  --color-ligne: #262d3a;
+  --color-texte: #e3e7ee;
+  --color-doux: #8b94a5;
+  --color-accent: #4da3ff;
+  --color-sur-accent: #06121f;
+  --color-hausse: #26a69a;
+  --color-baisse: #ef5350;
+  --color-alerte: #f5a524;
+}
+
+:root[data-theme="clair"] {
+  color-scheme: light;
+  --color-fond: #f4f6f9;
+  --color-carte: #ffffff;
+  --color-ligne: #d8dee8;
+  --color-texte: #18202d;
+  --color-doux: #5d6b80;
+  --color-accent: #1d6fd6;
+  --color-sur-accent: #ffffff;
+  --color-hausse: #0b8a7d;
+  --color-baisse: #d3322a;
+  --color-alerte: #b36b00;
+}
+:root[data-theme="sombre"] {
+  color-scheme: dark;
+}
+
+html,
+body,
+#racine {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fond);
+  color: var(--color-texte);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  overflow: hidden;
+}
+
+/* Barres de défilement discrètes. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ligne) transparent;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+.champ {
+  background: var(--color-fond);
+  border: 1px solid var(--color-ligne);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--color-texte);
+  outline: none;
+}
+.champ:focus {
+  border-color: var(--color-accent);
+}
+
+.bouton {
+  background: var(--color-carte);
+  border: 1px solid var(--color-ligne);
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: var(--color-texte);
+  cursor: pointer;
+}
+.bouton:hover {
+  border-color: var(--color-accent);
+}
+.bouton-actif {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-sur-accent);
+  font-weight: 600;
+}
+/* Petit bouton-icône (✕, ⋯, ▾). */
+.bouton-icone {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 5px;
+  color: var(--color-doux);
+  cursor: pointer;
+}
+.bouton-icone:hover {
+  color: var(--color-texte);
+  background: var(--color-fond);
+}
+.menu-contextuel {
+  background: var(--color-carte);
+  border: 1px solid var(--color-ligne);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}

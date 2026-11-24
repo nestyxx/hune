@@ -1,0 +1,6 @@
+[
+  {"compte": "CTO", "nom": "Exemple SA",        "symbole": "EXMPL.PA", "montant": 100.0},
+  {"compte": "CTO", "nom": "Exemple Inc",       "symbole": "EXMP",     "montant": 250.5, "remarque": "texte libre affiché pendant l'import"},
+  {"compte": "PEA", "nom": "ETF Monde (Acc)",   "symbole": "ETFM.PA",  "montant": 50.0},
+  {"compte": "CTO", "nom": "Titre non coté",    "symbole": null,       "montant": 75.0, "remarque": "symbole null : ignoré à l'import"}
+]

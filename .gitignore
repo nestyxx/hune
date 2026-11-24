@@ -1,0 +1,15 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/gen
+*.log
+
+# Données personnelles : jamais dans le dépôt
+scripts/actions.json
+*.xlsx
+hune-import*.json
+suivi-marches-import*.json
+
+# Clés de signature des mises à jour
+*.key
+*.key.password
