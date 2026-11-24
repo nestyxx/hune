@@ -11,6 +11,16 @@ export type EtatMaj =
 
 type Mise = { version: string; body?: string; downloadAndInstall: (cb: (e: { event: string; data: { contentLength?: number; chunkLength: number } }) => void) => Promise<void> };
 
+/** Message lisible pour l'utilisateur : le texte brut du plugin ("Could not fetch a valid release JSON…") ne lui dit rien. */
+export function messageErreur(e: unknown): string {
+  const brut = e instanceof Error ? e.message : String(e);
+  if (/valid release JSON|404|not found|error sending request|network|dns|timed out/i.test(brut)) {
+    return "Impossible de lire la dernière version (hors ligne, ou dépôt des versions inaccessible).";
+  }
+  if (/signature/i.test(brut)) return "Signature de la mise à jour invalide : elle a été refusée par sécurité.";
+  return brut;
+}
+
 /**
  * Mises à jour automatiques (plugin updater de Tauri) : vérification discrète 20 s après le démarrage puis toutes les 6 h,
  * et à la demande. Le paquet est signé : l'application refuse tout fichier dont la signature ne correspond pas à la clé
@@ -33,7 +43,7 @@ export function useMiseAJour() {
       } else if (manuel) setEtat({ etat: "a-jour", verifieLe: Date.now() });
       else setEtat((e) => (e.etat === "disponible" || e.etat === "telechargement" ? e : { etat: "a-jour", verifieLe: Date.now() }));
     } catch (e) {
-      if (manuel) setEtat({ etat: "erreur", message: e instanceof Error ? e.message : String(e) });
+      if (manuel) setEtat({ etat: "erreur", message: messageErreur(e) });
       else console.warn("Vérification de mise à jour impossible :", e);
     }
   }, []);
@@ -55,7 +65,7 @@ export function useMiseAJour() {
       const { relaunch } = await import("@tauri-apps/plugin-process");
       await relaunch();
     } catch (e) {
-      setEtat({ etat: "erreur", message: e instanceof Error ? e.message : String(e) });
+      setEtat({ etat: "erreur", message: messageErreur(e) });
     }
   }, []);
 

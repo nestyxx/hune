@@ -316,7 +316,9 @@ function LigneTableau({ l, ouverte, surBascule, surOuvrir, majLot, suppr, ajoute
           <button className="bg-transparent p-0 font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={surOuvrir}>
             {l.actif.symbole}
           </button>{" "}
-          <span className="text-xs text-doux">{l.actif.nom.slice(0, 26)}</span>
+          <span className="inline-block max-w-[170px] truncate align-bottom text-xs text-doux" title={l.actif.nom}>
+            {l.actif.nom}
+          </span>
           {l.lots.length > 1 && <span className="ml-1 text-xs text-doux">({l.lots.length} lots)</span>}
         </td>
         <td className="whitespace-nowrap px-2 text-right font-mono">

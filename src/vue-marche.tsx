@@ -54,7 +54,9 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
   const variations = useMemo(() => {
     const avec = tous.filter((a) => cotations[cleActif(a)]?.variationPct != null);
     const tri = [...avec].sort((a, b) => cotations[cleActif(b)].variationPct! - cotations[cleActif(a)].variationPct!);
-    return { hausses: tri.slice(0, 5), baisses: tri.slice(-5).reverse() };
+    // Une « hausse » est strictement positive, une « baisse » strictement négative : jamais l'une dans la liste de l'autre.
+    const pct = (a: Actif) => cotations[cleActif(a)].variationPct!;
+    return { hausses: tri.filter((a) => pct(a) > 0).slice(0, 5), baisses: tri.filter((a) => pct(a) < 0).slice(-5).reverse() };
   }, [tous, cotations]);
 
   const ligne = (a: Actif) => {

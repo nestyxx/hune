@@ -7,12 +7,17 @@
   Prérequis : gh authentifié (gh auth status), arbre git propre, version déjà incrémentée dans package.json,
   src-tauri/Cargo.toml et src-tauri/tauri.conf.json.
 
+  Garde-fous : une section [version] doit exister dans CHANGELOG.md (son texte devient les notes de la release) et
+  les captures du README (docs/captures) ne doivent pas être plus anciennes que le dernier changement de l'interface
+  (npm run captures, ou -IgnorerCaptures pour un correctif sans effet visible).
+
 .EXAMPLE
-  powershell -File scripts/publier.ps1 -Notes "Correctif du portefeuille"
+  powershell -File scripts/publier.ps1
 #>
 param(
-  [string]$Notes = "Voir l'historique des commits.",
-  [string]$Depot = "nestyxx/hune"
+  [string]$Notes = "",
+  [string]$Depot = "nestyxx/hune",
+  [switch]$IgnorerCaptures
 )
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -30,6 +35,20 @@ $cargo = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "(.+)"')
 if ($pkg -ne $version -or $cargo -ne $version) { throw "Versions incohérentes : tauri.conf=$version, package.json=$pkg, Cargo.toml=$cargo" }
 if (git status --porcelain) { throw "Des modifications ne sont pas commitées : commitez avant de publier." }
 if (git tag --list $tag) { throw "Le tag $tag existe déjà : incrémentez la version." }
+
+# Notes de version : la section du CHANGELOG correspondant à cette version est obligatoire.
+$changelog = Get-Content CHANGELOG.md -Raw -Encoding UTF8
+$section = [regex]::Match($changelog, "(?ms)^## \[$([regex]::Escape($version))\][^\r\n]*\r?\n(.*?)(?=^## \[|\z)")
+if (-not $section.Success -or -not $section.Groups[1].Value.Trim()) { throw "CHANGELOG.md n'a pas de section [$version] : décrivez les changements avant de publier." }
+if (-not $Notes) { $Notes = $section.Groups[1].Value.Trim() }
+
+# Captures du README : doivent avoir été régénérées depuis le dernier changement de l'interface.
+if (-not $IgnorerCaptures) {
+  $dernierSrc = [long](git log -1 --format=%ct -- src branding)
+  $dernieresCaptures = [long](git log -1 --format=%ct -- docs/captures)
+  if ($dernieresCaptures -eq 0) { throw "Aucune capture dans docs/captures : lancez npm run captures et commitez-les." }
+  if ($dernierSrc -gt $dernieresCaptures) { throw "L'interface a changé depuis les dernières captures : lancez npm run captures, relisez les images, commitez (ou -IgnorerCaptures)." }
+}
 
 npx tsc; if ($LASTEXITCODE) { throw "tsc a échoué" }
 npm test; if ($LASTEXITCODE) { throw "Les tests ont échoué" }
@@ -60,5 +79,7 @@ $latest | ConvertTo-Json -Depth 5 | Set-Content -Path $fichierLatest -Encoding u
 
 git tag $tag
 git push origin $tag
-gh release create $tag $setup.FullName "$($setup.FullName).sig" $msi.FullName $fichierLatest --repo $Depot --title "Hune $tag" --notes $Notes
+$fichierNotes = Join-Path $env:TEMP "notes-$tag.md"
+Set-Content -Path $fichierNotes -Value $Notes -Encoding utf8
+gh release create $tag $setup.FullName "$($setup.FullName).sig" $msi.FullName $fichierLatest --repo $Depot --title "Hune $tag" --notes-file $fichierNotes
 Write-Host "Version $tag publiée : https://github.com/$Depot/releases/tag/$tag"

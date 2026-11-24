@@ -1,94 +1,119 @@
-# Hune
+<p align="center"><img src="branding/icone.svg" alt="Hune" width="112" height="112"></p>
 
-Application de bureau Windows (usage personnel, **lecture seule**) pour suivre cryptos et actions : graphiques en chandeliers avec indicateurs, alertes de prix et sur indicateurs avec notifications Windows, portefeuille valorisé en euros, carte du marché. Aucun compte, aucune clé API, aucun serveur : tout reste sur le poste.
+<h1 align="center">Hune</h1>
 
-> *La hune : plateforme en haut du mât d'un navire, d'où l'on guette l'horizon.*
+<p align="center"><strong>Suivez vos cryptos et vos actions sur un seul écran, en local, sans compte ni abonnement.</strong><br>
+<em>A free, local, read-only desktop app to track crypto and stocks: charts, indicators, alerts, portfolio.</em></p>
 
-Stack : Tauri 2 (Rust) + React 19 + TypeScript + Vite + Tailwind 4.
+<p align="center">
+  <a href="https://github.com/nestyxx/hune/releases/latest"><img alt="Dernière version" src="https://img.shields.io/github/v/release/nestyxx/hune?label=version&color=4f7fe0"></a>
+  <a href="https://github.com/nestyxx/hune/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/nestyxx/hune/ci.yml?branch=main&label=tests"></a>
+  <a href="LICENSE"><img alt="Licence MIT" src="https://img.shields.io/badge/licence-MIT-4f7fe0"></a>
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-4f7fe0">
+</p>
 
-## Fonctions
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/captures/graphique-sombre.png">
+    <img alt="Graphique en chandeliers avec SMA, RSI et MACD, alertes tracées sur le cours" src="docs/captures/graphique-clair.png" width="900">
+  </picture>
+</p>
 
-- **Watchlist** : recherche par **symbole, nom ou ISIN** (clé de contrôle vérifiée avant l'appel), **catégories** personnalisables, tri, pastille 🔔 du nombre d'alertes armées par actif. Taper un nom propose d'abord les actifs déjà suivis.
-- **Graphique** (Lightweight Charts) : 15 min / 1 h / 4 h / 1 j ; Bougies, Heikin-Ashi, Ligne, Aire ; Volume, SMA, EMA, Bollinger, RSI, MACD, Stochastique, tous **paramétrables** (⚙) ; légende OHLC, échelle logarithmique, recentrage (bouton, touche R ou double-clic).
-- **Alertes** : prix, variation en % sur 1 h / 4 h / 24 h, RSI, cours qui franchit une SMA/EMA, croisement MACD/signal, croisement de moyennes (golden / death cross). Une alerte se déclenche **une fois**, passe à « déclenchée » et se réarme d'un bouton. Elles sont **dessinées sur le graphique**, et un **clic droit** sur le graphique crée une alerte de prix à ce niveau.
-- **Portefeuille** : positions par lots (quantité, PAMP, objectif, plateforme), valeur en euros (conversion des devises), P&L latent, poids, distance à l'objectif, répartition par catégorie et par plateforme, création d'alertes aux objectifs.
-- **Marché** : carte thermique par catégorie, plus fortes hausses/baisses, indice crypto Fear & Greed.
-- **Zone de notification** : fermer la fenêtre ne quitte pas l'application, qui continue de vérifier les alertes (30, 45 ou 60 s). Clic gauche = ouvrir ; clic droit › Quitter. Option « Démarrer avec Windows ».
-- **Thème** clair, sombre ou automatique ; **raccourcis** (Ctrl+K recherche, ↑/↓ actif, 1-4 intervalle, R recentrer, G/F/M/A/P onglets).
-- **Sauvegarde** : export / import JSON (fusion ou remplacement).
-- **Mises à jour automatiques** : vérification au démarrage puis toutes les 6 h ; paquets signés, installation sur clic.
+> *La hune : la plateforme en haut du mât d'un navire, d'où l'on guette l'horizon.*
 
-## Prérequis
+## Pourquoi Hune ?
 
-- Node 22+ et npm
-- Rust stable (édition 2024) et les outils C++ de Visual Studio 2022 (ou Build Tools)
-- WebView2 (présent sur Windows 11)
+TradingView et ProRealTime sont devenus payants pour l'essentiel. Hune reprend ce qui sert au quotidien (graphiques, indicateurs, alertes, portefeuille) dans une petite application Windows **gratuite, légère et privée** :
 
-## Développement
+- **Lecture seule** : aucune fonction de trading, aucun accès à un compte de courtier, aucune clé API à fournir.
+- **Tout reste chez vous** : watchlist, positions et alertes sont dans un fichier local. Pas de compte, pas de serveur, pas de télémétrie.
+- **Ça tourne en arrière-plan** : fermez la fenêtre, Hune continue de surveiller vos alertes depuis la zone de notification et vous prévient par une notification Windows.
 
-```powershell
-npm install
-npm run dev        # ouvre la fenêtre Tauri (premier lancement : compilation Rust de quelques minutes)
-npm test           # tests unitaires (indicateurs, alertes, portefeuille, cache/backoff, import…)
-npm run web        # interface seule dans un navigateur (http://localhost:1421) : Binance marche, pas Yahoo
-```
+## Ce qu'elle sait faire
 
-## Build local
+### Graphiques et indicateurs
 
-La mise à jour automatique exige que les paquets soient signés : fournir la clé de signature (générée avec `npx tauri signer generate`, hors du dépôt).
+Chandeliers (15 min, 1 h, 4 h, 1 j), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste. Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
 
-```powershell
-$env:TAURI_SIGNING_PRIVATE_KEY = "$HOME\.tauri\hune.key"
-$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = (Get-Content "$HOME\.tauri\hune.key.password")
-npm run tauri build
-```
+### Alertes
 
-Produit dans `src-tauri/target/release/` : `hune.exe` et, dans `bundle/`, l'installeur NSIS (par utilisateur, sans droits admin) et un MSI.
+Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MACD/signal, croisement de moyennes (golden / death cross). Une alerte se déclenche **une seule fois** puis se réarme d'un clic. Elles sont **tracées sur le graphique**, et un **clic droit** sur le cours crée une alerte à ce niveau.
 
-## Publier une version
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/captures/alertes-sombre.png">
+    <img alt="Liste des alertes armées et déclenchées" src="docs/captures/alertes-clair.png" width="760">
+  </picture>
+</p>
 
-1. Mettre le même numéro dans `package.json`, `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`, puis commiter.
-2. `powershell -File scripts/publier.ps1 -Notes "ce qui change"` : vérifie les versions, lance tests et build signé, pose le tag, publie la release GitHub avec les installeurs et `latest.json`, que les applications installées interrogent.
+### Portefeuille
 
-La clé de signature (`~\.tauri\hune.key` et son mot de passe) reste sur le poste, elle n'est jamais envoyée à GitHub. **Sauvegardez-la** (gestionnaire de mots de passe) : sans elle, les applications déjà installées ne pourront plus se mettre à jour. Le workflow `release.yml` (manuel) permet de publier depuis GitHub si l'on ajoute les secrets correspondants.
+Saisissez vos lots (quantité, prix d'achat moyen, objectif, plateforme) : Hune calcule la **valeur en euros** (conversion des devises), le **P&L latent**, le poids de chaque ligne, la distance à l'objectif et la répartition par catégorie et par plateforme. Un bouton crée les alertes aux objectifs en un clic.
 
-**Visibilité du dépôt** : l'application télécharge `latest.json` et l'installeur depuis les releases sans identifiant. Avec un dépôt **privé**, GitHub les refuse : la mise à jour automatique exige donc un dépôt public (ou un second dépôt public ne contenant que les releases).
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/captures/portefeuille-sombre.png">
+    <img alt="Portefeuille valorisé en euros avec P&L et répartition" src="docs/captures/portefeuille-clair.png" width="900">
+  </picture>
+</p>
 
-## Structure
+### Vue d'ensemble du marché
 
-```
-src/
-  donnees/        sources : fournisseur.ts (interface DataProvider), binance.ts, yahoo.ts, requeteur.ts (cache + backoff),
-                  change.ts (devises), isin.ts, sentiment.ts, agreger.ts
-  indicateurs/    SMA, EMA, RSI, MACD, Bollinger, Stochastique, Heikin-Ashi (fonctions pures + tests)
-  alertes/        moteur.ts (évaluation pure + tests), verification.ts (boucle), panneau.tsx, notifier.ts
-  portefeuille.ts (calculs purs + tests) · categories.ts · sauvegarde.ts · miseajour.ts · theme.ts · tray.ts · stockage.ts
-  graphique.tsx · watchlist.tsx · vue-portefeuille.tsx · vue-marche.tsx · reglages.tsx · App.tsx
-src-tauri/src/lib.rs   coque : fenêtre, tray, démarrage avec Windows, plugins (store, notification, http, updater)
-scripts/importer-excel.py   import des positions depuis un classeur Excel
-```
+Une carte thermique de votre watchlist par catégorie, les plus fortes hausses et baisses du moment, et l'indice crypto *Fear & Greed*.
 
-Remplacer une source de données : écrire une classe qui implémente `DataProvider` et l'enregistrer dans `src/donnees/index.ts`.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/captures/marche-sombre.png">
+    <img alt="Carte thermique de la watchlist et indice Fear and Greed" src="docs/captures/marche-clair.png" width="900">
+  </picture>
+</p>
 
-## Importer des positions depuis Excel
+### Et aussi
 
-`scripts/importer-excel.py` lit l'onglet « Cryptos » d'un classeur (symbole, quantité, PAMP, ATH, TP, plateforme) et, si présent, `scripts/actions.json` (voir `actions.exemple.json` ; fichier ignoré par git car il contient des montants). Il résout les symboles (Binance : USDC puis USDT puis EUR ; sinon Yahoo `SYM-USD`), vérifie leur existence et écrit un fichier à importer via Réglages › Sauvegarde › Importer › **Fusionner et recharger**.
+Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · thèmes clair, sombre ou automatique · raccourcis clavier (`Ctrl+K`, `↑`/`↓`, `1`-`4`, `R`…) · démarrage avec Windows · **sauvegarde** par export/import JSON avec copie automatique quotidienne · **mises à jour automatiques** signées.
 
-```powershell
-pip install openpyxl
-python scripts/importer-excel.py mon-classeur.xlsx
-```
+> Les captures ci-dessus utilisent un portefeuille **fictif**.
 
-Le fichier produit contient vos quantités : supprimez-le après usage.
+## Installer
 
-## Données et limites connues
+1. Téléchargez `Hune_X.Y.Z_x64-setup.exe` depuis la [dernière release](https://github.com/nestyxx/hune/releases/latest).
+2. Lancez-le : l'installation se fait pour votre utilisateur, sans droits administrateur.
+3. L'installeur n'est pas signé par un certificat de signature de code : **Windows SmartScreen** peut afficher « Windows a protégé votre ordinateur ». Cliquez sur *Informations complémentaires* puis *Exécuter quand même*. Le code source est ici, vous pouvez le relire ou compiler vous-même (voir [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-- **Actions : données différées.** Source Yahoo Finance via un **endpoint non officiel** : pas de garantie, il peut changer, être limité ou bloqué sans préavis. L'interface l'indique (« Données différées ») ; Binance est « Temps réel ».
-- **Rate limit / erreurs** : chaque source a un cache et un backoff exponentiel (2 s jusqu'à 5 min, pause longue sur HTTP 429) ; pendant une pause, les dernières données connues sont réutilisées. Les actions sont interrogées par paquets de 20 (endpoint `spark`).
-- **4 h sur les actions** : reconstruit à partir du 1 h, par paquets UTC qui ne suivent pas les horaires de séance.
-- **Alertes** : la vérification tourne dans la page web de l'application : elle fonctionne fenêtre masquée dans la zone de notification, pas si l'application est quittée ni si Windows est en veille. Seul l'état courant est évalué. Les alertes de croisement ne regardent que les bougies clôturées ; le RSI des alertes reste fixé à 14.
-- **Portefeuille** : PAMP et objectif sont dans la devise de cotation (USD pour les cryptos Binance). Une quantité déduite d'un simple montant en euros est **estimée** (« ≈ ») et n'a pas de PAMP donc pas de P&L. Un taux de change introuvable laisse la ligne non valorisée plutôt que de fausser le total.
-- **ISIN** : résolu par Yahoo, qui ne renvoie souvent qu'une place de cotation ; pas d'ISIN pour les cryptos.
-- Les données (watchlist, positions, alertes, réglages) sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Pour changer de poste, utilisez Réglages › Sauvegarde (export / import). Au démarrage, une copie quotidienne est faite dans `sauvegardes\` du même dossier (14 jours conservés, jamais à partir d'un fichier vide) : pour restaurer, fermer Hune et recopier une copie par-dessus `hune.json`.
-- Binance : l'API publique est inaccessible depuis certains pays (ex. États-Unis).
-- Lightweight Charts affiche le logo d'attribution TradingView (exigé par sa licence).
+Prérequis : Windows 10 ou 11 (WebView2, déjà présent sur Windows 11). Hune se met ensuite à jour toute seule : une bannière vous propose l'installation, rien n'est installé sans votre clic.
+
+## Premiers pas
+
+1. Tapez un symbole, un nom ou un ISIN dans la recherche (`Ctrl+K`) : `BTC`, `AAPL`, `LVMH`, `FR0000121014`… puis `Entrée`.
+2. Ouvrez l'onglet **Alertes** ou faites un clic droit sur le graphique pour être prévenu à un niveau de prix.
+3. Dans **Portefeuille**, ajoutez vos positions pour suivre votre valeur en euros.
+4. Dans **Réglages › Sauvegarde**, exportez de temps en temps un fichier JSON : c'est aussi le moyen de changer de poste.
+
+Vous avez déjà vos positions dans un tableur ? Voir [`scripts/importer-excel.py`](scripts/importer-excel.py).
+
+## Confidentialité et réseau
+
+Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
+
+## Limites à connaître
+
+- **Actions : données différées** (souvent ~15 min). La source est un **endpoint Yahoo Finance non officiel** : il peut changer, être limité ou bloqué sans préavis. L'interface indique « Données différées » ; les cryptos Binance sont en temps réel.
+- Les **alertes ne tournent que si Hune est lancée** (fenêtre fermée dans la zone de notification, oui ; application quittée ou Windows en veille, non). Seul l'état courant est évalué.
+- Le **4 h** des actions est reconstruit à partir du 1 h, par paquets UTC qui ne suivent pas les horaires de séance.
+- **Portefeuille** : PAMP et objectifs sont dans la devise de cotation de l'actif. Une quantité déduite d'un simple montant en euros est **estimée** (marquée « ≈ ») et n'a pas de P&L.
+- L'API publique de Binance est inaccessible depuis certains pays (par exemple les États-Unis).
+- Seul Windows est pris en charge pour l'instant.
+
+## Avertissement
+
+Hune est un outil d'information et ne fournit **aucun conseil en investissement**. Les cours peuvent être différés, incomplets ou erronés ; le logiciel est fourni « tel quel », sans garantie (voir la [licence](LICENSE)). Vérifiez toujours vos décisions auprès de votre courtier. Hune n'est affilié ni à Binance, ni à Yahoo, ni à TradingView ; ces noms appartiennent à leurs propriétaires.
+
+## Contribuer
+
+Les idées, retours et contributions sont les bienvenus : ouvrez un ticket pour discuter d'une évolution ou signaler un problème. Pour développer, tester et publier une version, voir [CONTRIBUTING.md](CONTRIBUTING.md). L'historique des versions est dans le [CHANGELOG](CHANGELOG.md).
+
+## Licence et remerciements
+
+[MIT](LICENSE). Hune s'appuie sur [Tauri](https://tauri.app), [React](https://react.dev), [Vite](https://vite.dev) et [Tailwind CSS](https://tailwindcss.com).
+
+Graphiques : [TradingView Lightweight Charts™](https://www.tradingview.com/lightweight-charts/) (licence Apache 2.0). Le logo d'attribution TradingView affiché sur les graphiques est exigé par cette licence.

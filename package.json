@@ -1,13 +1,14 @@
 {
   "name": "hune",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.4.3",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
     "web": "vite",
     "build": "tsc && vite build",
     "test": "vitest run",
+    "captures": "node scripts/captures.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

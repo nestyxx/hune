@@ -1,0 +1,42 @@
+{
+  "_commentaire": "Données FICTIVES (quantités et prix d'achat inventés) servant uniquement aux captures d'écran du README.",
+  "categories": ["Cryptos", "CTO", "PEA"],
+  "actifs": [
+    { "source": "binance", "symbole": "BTCUSDC", "nom": "BTC/USDC", "categorie": "Cryptos" },
+    { "source": "binance", "symbole": "ETHUSDC", "nom": "ETH/USDC", "categorie": "Cryptos" },
+    { "source": "binance", "symbole": "SOLUSDC", "nom": "SOL/USDC", "categorie": "Cryptos" },
+    { "source": "binance", "symbole": "ADAUSDC", "nom": "ADA/USDC", "categorie": "Cryptos" },
+    { "source": "binance", "symbole": "LINKUSDC", "nom": "LINK/USDC", "categorie": "Cryptos" },
+    { "source": "binance", "symbole": "DOGEUSDC", "nom": "DOGE/USDC", "categorie": "Cryptos" },
+    { "source": "yahoo", "symbole": "MSFT", "nom": "Microsoft", "categorie": "CTO" },
+    { "source": "yahoo", "symbole": "NVDA", "nom": "NVIDIA", "categorie": "CTO" },
+    { "source": "yahoo", "symbole": "AAPL", "nom": "Apple", "categorie": "CTO" },
+    { "source": "yahoo", "symbole": "MC.PA", "nom": "LVMH", "categorie": "PEA" },
+    { "source": "yahoo", "symbole": "AIR.PA", "nom": "Airbus", "categorie": "PEA" },
+    { "source": "yahoo", "symbole": "OR.PA", "nom": "L'Oréal", "categorie": "PEA" },
+    { "source": "yahoo", "symbole": "DCAM.PA", "nom": "Amundi PEA Monde (MSCI World)", "categorie": "PEA" }
+  ],
+  "positions": [
+    { "id": "demo-btc", "cle": "binance:BTCUSDC", "quantite": 0.12, "pamp": 52000, "objectif": 85000, "plateforme": "Ledger" },
+    { "id": "demo-eth-1", "cle": "binance:ETHUSDC", "quantite": 1.4, "pamp": 2300, "objectif": 4500, "plateforme": "Ledger" },
+    { "id": "demo-eth-2", "cle": "binance:ETHUSDC", "quantite": 1.0, "pamp": 2900, "plateforme": "Exchange" },
+    { "id": "demo-sol", "cle": "binance:SOLUSDC", "quantite": 18, "pamp": 95, "objectif": 220, "plateforme": "Exchange" },
+    { "id": "demo-ada", "cle": "binance:ADAUSDC", "quantite": 4200, "pamp": 0.45, "objectif": 1.2, "plateforme": "Ledger" },
+    { "id": "demo-link", "cle": "binance:LINKUSDC", "quantite": 60, "pamp": 14, "objectif": 30, "plateforme": "Exchange" },
+    { "id": "demo-doge", "cle": "binance:DOGEUSDC", "quantite": 9000, "pamp": 0.09, "plateforme": "Exchange" },
+    { "id": "demo-msft", "cle": "yahoo:MSFT", "quantite": 4, "pamp": 310, "objectif": 620, "plateforme": "CTO" },
+    { "id": "demo-nvda", "cle": "yahoo:NVDA", "quantite": 12, "pamp": 120, "plateforme": "CTO" },
+    { "id": "demo-aapl", "cle": "yahoo:AAPL", "quantite": 6, "pamp": 180, "plateforme": "CTO" },
+    { "id": "demo-mc", "cle": "yahoo:MC.PA", "quantite": 5, "pamp": 520, "objectif": 600, "plateforme": "PEA" },
+    { "id": "demo-air", "cle": "yahoo:AIR.PA", "quantite": 8, "pamp": 140, "plateforme": "PEA" },
+    { "id": "demo-or", "cle": "yahoo:OR.PA", "quantite": 2, "pamp": 380, "plateforme": "PEA" },
+    { "id": "demo-dcam", "cle": "yahoo:DCAM.PA", "montantEur": 1500, "plateforme": "PEA" }
+  ],
+  "reglages": { "periodeAlertesS": 45, "theme": "clair" },
+  "indicateurs": { "volume": false, "sma": true, "ema": false, "bollinger": false, "rsi": true, "macd": true, "stoch": false },
+  "intervalle": "1h",
+  "tri": "manuel",
+  "echelleLog": false,
+  "typeGraphique": "bougies",
+  "repliees": []
+}
