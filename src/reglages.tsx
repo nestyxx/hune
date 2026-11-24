@@ -143,7 +143,7 @@ export function PanneauReglages({ reglages, surChangement, maj }: Props) {
 
       <section className="rounded-lg border border-ligne bg-carte p-4">
         <h2 className="m-0 mb-3 text-base font-semibold">Sauvegarde</h2>
-        <p className="m-0 mb-3 text-xs text-doux">Watchlist, catégories, alertes et réglages dans un fichier JSON : pour changer de PC ou garder une copie. Aucune clé ni donnée de compte n'est stockée.</p>
+        <p className="m-0 mb-3 text-xs text-doux">Watchlist, catégories, alertes et réglages dans un fichier JSON : pour changer de PC ou garder une copie. Aucune clé ni donnée de compte n'est stockée. Une copie automatique est aussi faite chaque jour au démarrage (14 jours conservés) dans <code>%APPDATA%\io.github.nestyxx.hune\sauvegardes</code> : pour restaurer, fermez Hune puis recopiez une de ces copies par-dessus <code>hune.json</code>.</p>
         <div className="flex flex-wrap items-center gap-2">
           <button className="bouton" onClick={() => void exporter()}>
             Exporter…

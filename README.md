@@ -89,6 +89,6 @@ Le fichier produit contient vos quantités : supprimez-le après usage.
 - **Alertes** : la vérification tourne dans la page web de l'application : elle fonctionne fenêtre masquée dans la zone de notification, pas si l'application est quittée ni si Windows est en veille. Seul l'état courant est évalué. Les alertes de croisement ne regardent que les bougies clôturées ; le RSI des alertes reste fixé à 14.
 - **Portefeuille** : PAMP et objectif sont dans la devise de cotation (USD pour les cryptos Binance). Une quantité déduite d'un simple montant en euros est **estimée** (« ≈ ») et n'a pas de PAMP donc pas de P&L. Un taux de change introuvable laisse la ligne non valorisée plutôt que de fausser le total.
 - **ISIN** : résolu par Yahoo, qui ne renvoie souvent qu'une place de cotation ; pas d'ISIN pour les cryptos.
-- Les données (watchlist, positions, alertes, réglages) sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Pour changer de poste, utilisez Réglages › Sauvegarde (export / import).
+- Les données (watchlist, positions, alertes, réglages) sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Pour changer de poste, utilisez Réglages › Sauvegarde (export / import). Au démarrage, une copie quotidienne est faite dans `sauvegardes\` du même dossier (14 jours conservés, jamais à partir d'un fichier vide) : pour restaurer, fermer Hune et recopier une copie par-dessus `hune.json`.
 - Binance : l'API publique est inaccessible depuis certains pays (ex. États-Unis).
 - Lightweight Charts affiche le logo d'attribution TradingView (exigé par sa licence).

@@ -25,6 +25,66 @@ fn montrer_fenetre(app: &AppHandle) {
     }
 }
 
+/// Date UTC (AAAAMMJJ) d'un instant exprimé en secondes depuis 1970 (algorithme « civil from days » de H. Hinnant).
+fn jour_depuis_epoch(secondes: u64) -> String {
+    let z = (secondes / 86_400) as i64 + 719_468;
+    let ere = z.div_euclid(146_097);
+    let jour_ere = z.rem_euclid(146_097);
+    let annee_ere = (jour_ere - jour_ere / 1_460 + jour_ere / 36_524 - jour_ere / 146_096) / 365;
+    let jour_annee = jour_ere - (365 * annee_ere + annee_ere / 4 - annee_ere / 100);
+    let mp = (5 * jour_annee + 2) / 153;
+    let jour = jour_annee - (153 * mp + 2) / 5 + 1;
+    let mois = if mp < 10 { mp + 3 } else { mp - 9 };
+    let annee = annee_ere + ere * 400 + i64::from(mois <= 2);
+    format!("{annee:04}{mois:02}{jour:02}")
+}
+
+/// Copie quotidienne de `hune.json` dans `sauvegardes/` (14 jours conservés), faite au démarrage avant que l'interface
+/// n'ouvre le fichier. On ne copie que si le fichier contient réellement des données (actifs ou positions) : un fichier
+/// vide ne doit jamais faire sortir, par rotation, une copie utile. Pour restaurer : fermer Hune, recopier la sauvegarde
+/// voulue par-dessus `hune.json`.
+fn sauvegarde_quotidienne(app: &tauri::App) {
+    let Ok(dossier) = app.path().app_data_dir() else { return };
+    let fichier = dossier.join("hune.json");
+    let Ok(contenu) = std::fs::read_to_string(&fichier) else { return };
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&contenu) else { return };
+    let non_vide = |cle: &str| json.get(cle).and_then(|v| v.as_array()).is_some_and(|a| !a.is_empty());
+    if !(non_vide("actifs") || non_vide("positions")) {
+        return;
+    }
+    let destination = dossier.join("sauvegardes");
+    if std::fs::create_dir_all(&destination).is_err() {
+        return;
+    }
+    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let cible = destination.join(format!("hune-{}.json", jour_depuis_epoch(maintenant)));
+    if !cible.exists() {
+        let _ = std::fs::copy(&fichier, &cible);
+    }
+    // Rotation : les noms contiennent la date, le tri alphabétique est donc chronologique.
+    if let Ok(entrees) = std::fs::read_dir(&destination) {
+        let mut copies: Vec<_> = entrees.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "json")).collect();
+        copies.sort();
+        while copies.len() > 14 {
+            let _ = std::fs::remove_file(copies.remove(0));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::jour_depuis_epoch;
+
+    #[test]
+    fn dates_connues() {
+        assert_eq!(jour_depuis_epoch(0), "19700101");
+        assert_eq!(jour_depuis_epoch(86_400 * 365), "19710101");
+        assert_eq!(jour_depuis_epoch(951_782_400), "20000229"); // année bissextile
+        assert_eq!(jour_depuis_epoch(951_868_800), "20000301");
+        assert_eq!(jour_depuis_epoch(1_795_564_800), "20261125"); // 25 novembre 2026, 00:00 UTC
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -44,6 +104,8 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            sauvegarde_quotidienne(app);
+
             let ouvrir = MenuItem::with_id(app, "ouvrir", "Ouvrir", true, None::<&str>)?;
             let quitter = MenuItem::with_id(app, "quitter", "Quitter", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&ouvrir, &quitter])?;
