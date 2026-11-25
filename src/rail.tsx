@@ -43,24 +43,24 @@ export function Rail({ onglet, surOnglet, reduit, surReduire, listeVisible, list
     );
   };
 
+  const onglets = ({ id, libelle, icone: Icone, touche }: (typeof ELEMENTS)[number]) => (
+    <button key={id} className="nav-item" aria-current={onglet === id ? "page" : undefined} onClick={() => surOnglet(id)} title={`${libelle} (${touche})`}>
+      <Icone size={18} />
+      {!reduit && <span className="flex-1">{libelle}</span>}
+      {id === "alertes" && alertesArmees > 0 && (
+        <span
+          className={`grid h-[18px] min-w-[18px] place-items-center rounded-full bg-alerte px-1 text-[11px] font-semibold leading-none text-white ${reduit ? "absolute right-1 top-1" : ""}`}
+          title={`${alertesArmees} alerte${alertesArmees > 1 ? "s" : ""} armée${alertesArmees > 1 ? "s" : ""}`}
+        >
+          {alertesArmees}
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <nav className={`flex shrink-0 flex-col justify-between px-2 pb-2 pt-1 transition-[width] duration-200 ${reduit ? "w-[60px]" : "w-[200px]"}`} aria-label="Navigation principale">
-      <div className="space-y-0.5">
-        {ELEMENTS.map(({ id, libelle, icone: Icone, touche }) => (
-          <button key={id} className="nav-item" aria-current={onglet === id ? "page" : undefined} onClick={() => surOnglet(id)} title={`${libelle} (${touche})`}>
-            <Icone size={18} />
-            {!reduit && <span className="flex-1">{libelle}</span>}
-            {id === "alertes" && alertesArmees > 0 && (
-              <span
-                className={`grid h-[18px] min-w-[18px] place-items-center rounded-full bg-alerte px-1 text-[11px] font-semibold leading-none text-white ${reduit ? "absolute right-1 top-1" : ""}`}
-                title={`${alertesArmees} alerte${alertesArmees > 1 ? "s" : ""} armée${alertesArmees > 1 ? "s" : ""}`}
-              >
-                {alertesArmees}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <div className="space-y-0.5">{ELEMENTS.filter((e) => e.id !== "reglages").map(onglets)}</div>
 
       <div className="space-y-0.5">
         {majDisponible && (
@@ -72,6 +72,7 @@ export function Rail({ onglet, surOnglet, reduit, surReduire, listeVisible, list
         {listeApplicable && action(PanelLeft, listeVisible ? "Masquer la liste" : "Afficher la liste", surBasculerListe, listeVisible ? "Masquer la liste des actifs" : "Afficher la liste des actifs")}
         {action(Minimize2, "Mode compact", surCompact, "Mode compact : petite fenêtre avec la liste seule")}
         {action(IconeTheme, LIBELLE_THEME[theme], surBasculerTheme, "Changer de thème (auto, clair, sombre)")}
+        {ELEMENTS.filter((e) => e.id === "reglages").map(onglets)}
         {action(reduit ? PanelLeftOpen : PanelLeftClose, reduit ? "Agrandir le menu" : "Réduire le menu", surReduire)}
       </div>
     </nav>
