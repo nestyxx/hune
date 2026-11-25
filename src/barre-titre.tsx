@@ -15,7 +15,9 @@ export function BarreTitre({ fenetre, compact }: { fenetre: ReturnType<typeof us
           coïncident. Le nom tombe à l'aplomb des libellés (x = 49). */}
       <div className="pointer-events-none flex items-center gap-3">
         <Logo taille={16} />
-        <span className="titre-serif text-[20px] leading-none">Hune</span>
+        {/* Verticalement, le tracé de « Hune » (haut du H à la ligne de base, 14 px) est centré à y = 18 dans sa boîte de 20 px :
+            2 px plus haut que le centre du logo. On le descend de 2 px pour que les deux soient centrés l'un sur l'autre. */}
+        <span className="titre-serif relative top-[2px] text-[20px] leading-none">Hune</span>
       </div>
       {fenetre.disponible && (
         <div className="flex h-full items-stretch">

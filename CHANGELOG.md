@@ -3,6 +3,15 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.5.4] - 2026-11-25
+
+### Corrigé
+- Barre de titre : le nom « Hune » est maintenant centré verticalement sur le logo (le tracé de la police serif était 2 px plus haut).
+- Modification d'alerte : une vérification déjà en cours au moment de l'enregistrement ne peut plus déclencher l'alerte avec son ancienne condition.
+
+### Modifié
+- Une alerte modifiée affiche une confirmation (« Alerte modifiée et réarmée »).
+
 ## [0.5.3] - 2026-11-25
 
 ### Modifié

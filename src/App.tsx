@@ -146,7 +146,8 @@ export default function App() {
   // Déclenchement : l'alerte passe à « déclenchée » (elle ne se redéclenchera pas) et on notifie.
   const declencher = useCallback(
     (alerte: Alerte, valeur: number) => {
-      changerAlertes((l) => l.map((a) => (a.id === alerte.id && a.statut === "armee" ? { ...a, statut: "declenchee", declencheeLe: Date.now(), valeur } : a)));
+      // `a.condition === alerte.condition` : une vérification lancée avant une modification ne doit pas déclencher l'alerte modifiée.
+      changerAlertes((l) => l.map((a) => (a.id === alerte.id && a.statut === "armee" && a.condition === alerte.condition ? { ...a, statut: "declenchee", declencheeLe: Date.now(), valeur } : a)));
       const t = alerte.condition.type;
       const mesure = t === "variation" ? `${valeur.toFixed(2).replace(".", ",")} %` : t === "rsi" ? valeur.toFixed(1).replace(".", ",") : formaterPrix(valeur);
       void notifier(`Alerte : ${alerte.actif.symbole}`, `${decrire(alerte.condition)} (actuel : ${mesure})`);
@@ -422,7 +423,10 @@ export default function App() {
                   actifParDefaut={selection}
                   alertes={alertes}
                   surCreation={(a) => changerAlertes((l) => [...l, a])}
-                  surModification={(m) => changerAlertes((l) => l.map((a) => (a.id === m.id ? m : a)))}
+                  surModification={(m) => {
+                    changerAlertes((l) => l.map((a) => (a.id === m.id ? m : a)));
+                    prevenir(`Alerte modifiée et réarmée : ${m.actif.symbole} ${decrire(m.condition)}`);
+                  }}
                   surRearmement={(id) => changerAlertes((l) => l.map((a) => (a.id === id ? { ...a, statut: "armee", creeeLe: Date.now(), declencheeLe: undefined, valeur: undefined } : a)))}
                   surSuppression={(id) => changerAlertes((l) => l.filter((a) => a.id !== id))}
                   surOuvrirActif={ouvrirActif}
