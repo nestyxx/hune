@@ -8,11 +8,13 @@ import { Logo } from "./logo";
  */
 export function BarreTitre({ fenetre, compact }: { fenetre: ReturnType<typeof useFenetre>; compact?: boolean }) {
   return (
-    <header data-tauri-drag-region className="flex h-10 shrink-0 select-none items-center justify-between pl-3.5">
-      {/* pointer-events-none : le clic traverse jusqu'à la zone de glisser-déposer */}
-      <div className="pointer-events-none flex items-center gap-2">
-        <Logo taille={20} />
-        <span className="titre-serif text-[22px] leading-none">Hune</span>
+    <header data-tauri-drag-region className="flex h-10 shrink-0 select-none items-center justify-between pl-5">
+      {/* pointer-events-none : le clic traverse jusqu'à la zone de glisser-déposer.
+          pl-5 et gap-[11px] : le logo tombe à l'aplomb des icônes de navigation (8 px de marge + 12 px de remplissage)
+          et le nom à l'aplomb de leurs libellés (icône 18 px + 11 px). */}
+      <div className="pointer-events-none flex items-center gap-[11px]">
+        <Logo taille={18} />
+        <span className="titre-serif text-[20px] leading-none">Hune</span>
       </div>
       {fenetre.disponible && (
         <div className="flex h-full items-stretch">

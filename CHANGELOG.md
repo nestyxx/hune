@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.5.2] - 2026-11-25
+
+### Modifié
+- Barre de titre : le logo est un peu plus petit (18 px) et tombe à l'aplomb des icônes de navigation, le nom « Hune » à l'aplomb de leurs libellés.
+
 ## [0.5.1] - 2026-11-25
 
 ### Ajouté
