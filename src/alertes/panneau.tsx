@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Pencil } from "lucide-react";
 import { EnTete } from "../composants";
 import { cleActif, INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Intervalle } from "../donnees/types";
 import { formaterPrix } from "../format";
@@ -21,6 +22,8 @@ interface Props {
   actifParDefaut: string | null;
   alertes: Alerte[];
   surCreation: (a: Alerte) => void;
+  /** Remplace l'alerte de même `id` (réarmée). */
+  surModification: (a: Alerte) => void;
   surRearmement: (id: string) => void;
   surSuppression: (id: string) => void;
   /** Ouvre le graphique de l'actif (clé `source:symbole`). */
@@ -40,7 +43,7 @@ function texteValeur(a: Alerte): string {
 }
 
 /** Onglet « Alertes » : formulaire de création + liste (armées / déclenchées avec bouton Réarmer). */
-export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, surRearmement, surSuppression, surOuvrirActif, derniereVerification, erreur, periodeS }: Props) {
+export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, surModification, surRearmement, surSuppression, surOuvrirActif, derniereVerification, erreur, periodeS }: Props) {
   const [cle, setCle] = useState<string>("");
   const [type, setType] = useState<TypeFormulaire>("prix");
   const [sensPrix, setSensPrix] = useState<"au-dessus" | "en-dessous">("au-dessus");
@@ -54,6 +57,8 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
   const [rapide, setRapide] = useState("50");
   const [lente, setLente] = useState("200");
   const [message, setMessage] = useState<string | null>(null);
+  const [edition, setEdition] = useState<string | null>(null);
+  const formulaire = useRef<HTMLElement>(null);
 
   const cleEffective = cle || actifParDefaut || (actifs[0] ? cleActif(actifs[0]) : "");
   const nombre = (s: string) => Number(s.replace(/\s/g, "").replace(",", ".")); // accepte la virgule décimale
@@ -91,7 +96,63 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
         break;
       }
     }
-    surCreation({ id: crypto.randomUUID(), actif, condition, statut: "armee", creeeLe: Date.now() });
+    // Une alerte modifiée est réarmée : l'ancien déclenchement ne vaut plus pour la nouvelle condition.
+    const alerte: Alerte = { id: edition ?? crypto.randomUUID(), actif, condition, statut: "armee", creeeLe: Date.now() };
+    if (edition) surModification(alerte);
+    else surCreation(alerte);
+    setEdition(null);
+    setValeur("");
+    setMessage(null);
+  };
+
+  /** Recharge une alerte existante dans le formulaire pour la modifier. */
+  const charger = (a: Alerte) => {
+    const c = a.condition;
+    setEdition(a.id);
+    setCle(cleActif(a.actif));
+    setMessage(null);
+    switch (c.type) {
+      case "prix":
+        setType("prix");
+        setSensPrix(c.sens);
+        setValeur(String(c.seuil).replace(".", ","));
+        break;
+      case "variation":
+        setType("variation");
+        setSensVar(c.sens);
+        setPeriode(c.periode);
+        setValeur(String(c.pct).replace(".", ","));
+        break;
+      case "rsi":
+        setType("rsi");
+        setSensPrix(c.sens);
+        setIntervalle(c.intervalle);
+        setValeur(String(c.seuil).replace(".", ","));
+        break;
+      case "franchissement":
+        setType("franchissement");
+        setSensPrix(c.sens);
+        setMoyenne(c.moyenne);
+        setPeriodeMoy(String(c.periode));
+        setIntervalle(c.intervalle);
+        break;
+      case "croisement":
+        setSensCroi(c.sens);
+        setIntervalle(c.intervalle);
+        if (c.modele === "macd") setType("macd");
+        else {
+          setType("moyennes");
+          setMoyenne(c.moyenne);
+          setRapide(String(c.rapide));
+          setLente(String(c.lente));
+        }
+        break;
+    }
+    formulaire.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const annulerEdition = () => {
+    setEdition(null);
     setValeur("");
     setMessage(null);
   };
@@ -132,8 +193,8 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
   return (
     <div className="apparait flex-1 overflow-auto p-6">
       <EnTete titre="Alertes" sousTitre={`${alertes.filter((x) => x.statut === "armee").length} armée${alertes.filter((x) => x.statut === "armee").length > 1 ? "s" : ""}, ${alertes.filter((x) => x.statut === "declenchee").length} déclenchée${alertes.filter((x) => x.statut === "declenchee").length > 1 ? "s" : ""} · une alerte se déclenche une seule fois, puis se réarme d'un clic.`} />
-      <section className="mb-6 mt-5 rounded-2xl border border-ligne bg-carte p-5">
-        <h2 className="m-0 mb-3 text-base font-semibold">Nouvelle alerte</h2>
+      <section ref={formulaire} className={`mb-6 mt-5 rounded-2xl border bg-carte p-5 ${edition ? "border-accent" : "border-ligne"}`}>
+        <h2 className="m-0 mb-3 text-base font-semibold">{edition ? "Modifier l'alerte" : "Nouvelle alerte"}</h2>
         {actifs.length === 0 ? (
           <p className="m-0 text-doux">Ajoutez d'abord un actif à la liste pour créer une alerte.</p>
         ) : (
@@ -220,8 +281,13 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
             )}
 
             <button className="bouton bouton-actif" onClick={creer}>
-              Créer l'alerte
+              {edition ? "Enregistrer" : "Créer l'alerte"}
             </button>
+            {edition && (
+              <button className="bouton" onClick={annulerEdition}>
+                Annuler
+              </button>
+            )}
           </div>
         )}
         {(type === "franchissement" || type === "macd" || type === "moyennes") && (
@@ -257,7 +323,18 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
                   Réarmer
                 </button>
               )}
-              <button className="bouton" title="Supprimer l'alerte" aria-label="Supprimer l'alerte" onClick={() => surSuppression(a.id)}>
+              <button className="bouton" title="Modifier l'alerte" aria-label="Modifier l'alerte" onClick={() => charger(a)}>
+                <Pencil size={14} />
+              </button>
+              <button
+                className="bouton"
+                title="Supprimer l'alerte"
+                aria-label="Supprimer l'alerte"
+                onClick={() => {
+                  if (edition === a.id) annulerEdition();
+                  surSuppression(a.id);
+                }}
+              >
                 ✕
               </button>
             </div>

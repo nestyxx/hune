@@ -39,7 +39,7 @@ Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heik
 
 ### Alertes
 
-Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MACD/signal, croisement de moyennes (golden / death cross). Une alerte se déclenche **une seule fois** puis se réarme d'un clic. Elles sont **tracées sur le graphique**, et un **clic droit** sur le cours crée une alerte à ce niveau.
+Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MACD/signal, croisement de moyennes (golden / death cross). Une alerte se déclenche **une seule fois** puis se réarme d'un clic. Elles sont **tracées sur le graphique**, un **clic droit** sur le cours crée une alerte à ce niveau, et le bouton crayon permet de **modifier** une alerte existante.
 
 <p align="center">
   <picture>

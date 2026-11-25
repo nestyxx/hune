@@ -422,6 +422,7 @@ export default function App() {
                   actifParDefaut={selection}
                   alertes={alertes}
                   surCreation={(a) => changerAlertes((l) => [...l, a])}
+                  surModification={(m) => changerAlertes((l) => l.map((a) => (a.id === m.id ? m : a)))}
                   surRearmement={(id) => changerAlertes((l) => l.map((a) => (a.id === id ? { ...a, statut: "armee", creeeLe: Date.now(), declencheeLe: undefined, valeur: undefined } : a)))}
                   surSuppression={(id) => changerAlertes((l) => l.filter((a) => a.id !== id))}
                   surOuvrirActif={ouvrirActif}

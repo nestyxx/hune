@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.5.1] - 2026-11-25
+
+### Ajouté
+- **Modification d'une alerte** : un bouton crayon sur chaque alerte recharge ses réglages dans le formulaire (actif, condition, seuil, intervalle…). L'alerte enregistrée est réarmée, y compris si elle était déclenchée.
+
 ## [0.5.0] - 2026-11-25
 
 ### Ajouté
