@@ -3,6 +3,12 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.6.0] - 2026-11-25
+
+### Ajouté
+- **Import de transactions (CSV)** dans l'onglet Portefeuille : à partir d'un historique d'achats et de ventes (export CoinMarketCap, courtier, exchange…), Hune reconstitue la quantité détenue et le prix d'achat moyen (frais d'achat inclus). Un aperçu détaille chaque token avant toute écriture ; les tokens déjà suivis sont réutilisés, les autres sont ajoutés à la watchlist (paire Binance en EUR, sinon USDC, sinon USDT). Réimporter le même fichier met à jour au lieu de dupliquer ; les lots des autres plateformes et les objectifs sont conservés.
+- Les colonnes sont reconnues automatiquement (séparateur `,` `;` ou tabulation, décimales `.` ou `,`) ; les lignes strictement identiques (par exemple une migration MATIC → POL consignée deux fois) peuvent être retirées.
+
 ## [0.5.5] - 2026-11-25
 
 ### Corrigé

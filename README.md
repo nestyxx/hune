@@ -50,7 +50,7 @@ Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MAC
 
 ### Portefeuille
 
-Saisissez vos lots (quantité, prix d'achat moyen, objectif, plateforme) : Hune calcule la **valeur en euros** (conversion des devises), le **P&L latent**, le poids de chaque ligne, la distance à l'objectif et la répartition par catégorie et par plateforme. Un bouton crée les alertes aux objectifs en un clic.
+Saisissez vos lots (quantité, prix d'achat moyen, objectif, plateforme) : Hune calcule la **valeur en euros** (conversion des devises), le **P&L latent**, le poids de chaque ligne, la distance à l'objectif et la répartition par catégorie et par plateforme. Un bouton crée les alertes aux objectifs en un clic. Vous avez un historique d'achats et de ventes (export CoinMarketCap, courtier, exchange) ? **Importez le CSV** : Hune reconstitue quantités et prix d'achat moyens, et vous montre le résultat avant d'écrire quoi que ce soit.
 
 <p align="center">
   <picture>
