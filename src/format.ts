@@ -1,8 +1,11 @@
+/** Remplace les espaces insécables (fines ou non) par une espace ordinaire : toutes les polices la dessinent, pas les autres. */
+export const espaceOrdinaire = (s: string) => s.replace(/[  ]/g, " ");
+
 /** Prix avec un nombre de décimales adapté à l'ordre de grandeur (0,00001234 comme 64 250,12). */
 export function formaterPrix(p: number | undefined | null): string {
   if (p == null || !Number.isFinite(p)) return "—";
   const decimales = p >= 1000 ? 2 : p >= 1 ? 3 : p >= 0.01 ? 4 : 8;
-  return p.toLocaleString("fr-FR", { minimumFractionDigits: Math.min(decimales, 2), maximumFractionDigits: decimales });
+  return espaceOrdinaire(p.toLocaleString("fr-FR", { minimumFractionDigits: Math.min(decimales, 2), maximumFractionDigits: decimales }));
 }
 
 /** Arrondit un prix lu sur le graphique (ex. 59123,4567…) à une précision lisible pour un seuil d'alerte. */

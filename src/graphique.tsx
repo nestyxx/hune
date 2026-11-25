@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { PERIODES_VARIATION, type Alerte } from "./alertes/moteur";
 import { fournisseur } from "./donnees";
+import { LIBELLE_PROFONDEUR, PROFONDEUR_DISPONIBLE, PROFONDEURS, type Profondeur } from "./donnees/historique";
 import { INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Bougie, type Intervalle } from "./donnees/types";
 import { arrondirPrix, formaterPrix } from "./format";
 import { heikinAshi } from "./indicateurs/heikinashi";
@@ -96,6 +97,9 @@ interface Props {
   actif: Actif;
   intervalle: Intervalle;
   surIntervalle: (i: Intervalle) => void;
+  /** Profondeur d'historique (journalier et au-delà). */
+  profondeur: Profondeur;
+  surProfondeur: (p: Profondeur) => void;
   indicateurs: Indicateurs;
   surIndicateurs: (i: Indicateurs) => void;
   parametres: Parametres;
@@ -123,7 +127,7 @@ interface Legende {
   v: number;
 }
 
-export function Graphique({ actif, intervalle, surIntervalle, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte }: Props) {
+export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte }: Props) {
   const conteneur = useRef<HTMLDivElement>(null);
   const graphique = useRef<IChartApi | null>(null);
   const principale = useRef<ISeriesApi<SeriesType> | null>(null);
@@ -197,7 +201,15 @@ export function Graphique({ actif, intervalle, surIntervalle, indicateurs, surIn
       const b = donnees.current.find((x) => x.temps === (param.time as number));
       setLegende(b ? { o: b.ouverture, h: b.haut, l: b.bas, c: b.cloture, v: b.volume } : derniereLegende());
     });
+    // Quand le panneau s'élargit (menu réduit, liste masquée…), la vue est réajustée si elle montrait déjà tout l'historique
+    // depuis la première bougie : sans cela, un grand vide apparaîtrait à gauche. Un zoom de l'utilisateur est respecté.
+    const observateur = new ResizeObserver(() => {
+      const plage = chart.timeScale().getVisibleLogicalRange();
+      if (plage && plage.from <= 0.5) chart.timeScale().fitContent();
+    });
+    observateur.observe(conteneur.current!);
     return () => {
+      observateur.disconnect();
       chart.remove();
       graphique.current = null;
       principale.current = null;
@@ -337,7 +349,7 @@ export function Graphique({ actif, intervalle, surIntervalle, indicateurs, surIn
     const charger = async (premiere: boolean) => {
       if (premiere) setChargement(true);
       try {
-        const b = await f.bougies(actif.symbole, intervalle);
+        const b = await f.bougies(actif.symbole, intervalle, profondeur);
         if (annule) return;
         donnees.current = b;
         appliquerDonnees();
@@ -382,7 +394,7 @@ export function Graphique({ actif, intervalle, surIntervalle, indicateurs, surIn
       clearInterval(minuterie);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actif.source, actif.symbole, intervalle]);
+  }, [actif.source, actif.symbole, intervalle, profondeur]);
 
   // Indicateur activé/désactivé ou paramétré, alerte créée/déclenchée : on redessine sans recharger les données.
   useEffect(dessinerIndicateurs, [indicateurs, parametres, alertes]);
@@ -411,39 +423,40 @@ export function Graphique({ actif, intervalle, surIntervalle, indicateurs, surIn
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="relative flex flex-wrap items-center gap-2 border-b border-ligne px-4 py-2">
-        <div className="flex gap-1">
+      <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-ligne px-6 py-2.5">
+        <div className="segments" role="group" aria-label="Intervalle">
           {INTERVALLES.map((i, n) => (
-            <button key={i} title={`Raccourci : ${n + 1}`} className={`bouton ${i === intervalle ? "bouton-actif" : ""}`} onClick={() => surIntervalle(i)}>
+            <button key={i} title={`Raccourci : ${n + 1}`} aria-pressed={i === intervalle} className="segment" onClick={() => surIntervalle(i)}>
               {LIBELLE_INTERVALLE[i]}
             </button>
           ))}
         </div>
-        <span className="mx-1 h-5 w-px bg-ligne" />
-        <select className="champ !py-1" aria-label="Type de graphique" title="Type de graphique" value={typeGraphique} onChange={(e) => surTypeGraphique(e.target.value as TypeGraphique)}>
+        {PROFONDEUR_DISPONIBLE.includes(intervalle) && (
+          <div className="segments" role="group" aria-label="Profondeur de l'historique" title="Profondeur de l'historique">
+            {PROFONDEURS.map((p) => (
+              <button key={p} aria-pressed={p === profondeur} className="segment" onClick={() => surProfondeur(p)}>
+                {LIBELLE_PROFONDEUR[p]}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="segments" role="group" aria-label="Type de graphique">
           {(Object.keys(LIBELLE_TYPE) as TypeGraphique[]).map((t) => (
-            <option key={t} value={t}>
+            <button key={t} aria-pressed={t === typeGraphique} className="segment" onClick={() => surTypeGraphique(t)}>
               {LIBELLE_TYPE[t]}
-            </option>
+            </button>
           ))}
-        </select>
-        <div className="flex flex-wrap gap-1">
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
           {(Object.keys(libelles) as (keyof Indicateurs)[]).map((k) => (
-            <button key={k} aria-pressed={indicateurs[k]} className={`bouton ${indicateurs[k] ? "bouton-actif" : ""}`} onClick={() => surIndicateurs({ ...indicateurs, [k]: !indicateurs[k] })}>
+            <button key={k} aria-pressed={indicateurs[k]} className="puce" onClick={() => surIndicateurs({ ...indicateurs, [k]: !indicateurs[k] })}>
               {libelles[k]}
             </button>
           ))}
-          <button className={`bouton ${panneauParametres ? "bouton-actif" : ""}`} title="Périodes des indicateurs" aria-label="Paramètres des indicateurs" onClick={() => setPanneauParametres(!panneauParametres)}>
+          <button className="puce" aria-pressed={panneauParametres} title="Périodes des indicateurs" aria-label="Paramètres des indicateurs" onClick={() => setPanneauParametres(!panneauParametres)}>
             ⚙
           </button>
         </div>
-        <span className="mx-1 h-5 w-px bg-ligne" />
-        <button aria-pressed={echelleLog} title="Échelle logarithmique" className={`bouton ${echelleLog ? "bouton-actif" : ""}`} onClick={() => surEchelleLog(!echelleLog)}>
-          Log
-        </button>
-        <button className="bouton" title="Recentrer le graphique (R, ou double-clic)" onClick={recentrer}>
-          ⤢ Recentrer
-        </button>
 
         {panneauParametres && (
           <div className="menu-contextuel absolute left-4 top-full z-30 mt-1 w-[min(560px,92%)] p-3">
@@ -481,6 +494,15 @@ export function Graphique({ actif, intervalle, surIntervalle, indicateurs, surIn
       </div>
       <div className="relative min-h-0 flex-1" onContextMenu={ouvrirMenu} onDoubleClick={recentrer} onClick={() => setMenu(null)}>
         <div ref={conteneur} className="absolute inset-0" />
+        {/* Commandes du graphique en surimpression (hors de la barre d'outils, qui reste aérée). */}
+        <div className="absolute right-[76px] top-2 z-10 flex items-center gap-1.5" onDoubleClick={(e) => e.stopPropagation()}>
+          <button aria-pressed={echelleLog} title="Échelle logarithmique" className="puce" onClick={() => surEchelleLog(!echelleLog)}>
+            Log
+          </button>
+          <button className="bouton !rounded-full !py-[3px]" title="Recentrer le graphique (R, ou double-clic)" onClick={recentrer}>
+            ⤢ Recentrer
+          </button>
+        </div>
         {legende && (
           <div className="pointer-events-none absolute left-3 top-2 z-10 flex gap-3 font-mono text-xs text-doux">
             <span>O <b className="font-normal text-texte">{formaterPrix(legende.o)}</b></span>

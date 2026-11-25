@@ -1,4 +1,5 @@
 import type { DataProvider } from "./fournisseur";
+import { barresVisees, fusionnerPages, type Profondeur } from "./historique";
 import { getJson } from "./http";
 import { Requeteur } from "./requeteur";
 import type { Bougie, Cotation, Intervalle, ResultatRecherche } from "./types";
@@ -50,12 +51,27 @@ export class Binance implements DataProvider {
       .map((s) => ({ source: "binance", symbole: s.symbol, nom: `${s.baseAsset}/${s.quoteAsset}`, detail: "Crypto · Binance" }));
   }
 
-  async bougies(symbole: string, intervalle: Intervalle): Promise<Bougie[]> {
-    // Les 4 intervalles du PoC existent tels quels chez Binance (15m, 1h, 4h, 1d).
-    const lignes = await this.requeteur.obtenir(`k:${symbole}:${intervalle}`, 10_000, () =>
-      getJson<LigneKline[]>(`${REST}/klines?symbol=${encodeURIComponent(symbole)}&interval=${intervalle}&limit=500`),
-    );
-    return lignes.map(versBougie);
+  /**
+   * Tous les intervalles proposés existent tels quels chez Binance (15m, 1h, 4h, 1d, 1w, 1M). Au-delà de 1000 bougies,
+   * on remonte dans le temps page par page (`endTime`), jusqu'au nombre visé ou jusqu'au début de la cotation.
+   */
+  async bougies(symbole: string, intervalle: Intervalle, profondeur: Profondeur = "standard"): Promise<Bougie[]> {
+    const cible = barresVisees(intervalle, profondeur);
+    const pages: Bougie[][] = [];
+    let total = 0;
+    let fin: number | undefined; // ouverture (ms) de la plus ancienne bougie déjà reçue, moins 1
+    for (let n = 0; n < 15 && total < cible; n++) {
+      const limite = Math.min(1000, cible - total);
+      const url = `${REST}/klines?symbol=${encodeURIComponent(symbole)}&interval=${intervalle}&limit=${limite}${fin ? `&endTime=${fin}` : ""}`;
+      // Les pages anciennes ne changent plus : on les garde longtemps en cache ; la page courante, quelques secondes.
+      const lignes = await this.requeteur.obtenir(`k:${symbole}:${intervalle}:${limite}:${fin ?? "now"}`, fin ? 3600_000 : 10_000, () => getJson<LigneKline[]>(url));
+      if (!lignes.length) break;
+      pages.push(lignes.map(versBougie));
+      total += lignes.length;
+      fin = lignes[0][0] - 1;
+      if (lignes.length < limite) break; // début de l'historique atteint
+    }
+    return fusionnerPages(pages);
   }
 
   async cotations(symboles: string[]): Promise<Cotation[]> {

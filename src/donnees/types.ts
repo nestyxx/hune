@@ -1,11 +1,11 @@
 /** Types communs aux sources de données. Tout est en lecture seule : aucune notion de compte ni d'ordre. */
 
 /** Intervalles proposés dans le graphique. */
-export type Intervalle = "15m" | "1h" | "4h" | "1d";
-export const INTERVALLES: Intervalle[] = ["15m", "1h", "4h", "1d"];
-export const LIBELLE_INTERVALLE: Record<Intervalle, string> = { "15m": "15 min", "1h": "1 h", "4h": "4 h", "1d": "1 j" };
-/** Durée d'une bougie en secondes. */
-export const SECONDES_INTERVALLE: Record<Intervalle, number> = { "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
+export type Intervalle = "15m" | "1h" | "4h" | "1d" | "1w" | "1M";
+export const INTERVALLES: Intervalle[] = ["15m", "1h", "4h", "1d", "1w", "1M"];
+export const LIBELLE_INTERVALLE: Record<Intervalle, string> = { "15m": "15 min", "1h": "1 h", "4h": "4 h", "1d": "1 j", "1w": "1 sem", "1M": "1 mois" };
+/** Durée d'une bougie en secondes (le mois est approximé à 30 jours : il ne sert qu'aux calculs de clôture). */
+export const SECONDES_INTERVALLE: Record<Intervalle, number> = { "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800, "1M": 2592000 };
 
 /** Une bougie ; `temps` = ouverture, en secondes Unix (UTC). */
 export interface Bougie {

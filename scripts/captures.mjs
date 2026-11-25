@@ -54,8 +54,8 @@ function lancerApp() {
   });
 }
 
-/** Client CDP minimal (protocole de débogage de WebView2). */
-async function connecter() {
+/** Client CDP minimal (protocole de débogage de WebView2), avec reconnexion si l'application redémarre. */
+async function ouvrirSession() {
   for (let i = 0; i < 150; i++) {
     try {
       const pages = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
@@ -63,20 +63,7 @@ async function connecter() {
       if (page) {
         const ws = new WebSocket(page.webSocketDebuggerUrl);
         await new Promise((r, e) => ((ws.onopen = r), (ws.onerror = e)));
-        let id = 0;
-        const envoyer = (method, params = {}) =>
-          new Promise((res, rej) => {
-            const mon = ++id;
-            const h = (m) => {
-              const d = JSON.parse(m.data);
-              if (d.id !== mon) return;
-              ws.removeEventListener("message", h);
-              d.error ? rej(new Error(JSON.stringify(d.error))) : res(d.result);
-            };
-            ws.addEventListener("message", h);
-            ws.send(JSON.stringify({ id: mon, method, params }));
-          });
-        return { envoyer, fermer: () => ws.close() };
+        return ws;
       }
     } catch {
       /* l'application compile encore ou démarre : on réessaie */
@@ -84,6 +71,39 @@ async function connecter() {
     await attendre(2000);
   }
   throw new Error("L'application de démonstration n'a pas démarré (port 1421 déjà utilisé ? arrêtez `npm run dev`).");
+}
+
+async function connecter() {
+  let ws = await ouvrirSession();
+  let id = 0;
+  const unSeulEssai = (method, params) =>
+    new Promise((res, rej) => {
+      const mon = ++id;
+      const delai = setTimeout(() => rej(new Error(`Délai dépassé : ${method}`)), 45_000);
+      const h = (m) => {
+        const d = JSON.parse(m.data);
+        if (d.id !== mon) return;
+        clearTimeout(delai);
+        ws.removeEventListener("message", h);
+        d.error ? rej(new Error(JSON.stringify(d.error))) : res(d.result);
+      };
+      ws.addEventListener("message", h);
+      if (ws.readyState !== WebSocket.OPEN) return (clearTimeout(delai), rej(new Error("Connexion fermée")));
+      ws.send(JSON.stringify({ id: mon, method, params }));
+    });
+  const envoyer = async (method, params = {}) => {
+    try {
+      return await unSeulEssai(method, params);
+    } catch (e) {
+      // L'application a redémarré (rechargement à chaud) : on se reconnecte une fois, puis on rejoue la commande.
+      console.log("  … reconnexion :", e.message);
+      ws = await ouvrirSession();
+      await unSeulEssai("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+      await attendre(6000);
+      return unSeulEssai(method, params);
+    }
+  };
+  return { envoyer, fermer: () => ws.close() };
 }
 
 async function main() {
@@ -126,6 +146,33 @@ async function main() {
       await page(`touche('a'); await sleep(1500);`);
       await capturer(`alertes-${theme}`);
     }
+
+    // --- Mode compact (vraie petite fenêtre : on retire l'émulation de taille pour capturer la fenêtre telle quelle) ---
+    const metriques = { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false };
+    const compact = async (theme) => {
+      await page(`touche('g'); await sleep(300); document.querySelector('button[aria-label="Mode compact"]').click(); await sleep(2500);`);
+      await cdp.envoyer("Emulation.clearDeviceMetricsOverride");
+      await attendre(2500);
+      const largeur = await page("return window.innerWidth;");
+      console.log(`  mode compact : largeur de la fenêtre = ${largeur} px`);
+      if (largeur > 500) throw new Error("Le mode compact n'a pas réduit la fenêtre.");
+      await capturer(`compact-${theme}`);
+      await page(`touche('Escape'); await sleep(2500);`);
+      await cdp.envoyer("Emulation.setDeviceMetricsOverride", metriques);
+      await attendre(1500);
+      const apres = await page("return window.innerWidth;");
+      if (apres < 800) throw new Error("La sortie du mode compact n'a pas restauré la fenêtre.");
+    };
+    console.log("Mode compact");
+    await compact("sombre");
+    await page(`touche('p'); await sleep(400); boutons().find(b=>b.textContent.trim()==='Clair').click(); await sleep(600);`);
+    await compact("clair");
+
+    // --- Menu réduit (icônes seules) ---
+    console.log("Menu réduit");
+    await page(`touche('g'); await sleep(300); boutons().find(b=>b.getAttribute('aria-label')==='Réduire le menu').click(); await sleep(700);`);
+    await capturer("menu-reduit-clair");
+    await page(`boutons().find(b=>b.getAttribute('aria-label')==='Agrandir le menu').click(); await sleep(500);`);
     cdp.fermer();
   } finally {
     // Arrête toute l'arborescence de l'instance de démonstration (jamais votre Hune habituelle) puis efface ses données.

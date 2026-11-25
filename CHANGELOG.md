@@ -3,6 +3,23 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.5.0] - 2026-11-25
+
+### Ajouté
+- **Refonte visuelle** : palette tirée du logo (bleu ciel pastel, bleu, corail), typographies Figtree et Newsreader (embarquées, SIL OFL), barre de titre intégrée, navigation latérale avec icônes, panneau arrondi, survols et animations discrètes (désactivées si Windows demande de réduire les animations).
+- **Mode compact** (petite fenêtre avec la liste et les prix), **menu réduit** aux icônes, liste d'actifs masquable (`L`) et option **garder au premier plan**.
+- **Historique long** : intervalles 1 semaine et 1 mois, et profondeur *Standard / 5 ans / Max* à partir du journalier (Binance paginé jusqu'au début de la cotation ; Yahoo depuis l'introduction en bourse).
+- **Restauration des copies automatiques** dans Réglages › Sauvegarde, et proposition de restauration au démarrage quand la liste est vide alors qu'une copie contient des données.
+- Installeur aux couleurs de Hune (bandeau et panneau latéral).
+- Captures du README : mode compact et menu réduit.
+
+### Modifié
+- Hune n'écrit plus ses réglages au démarrage, seulement quand une valeur change : une lecture ratée ne peut plus écraser de bonnes données par des valeurs par défaut.
+- La liste d'actifs n'est affichée que sur l'onglet Graphique : le portefeuille et les autres écrans disposent de toute la largeur.
+- Raccourcis : `1` à `6` pour les intervalles, `L` pour la liste.
+- Les chiffres s'affichent avec une espace ordinaire entre les milliers (le caractère spécial précédent disparaissait dans la police des titres).
+- Boutons « Log » et « Recentrer » en surimpression sur le graphique.
+
 ## [0.4.3] - 2026-11-25
 
 ### Ajouté

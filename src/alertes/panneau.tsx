@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EnTete } from "../composants";
 import { cleActif, INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Intervalle } from "../donnees/types";
 import { formaterPrix } from "../format";
 import { decrire, PERIODES_VARIATION, type Alerte, type Condition, type Moyenne, type PeriodeVariation, type SensCroisement } from "./moteur";
@@ -129,8 +130,9 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
   );
 
   return (
-    <div className="flex-1 overflow-auto p-4">
-      <section className="mb-6 rounded-lg border border-ligne bg-carte p-4">
+    <div className="apparait flex-1 overflow-auto p-6">
+      <EnTete titre="Alertes" sousTitre={`${alertes.filter((x) => x.statut === "armee").length} armée${alertes.filter((x) => x.statut === "armee").length > 1 ? "s" : ""}, ${alertes.filter((x) => x.statut === "declenchee").length} déclenchée${alertes.filter((x) => x.statut === "declenchee").length > 1 ? "s" : ""} · une alerte se déclenche une seule fois, puis se réarme d'un clic.`} />
+      <section className="mb-6 mt-5 rounded-2xl border border-ligne bg-carte p-5">
         <h2 className="m-0 mb-3 text-base font-semibold">Nouvelle alerte</h2>
         {actifs.length === 0 ? (
           <p className="m-0 text-doux">Ajoutez d'abord un actif à la liste pour créer une alerte.</p>
@@ -228,7 +230,6 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
         {message && <p className="m-0 mt-2 text-baisse">{message}</p>}
       </section>
 
-      <h2 className="m-0 mb-2 text-base font-semibold">Alertes ({alertes.length})</h2>
       <p className="m-0 mb-3 text-xs text-doux">
         Vérification toutes les {periodeS} s
         {derniereVerification ? `, dernière à ${new Date(derniereVerification).toLocaleTimeString("fr-FR")}` : ""}. Une alerte se déclenche une seule fois, puis reste « déclenchée » jusqu'à ce que vous la réarmiez.
@@ -237,7 +238,7 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
       {triees.length === 0 && <p className="text-doux">Aucune alerte pour l'instant.</p>}
       <ul className="m-0 list-none space-y-2 p-0">
         {triees.map((a) => (
-          <li key={a.id} className={`flex items-center justify-between gap-3 rounded-lg border bg-carte px-4 py-3 ${a.statut === "declenchee" ? "border-alerte/60" : "border-ligne"}`}>
+          <li key={a.id} className={`carte-info flex items-center justify-between gap-3 px-4 py-3 ${a.statut === "declenchee" ? "border-alerte/60" : "border-ligne"}`}>
             <div className="min-w-0">
               <div className="font-semibold">
                 <button className="bg-transparent p-0 font-semibold text-texte underline decoration-dotted underline-offset-2 hover:text-accent" title="Voir le graphique" onClick={() => surOuvrirActif(cleActif(a.actif))}>

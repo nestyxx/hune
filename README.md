@@ -33,7 +33,9 @@ TradingView et ProRealTime sont devenus payants pour l'essentiel. Hune reprend c
 
 ### Graphiques et indicateurs
 
-Chandeliers (15 min, 1 h, 4 h, 1 j), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste. Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
+Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste. Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
+
+**Historique long** : à partir du journalier, choisissez la profondeur *Standard*, *5 ans* ou *Max*. Binance remonte jusqu'au début de la cotation de la paire (BTC/USDC : 2018, BTC/USDT : 2017) ; Yahoo remonte jusqu'à l'introduction en bourse (Microsoft : 1986) ou à la création de la crypto (BTC : 2014). Aucune clé n'est nécessaire. En intraday, les sources limitent elles-mêmes la profondeur.
 
 ### Alertes
 
@@ -68,9 +70,22 @@ Une carte thermique de votre watchlist par catégorie, les plus fortes hausses e
   </picture>
 </p>
 
+### Un affichage qui s'adapte
+
+Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seules icônes**, liste d'actifs masquable (`L`), **mode compact** (une petite fenêtre qui ne montre que la liste et les prix, idéale à côté d'un autre travail) et option **garder au premier plan**. Trois thèmes : clair, sombre ou automatique.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/captures/compact-sombre.png">
+    <img alt="Mode compact : la liste et les prix dans une petite fenêtre" src="docs/captures/compact-clair.png" height="420">
+  </picture>
+  &nbsp;&nbsp;
+  <img alt="Navigation réduite aux icônes" src="docs/captures/menu-reduit-clair.png" height="420">
+</p>
+
 ### Et aussi
 
-Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · thèmes clair, sombre ou automatique · raccourcis clavier (`Ctrl+K`, `↑`/`↓`, `1`-`4`, `R`…) · démarrage avec Windows · **sauvegarde** par export/import JSON avec copie automatique quotidienne · **mises à jour automatiques** signées.
+Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · raccourcis clavier (`Ctrl+K`, `↑`/`↓`, `1`-`6`, `R`, `L`…) · démarrage avec Windows · **sauvegarde** par export/import JSON, **copie automatique quotidienne** et restauration en un clic (proposée d'elle-même si la liste est vide) · **mises à jour automatiques** signées.
 
 > Les captures ci-dessus utilisent un portefeuille **fictif**.
 
@@ -100,6 +115,7 @@ Hune ne contacte que des services publics de données, **sans jamais leur envoye
 - **Actions : données différées** (souvent ~15 min). La source est un **endpoint Yahoo Finance non officiel** : il peut changer, être limité ou bloqué sans préavis. L'interface indique « Données différées » ; les cryptos Binance sont en temps réel.
 - Les **alertes ne tournent que si Hune est lancée** (fenêtre fermée dans la zone de notification, oui ; application quittée ou Windows en veille, non). Seul l'état courant est évalué.
 - Le **4 h** des actions est reconstruit à partir du 1 h, par paquets UTC qui ne suivent pas les horaires de séance.
+- **Profondeur d'historique** : *5 ans* et *Max* ne s'appliquent qu'aux intervalles journalier, hebdomadaire et mensuel. En intraday : environ 500 bougies pour les cryptos (≈ 5 jours en 15 min), 1 mois en 15 min et 6 mois en 1 h pour les actions. Une paire récente (ex. un token coté depuis peu) n'a évidemment pas d'historique plus ancien.
 - **Portefeuille** : PAMP et objectifs sont dans la devise de cotation de l'actif. Une quantité déduite d'un simple montant en euros est **estimée** (marquée « ≈ ») et n'a pas de P&L.
 - L'API publique de Binance est inaccessible depuis certains pays (par exemple les États-Unis).
 - Seul Windows est pris en charge pour l'instant.

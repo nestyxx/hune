@@ -71,9 +71,43 @@ fn sauvegarde_quotidienne(app: &tauri::App) {
     }
 }
 
+/// Un nom de sauvegarde valide est exactement « hune-AAAAMMJJ.json » : aucun séparateur de chemin n'est possible,
+/// l'interface ne peut donc lire que les copies automatiques et rien d'autre sur le disque.
+fn nom_sauvegarde_valide(nom: &str) -> bool {
+    nom.len() == 18 && nom.starts_with("hune-") && nom.ends_with(".json") && nom[5..13].chars().all(|c| c.is_ascii_digit())
+}
+
+/// Noms des sauvegardes automatiques, de la plus récente à la plus ancienne.
+#[tauri::command]
+fn lister_sauvegardes(app: AppHandle) -> Vec<String> {
+    let Ok(dossier) = app.path().app_data_dir() else { return vec![] };
+    let Ok(entrees) = std::fs::read_dir(dossier.join("sauvegardes")) else { return vec![] };
+    let mut noms: Vec<String> = entrees.filter_map(|e| e.ok()).filter_map(|e| e.file_name().into_string().ok()).filter(|n| nom_sauvegarde_valide(n)).collect();
+    noms.sort_by(|a, b| b.cmp(a));
+    noms
+}
+
+/// Contenu d'une sauvegarde automatique (JSON brut, validé ensuite par l'interface avant toute restauration).
+#[tauri::command]
+fn lire_sauvegarde(app: AppHandle, nom: String) -> Result<String, String> {
+    if !nom_sauvegarde_valide(&nom) {
+        return Err("Nom de sauvegarde invalide".into());
+    }
+    let dossier = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::read_to_string(dossier.join("sauvegardes").join(nom)).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::jour_depuis_epoch;
+    use super::{jour_depuis_epoch, nom_sauvegarde_valide};
+
+    #[test]
+    fn noms_de_sauvegarde() {
+        assert!(nom_sauvegarde_valide("hune-20261124.json"));
+        for mauvais in ["hune-2026112.json", "hune-2026112a.json", "../hune-20261124.json", "hune-20261124.json.bak", "autre-20261124.json", "hune-20261124/../x.json"] {
+            assert!(!nom_sauvegarde_valide(mauvais), "{mauvais}");
+        }
+    }
 
     #[test]
     fn dates_connues() {
@@ -96,6 +130,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde])
         .on_window_event(|fenetre, evenement| {
             // Croix de la fenêtre : on la masque, l'application reste dans la zone de notification.
             if let WindowEvent::CloseRequested { api, .. } = evenement {

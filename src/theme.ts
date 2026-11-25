@@ -28,7 +28,7 @@ export function paletteGraphique() {
   const css = getComputedStyle(document.documentElement);
   const v = (nom: string) => css.getPropertyValue(nom).trim();
   return {
-    fond: v("--color-fond"),
+    fond: v("--color-carte"), // le graphique est posé sur le panneau blanc, pas sur le fond teinté de l'application
     texte: v("--color-doux"),
     ligne: v("--color-ligne"),
     grille: v("--color-ligne") + "66", // grille plus discrète que les bordures

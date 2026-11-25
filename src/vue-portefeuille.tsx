@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { categorieDe } from "./categories";
+import { EnTete } from "./composants";
 import { fournisseur } from "./donnees";
 import { tauxVersEur } from "./donnees/change";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
-import { classePct, formaterPct, formaterPrix } from "./format";
+import { classePct, espaceOrdinaire, formaterPct, formaterPrix } from "./format";
 import { agreger, repartition, totaux, valeurLotEur, type LignePortefeuille, type PartRepartition, type Position } from "./portefeuille";
 
 interface Props {
@@ -21,7 +22,7 @@ interface Props {
 
 type Colonne = "valeurEur" | "pnlPct" | "pnlEur" | "poids" | "versObjectifPct" | "symbole";
 
-const eur = (v: number | null, decimales = 0) => (v == null ? "—" : v.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: decimales, minimumFractionDigits: decimales }));
+const eur = (v: number | null, decimales = 0) => (v == null ? "—" : espaceOrdinaire(v.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: decimales, minimumFractionDigits: decimales })));
 const quantite = (q: number) => q.toLocaleString("fr-FR", { maximumFractionDigits: q >= 1000 ? 0 : q >= 1 ? 4 : 8 });
 const pourcent = (p: number | null) => (p == null ? "—" : `${(p * 100).toFixed(1).replace(".", ",")} %`);
 
@@ -37,7 +38,7 @@ function BarreRepartition({ titre, parts }: { titre: string; parts: PartRepartit
   const couleurs = ["#2f81f7", "#26a69a", "#e08a00", "#8e6bff", "#d3569a", "#6ca6c1", "#9aa75b", "#c2674a"];
   if (!parts.length) return null;
   return (
-    <div className="rounded-lg border border-ligne bg-carte p-3">
+    <div className="carte-info p-4">
       <div className="mb-2 text-xs text-doux">{titre}</div>
       <div className="flex h-3 overflow-hidden rounded-full bg-fond">
         {parts.map((p, i) => (
@@ -184,24 +185,25 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
   const majLot = (id: string, patch: Partial<Position>) => surPositions((l) => l.map((p) => (p.id === id ? { ...p, ...patch, estimee: "quantite" in patch ? false : p.estimee } : p)));
 
   return (
-    <div className="flex-1 space-y-4 overflow-auto p-4">
+    <div className="apparait flex-1 space-y-5 overflow-auto p-6">
+      <EnTete titre="Portefeuille" sousTitre="Valeur en euros, plus-values latentes et répartition de vos positions. Lecture seule : rien n'est envoyé nulle part." />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-ligne bg-carte p-3">
+        <div className="carte-info p-4">
           <div className="text-xs text-doux">Valeur totale</div>
-          <div className="font-mono text-xl">{eur(tot.valeurEur)}</div>
+          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{eur(tot.valeurEur)}</div>
           {tot.nonValorisees > 0 && <div className="text-xs text-alerte">{tot.nonValorisees} ligne{tot.nonValorisees > 1 ? "s" : ""} non valorisée{tot.nonValorisees > 1 ? "s" : ""} (prix ou change manquant)</div>}
         </div>
-        <div className="rounded-lg border border-ligne bg-carte p-3">
-          <div className="text-xs text-doux">P&amp;L latent (lots avec PAMP)</div>
-          <div className={`font-mono text-xl ${classePct(tot.pnlEur)}`}>{eur(tot.pnlEur)}</div>
+        <div className="carte-info p-4">
+          <div className="text-xs text-doux" title="Calculé sur les lots dont le prix d'achat moyen (PAMP) est connu">P&amp;L latent</div>
+          <div className={`titre-serif whitespace-nowrap text-[34px] leading-none ${classePct(tot.pnlEur)}`}>{eur(tot.pnlEur)}</div>
           <div className={`text-xs ${classePct(tot.pnlPct)}`}>{formaterPct(tot.pnlPct)}</div>
         </div>
-        <div className="rounded-lg border border-ligne bg-carte p-3">
+        <div className="carte-info p-4">
           <div className="text-xs text-doux">Lignes / lots</div>
-          <div className="font-mono text-xl">{lignes.length} / {positions.length}</div>
+          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{lignes.length} / {positions.length}</div>
         </div>
-        <div className="rounded-lg border border-ligne bg-carte p-3">
-          <div className="text-xs text-doux">Devises converties en euros</div>
+        <div className="carte-info p-4">
+          <div className="text-xs text-doux" title="Taux utilisés pour convertir les cotations en euros">Taux de change</div>
           <div className="text-xs">{Object.entries(taux).filter(([d]) => d !== "EUR" && d !== "GBp").map(([d, t]) => `1 ${d} = ${t.toFixed(4).replace(".", ",")} €`).join(" · ") || "—"}</div>
         </div>
       </div>
@@ -219,7 +221,6 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
         <button className="bouton" title="Crée une alerte « prix ≥ objectif » pour chaque objectif saisi" onClick={preparerAlertesTp}>
           🔔 Alertes aux objectifs (TP)
         </button>
-        <span className="text-xs text-doux">Lecture seule : ces données ne sont envoyées nulle part et ne servent qu'au calcul.</span>
       </div>
 
       {confirmationTp && (
@@ -244,7 +245,7 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
       )}
 
       {formulaire && (
-        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-ligne bg-carte p-3">
+        <div className="flex flex-wrap items-end gap-2 carte-info p-4">
           <label className="flex flex-col gap-1 text-xs text-doux">
             Actif
             <select className="champ max-w-52" value={formulaire.cle} onChange={(e) => setFormulaire({ ...formulaire, cle: e.target.value })}>
@@ -278,7 +279,7 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
       {lignes.length === 0 ? (
         <p className="text-doux">Aucune position. Ajoutez-en une ci-dessus, ou importez vos données (Réglages › Sauvegarde › Importer).</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-ligne bg-carte">
+        <div className="overflow-x-auto rounded-2xl border border-ligne">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-ligne">

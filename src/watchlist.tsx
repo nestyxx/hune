@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
 import { rechercherTout } from "./donnees";
@@ -22,6 +23,8 @@ interface Props {
   surCreationCategorie: (nom: string) => void;
   surRenommageCategorie: (ancien: string, nouveau: string) => void;
   surSuppressionCategorie: (nom: string) => void;
+  /** Mode compact : la liste occupe toute la largeur de la fenêtre. */
+  pleineLargeur?: boolean;
 }
 
 /** Colonne de gauche : recherche (symbole, nom ou ISIN) + actifs suivis, regroupés par catégorie. */
@@ -68,11 +71,12 @@ export function Watchlist(p: Props) {
   const locaux = requete ? tous.filter((a) => a.symbole.toLowerCase().includes(requete) || a.nom.toLowerCase().includes(requete)).slice(0, 6) : [];
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-ligne bg-carte">
+    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : "w-72 border-r border-ligne"}`}>
       <div className="relative border-b border-ligne p-3">
+        <Search size={15} className="pointer-events-none absolute left-[25px] top-[25px] text-doux" aria-hidden />
         <input
           id="recherche"
-          className="champ w-full"
+          className="champ w-full !pl-9"
           placeholder="Symbole, nom ou ISIN…  (Ctrl+K)"
           value={saisie}
           onChange={(e) => {
@@ -213,7 +217,7 @@ export function Watchlist(p: Props) {
                         key={cle}
                         data-actif={cle}
                         onClick={() => p.surSelection(cle)}
-                        className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 py-2 hover:bg-fond ${p.selection === cle ? "bg-fond shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
+                        className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 py-2 hover:bg-fond/80 ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 font-semibold">

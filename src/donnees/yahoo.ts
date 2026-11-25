@@ -1,19 +1,12 @@
 import { agreger } from "./agreger";
 import type { DataProvider } from "./fournisseur";
+import { paramsYahoo, periodeYahoo, type Profondeur } from "./historique";
 import { getJson } from "./http";
 import { Requeteur } from "./requeteur";
 import { SECONDES_INTERVALLE, type Bougie, type Cotation, type Intervalle, type ResultatRecherche } from "./types";
 
 // Endpoints NON officiels de Yahoo Finance : peuvent changer ou être limités sans préavis.
 const BASE = "https://query1.finance.yahoo.com";
-
-/** Intervalle Yahoo + profondeur d'historique demandée. Le 4 h n'existe pas : on agrège du 1 h. */
-const PARAMS: Record<Intervalle, { interval: string; range: string }> = {
-  "15m": { interval: "15m", range: "1mo" },
-  "1h": { interval: "60m", range: "6mo" },
-  "4h": { interval: "60m", range: "6mo" },
-  "1d": { interval: "1d", range: "2y" },
-};
 
 interface ReponseChart {
   chart: {
@@ -55,15 +48,15 @@ export class Yahoo implements DataProvider {
 
   private async chart(symbole: string, interval: string, range: string) {
     const rep = await this.requeteur.obtenir(`c:${symbole}:${interval}:${range}`, 30_000, () =>
-      getJson<ReponseChart>(`${BASE}/v8/finance/chart/${encodeURIComponent(symbole)}?interval=${interval}&range=${range}&includePrePost=false`),
+      getJson<ReponseChart>(`${BASE}/v8/finance/chart/${encodeURIComponent(symbole)}?interval=${interval}&${periodeYahoo(range)}&includePrePost=false`),
     );
     const res = rep.chart.result?.[0];
     if (!res) throw new Error(rep.chart.error?.description ?? `Symbole introuvable : ${symbole}`);
     return res;
   }
 
-  async bougies(symbole: string, intervalle: Intervalle): Promise<Bougie[]> {
-    const { interval, range } = PARAMS[intervalle];
+  async bougies(symbole: string, intervalle: Intervalle, profondeur: Profondeur = "standard"): Promise<Bougie[]> {
+    const { interval, range } = paramsYahoo(intervalle, profondeur);
     const res = await this.chart(symbole, interval, range);
     const q = res.indicators.quote[0];
     const sortie: Bougie[] = [];

@@ -1,3 +1,4 @@
+import type { Profondeur } from "./historique";
 import type { Bougie, Cotation, Intervalle, ResultatRecherche, SourceId } from "./types";
 
 /**
@@ -14,8 +15,11 @@ export interface DataProvider {
 
   /** Recherche par symbole ou par nom. */
   rechercher(requete: string): Promise<ResultatRecherche[]>;
-  /** Historique de bougies, de la plus ancienne à la plus récente. */
-  bougies(symbole: string, intervalle: Intervalle): Promise<Bougie[]>;
+  /**
+   * Historique de bougies, de la plus ancienne à la plus récente. `profondeur` n'agit que pour les intervalles
+   * journalier et plus (voir `donnees/historique.ts`) ; sans elle, on obtient l'historique standard.
+   */
+  bougies(symbole: string, intervalle: Intervalle, profondeur?: Profondeur): Promise<Bougie[]>;
   /** Derniers prix de plusieurs symboles à la fois. */
   cotations(symboles: string[]): Promise<Cotation[]>;
   /** Devise de cotation d'un symbole (code ISO : EUR, USD… ; « GBp » pour les pence). Sert à valoriser le portefeuille en euros. */

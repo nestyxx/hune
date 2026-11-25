@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Groupe } from "./categories";
+import { EnTete } from "./composants";
 import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donnees/sentiment";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
@@ -25,15 +26,15 @@ function Sentiment() {
   useEffect(() => {
     chargerSentiment().then(setPoints).catch(() => setErreur(true));
   }, []);
-  if (erreur) return <div className="rounded-lg border border-ligne bg-carte p-3 text-xs text-doux">Indice Fear &amp; Greed indisponible.</div>;
-  if (!points?.length) return <div className="rounded-lg border border-ligne bg-carte p-3 text-xs text-doux">Chargement de l'indice Fear &amp; Greed…</div>;
+  if (erreur) return <div className="carte-info p-4 text-xs text-doux">Indice Fear &amp; Greed indisponible.</div>;
+  if (!points?.length) return <div className="carte-info p-4 text-xs text-doux">Chargement de l'indice Fear &amp; Greed…</div>;
   const dernier = points[points.length - 1];
   const veille = points[points.length - 2];
   return (
-    <div className="rounded-lg border border-ligne bg-carte p-3" title="Indice de sentiment du marché crypto (0 = peur extrême, 100 = avidité extrême), source alternative.me">
+    <div className="carte-info p-4" title="Indice de sentiment du marché crypto (0 = peur extrême, 100 = avidité extrême), source alternative.me">
       <div className="text-xs text-doux">Crypto : Fear &amp; Greed</div>
       <div className="flex items-end gap-3">
-        <span className="font-mono text-3xl">{dernier.valeur}</span>
+        <span className="titre-serif text-[52px] leading-none">{dernier.valeur}</span>
         <span className="pb-1">
           {libelleSentiment(dernier.valeur)}
           {veille && <span className="ml-2 text-xs text-doux">veille : {veille.valeur}</span>}
@@ -72,14 +73,15 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
   };
 
   return (
-    <div className="flex-1 space-y-4 overflow-auto p-4">
+    <div className="apparait flex-1 space-y-5 overflow-auto p-6">
+      <EnTete titre="Marché" sousTitre="Votre liste en un coup d'œil : couleur selon la variation du jour." />
       <div className="grid gap-3 md:grid-cols-3">
         <Sentiment />
-        <div className="rounded-lg border border-ligne bg-carte p-3">
+        <div className="carte-info p-4">
           <div className="mb-1 text-xs text-doux">Plus fortes hausses (liste suivie)</div>
           <ul className="m-0 list-none p-0">{variations.hausses.map(ligne)}</ul>
         </div>
-        <div className="rounded-lg border border-ligne bg-carte p-3">
+        <div className="carte-info p-4">
           <div className="mb-1 text-xs text-doux">Plus fortes baisses (liste suivie)</div>
           <ul className="m-0 list-none p-0">{variations.baisses.map(ligne)}</ul>
         </div>
@@ -100,7 +102,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
                       key={cleActif(a)}
                       title={`${a.nom} — ${formaterPrix(c?.prix)}`}
                       onClick={() => surOuvrir(cleActif(a))}
-                      className="flex h-16 flex-col items-center justify-center rounded-md border border-ligne text-texte transition-transform hover:scale-[1.03]"
+                      className="flex h-16 flex-col items-center justify-center rounded-xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
                       style={{ background: couleurTuile(c?.variationPct) }}
                     >
                       <span className="max-w-full truncate px-1 text-sm font-semibold">{a.symbole.replace(/(USDT|USDC|EUR|-USD)$/, "")}</span>

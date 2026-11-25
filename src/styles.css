@@ -1,39 +1,44 @@
 @import "tailwindcss";
 
 /*
- * Jetons de couleur. Les valeurs ci-dessous sont celles du thème sombre ; le thème clair les remplace
- * plus bas via l'attribut data-theme posé sur <html> par theme.ts (réglage « Auto » = thème de Windows).
+ * Jetons de couleur, tirés de l'icône : bleu ciel pastel (#cfe2ff), bleu des bougies (#4f7fe0), corail (#ff9f80).
+ * Les valeurs ci-dessous sont celles du thème clair ; le thème sombre les remplace plus bas via l'attribut data-theme
+ * posé sur <html> par theme.ts (réglage « Auto » = thème de Windows).
  */
 @theme {
-  --font-sans: "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Cascadia Mono", Consolas, monospace;
-  --color-fond: #0e1117;
-  --color-carte: #161b24;
-  --color-ligne: #262d3a;
-  --color-texte: #e3e7ee;
-  --color-doux: #8b94a5;
-  --color-accent: #4da3ff;
-  --color-sur-accent: #06121f;
-  --color-hausse: #26a69a;
-  --color-baisse: #ef5350;
-  --color-alerte: #f5a524;
+  --font-sans: "Figtree Variable", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  /* Pas de vraie police monospace : Figtree a des chiffres tabulaires (voir .font-mono plus bas), plus élégants. */
+  --font-mono: "Figtree Variable", "Segoe UI", system-ui, sans-serif;
+  --color-fond: #edf2fb;
+  --color-carte: #ffffff;
+  --color-ligne: #dde6f4;
+  --color-texte: #182132;
+  --color-doux: #667389;
+  --color-accent: #4f7fe0;
+  --color-sur-accent: #ffffff;
+  --color-accent-doux: #e4edff;
+  --color-hausse: #14976f;
+  --color-baisse: #e0524f;
+  --color-alerte: #e8734a;
 }
 
-:root[data-theme="clair"] {
-  color-scheme: light;
-  --color-fond: #f4f6f9;
-  --color-carte: #ffffff;
-  --color-ligne: #d8dee8;
-  --color-texte: #18202d;
-  --color-doux: #5d6b80;
-  --color-accent: #1d6fd6;
-  --color-sur-accent: #ffffff;
-  --color-hausse: #0b8a7d;
-  --color-baisse: #d3322a;
-  --color-alerte: #b36b00;
-}
 :root[data-theme="sombre"] {
   color-scheme: dark;
+  --color-fond: #0c111d;
+  --color-carte: #131a2a;
+  --color-ligne: #232d44;
+  --color-texte: #e7ecf6;
+  --color-doux: #8f9bb3;
+  --color-accent: #86aaf6;
+  --color-sur-accent: #0b1120;
+  --color-accent-doux: #1b2947;
+  --color-hausse: #3dd1a1;
+  --color-baisse: #ff7070;
+  --color-alerte: #ff9f80;
+}
+:root[data-theme="clair"] {
+  color-scheme: light;
 }
 
 html,
@@ -49,6 +54,11 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 /* Barres de défilement discrètes. */
@@ -62,52 +72,256 @@ select,
 button {
   font: inherit;
 }
+button {
+  cursor: pointer;
+}
 
+/* Chiffres alignés en colonnes (prix, quantités, pourcentages). */
+.font-mono,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Titres et grands chiffres : serif d'affichage, comme dans les applications de la même veine. */
+.titre-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto; /* Newsreader adapte son dessin à la taille : plus fin et contrasté en grand */
+  font-variant-numeric: lining-nums;
+}
+
+/* --- Champs et boutons --- */
 .champ {
   background: var(--color-fond);
   border: 1px solid var(--color-ligne);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 6px 10px;
   color: var(--color-texte);
   outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+.champ:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-ligne));
 }
 .champ:focus {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 .bouton {
   background: var(--color-carte);
   border: 1px solid var(--color-ligne);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 5px 12px;
   color: var(--color-texte);
-  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.1s;
 }
-.bouton:hover {
-  border-color: var(--color-accent);
+.bouton:hover:not(:disabled) {
+  background: var(--color-accent-doux);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-ligne));
 }
-.bouton-actif {
+.bouton:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.bouton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.bouton-actif,
+.bouton-actif:hover:not(:disabled) {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-sur-accent);
   font-weight: 600;
 }
+.bouton-actif:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+/* Contrôle segmenté (intervalles, type de graphique). */
+.segments {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--color-fond);
+}
+.segment {
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  padding: 4px 11px;
+  color: var(--color-doux);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+.segment:hover {
+  color: var(--color-texte);
+}
+.segment[aria-pressed="true"] {
+  background: var(--color-carte);
+  color: var(--color-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(16 24 40 / 0.14);
+}
+
+/* Puce activable (indicateurs). */
+.puce {
+  border: 1px solid var(--color-ligne);
+  background: var(--color-carte);
+  border-radius: 999px;
+  padding: 3px 12px;
+  color: var(--color-doux);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.puce:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-ligne));
+  color: var(--color-texte);
+}
+.puce[aria-pressed="true"] {
+  background: var(--color-accent-doux);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
 /* Petit bouton-icône (✕, ⋯, ▾). */
 .bouton-icone {
   background: transparent;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 0 5px;
   color: var(--color-doux);
-  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .bouton-icone:hover {
   color: var(--color-texte);
   background: var(--color-fond);
 }
+
 .menu-contextuel {
   background: var(--color-carte);
   border: 1px solid var(--color-ligne);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(16 24 40 / 0.18);
+}
+
+/* Cartes d'information : léger soulèvement au survol. */
+.carte-info {
+  background: var(--color-carte);
+  border: 1px solid var(--color-ligne);
+  border-radius: 16px;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s,
+    border-color 0.2s;
+}
+.carte-info:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-ligne));
+  box-shadow: 0 6px 20px rgb(16 24 40 / 0.07);
+  transform: translateY(-1px);
+}
+
+/* --- Navigation latérale --- */
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  padding: 9px 12px;
+  color: var(--color-doux);
+  text-align: left;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.nav-item svg {
+  flex-shrink: 0;
+  transition: transform 0.18s;
+}
+.nav-item:hover {
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  color: var(--color-texte);
+}
+.nav-item:hover svg {
+  transform: scale(1.1);
+}
+.nav-item[aria-current="page"] {
+  background: var(--color-accent-doux);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* Boutons de la barre de titre. */
+.bouton-fenetre {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-doux);
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.bouton-fenetre:hover {
+  background: color-mix(in srgb, var(--color-doux) 16%, transparent);
+  color: var(--color-texte);
+}
+.bouton-fenetre[aria-pressed="true"] {
+  color: var(--color-accent);
+}
+.bouton-fenetre-fermer:hover {
+  background: #e5484d;
+  color: #fff;
+}
+
+/* Apparition douce du contenu d'un onglet. */
+@keyframes apparition {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.apparait {
+  animation: apparition 0.28s ease both;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
