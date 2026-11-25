@@ -3,6 +3,14 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.5.5] - 2026-11-25
+
+### Corrigé
+- **Formulaire d'alertes** : les champs perdaient le focus après chaque caractère tapé (le formulaire était recréé à chaque frappe). Valable aussi pour la création d'une alerte.
+
+### Modifié
+- **Dézoomer charge plus d'historique** : au journalier, hebdomadaire et mensuel, dézoomer au-delà de la première bougie passe automatiquement à la profondeur suivante (Standard, 5 ans, puis Max). En intraday, la profondeur reste limitée par les sources.
+
 ## [0.5.4] - 2026-11-25
 
 ### Corrigé

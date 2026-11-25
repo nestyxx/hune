@@ -148,6 +148,9 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
   typeRef.current = typeGraphique;
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
+  // Lus par l'écouteur de zoom (créé une seule fois) : toujours les valeurs courantes.
+  const approfondir = useRef({ intervalle, profondeur, surProfondeur, chargement: false });
+  approfondir.current = { intervalle, profondeur, surProfondeur, chargement };
   const [legende, setLegende] = useState<Legende | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; prix: number } | null>(null);
   const [panneauParametres, setPanneauParametres] = useState(false);
@@ -203,6 +206,21 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     });
     // Quand le panneau s'élargit (menu réduit, liste masquée…), la vue est réajustée si elle montrait déjà tout l'historique
     // depuis la première bougie : sans cela, un grand vide apparaîtrait à gauche. Un zoom de l'utilisateur est respecté.
+    // Dézoomer au-delà de la première bougie (vide à gauche) = vouloir plus d'historique : on passe à la profondeur
+    // suivante (Standard → 5 ans → Max). Seuls le journalier et au-delà le permettent ; en intraday les sources plafonnent.
+    // Seul un geste de l'utilisateur (molette, glisser, pincer) compte : le rechargement des données fait aussi bouger la plage.
+    let dernierGeste = 0;
+    const geste = () => (dernierGeste = Date.now());
+    const zone = conteneur.current!;
+    // Phase de capture : la bibliothèque de graphiques peut arrêter la propagation des événements sur son canevas.
+    for (const evt of ["wheel", "pointerdown", "touchmove", "mousedown"]) zone.addEventListener(evt, geste, { passive: true, capture: true });
+    zone.addEventListener("pointermove", (e) => e.buttons && geste(), { passive: true, capture: true });
+    chart.timeScale().subscribeVisibleLogicalRangeChange((plage) => {
+      const a = approfondir.current;
+      if (!plage || a.chargement || plage.from > -5 || Date.now() - dernierGeste > 1500 || !PROFONDEUR_DISPONIBLE.includes(a.intervalle)) return;
+      const suivante = PROFONDEURS[PROFONDEURS.indexOf(a.profondeur) + 1];
+      if (suivante) a.surProfondeur(suivante);
+    });
     const observateur = new ResizeObserver(() => {
       const plage = chart.timeScale().getVisibleLogicalRange();
       if (plage && plage.from <= 0.5) chart.timeScale().fitContent();

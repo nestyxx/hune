@@ -33,6 +33,19 @@ interface Props {
   periodeS: number;
 }
 
+/**
+ * Champ étiqueté du formulaire. Défini ICI, hors du composant : déclaré dans `PanneauAlertes`, il changerait d'identité à chaque
+ * rendu, React démonterait les champs à chaque frappe et ils perdraient le focus après un seul caractère.
+ */
+function Liste({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1 text-xs text-doux">
+      {titre}
+      {children}
+    </label>
+  );
+}
+
 /** Texte de la valeur mesurée au déclenchement, selon le type d'alerte. */
 function texteValeur(a: Alerte): string {
   if (a.valeur == null) return "—";
@@ -159,12 +172,6 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
 
   const triees = [...alertes].sort((a, b) => Number(a.statut === "declenchee") - Number(b.statut === "declenchee") || b.creeeLe - a.creeeLe);
 
-  const Liste = ({ titre, children }: { titre: string; children: React.ReactNode }) => (
-    <label className="flex flex-col gap-1 text-xs text-doux">
-      {titre}
-      {children}
-    </label>
-  );
   const choixIntervalle = (
     <Liste titre="Intervalle">
       <select className="champ" value={intervalle} onChange={(e) => setIntervalle(e.target.value as Intervalle)}>

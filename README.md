@@ -35,7 +35,7 @@ Hune réunit ce qui sert au quotidien (graphiques, indicateurs, alertes, portefe
 
 Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste. Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
 
-**Historique long** : à partir du journalier, choisissez la profondeur *Standard*, *5 ans* ou *Max*. Binance remonte jusqu'au début de la cotation de la paire (BTC/USDC : 2018, BTC/USDT : 2017) ; Yahoo remonte jusqu'à l'introduction en bourse (Microsoft : 1986) ou à la création de la crypto (BTC : 2014). Aucune clé n'est nécessaire. En intraday, les sources limitent elles-mêmes la profondeur.
+**Historique long** : à partir du journalier, choisissez la profondeur *Standard*, *5 ans* ou *Max*, ou **dézoomez simplement** : au-delà de la première bougie, Hune charge la profondeur suivante. Binance remonte jusqu'au début de la cotation de la paire (BTC/USDC : 2018, BTC/USDT : 2017) ; Yahoo remonte jusqu'à l'introduction en bourse (Microsoft : 1986) ou à la création de la crypto (BTC : 2014). Aucune clé n'est nécessaire. En intraday, les sources limitent elles-mêmes la profondeur.
 
 ### Alertes
 
