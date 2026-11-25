@@ -23,7 +23,7 @@
 
 ## Pourquoi Hune ?
 
-TradingView et ProRealTime sont devenus payants pour l'essentiel. Hune reprend ce qui sert au quotidien (graphiques, indicateurs, alertes, portefeuille) dans une petite application Windows **gratuite, légère et privée** :
+Hune réunit ce qui sert au quotidien (graphiques, indicateurs, alertes, portefeuille) dans une petite application Windows **gratuite, légère et privée** :
 
 - **Lecture seule** : aucune fonction de trading, aucun accès à un compte de courtier, aucune clé API à fournir.
 - **Tout reste chez vous** : watchlist, positions et alertes sont dans un fichier local. Pas de compte, pas de serveur, pas de télémétrie.
@@ -44,7 +44,7 @@ Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MAC
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/captures/alertes-sombre.png">
-    <img alt="Liste des alertes armées et déclenchées" src="docs/captures/alertes-clair.png" width="760">
+    <img alt="Liste des alertes armées et déclenchées" src="docs/captures/alertes-clair.png" width="900">
   </picture>
 </p>
 
@@ -75,12 +75,12 @@ Une carte thermique de votre watchlist par catégorie, les plus fortes hausses e
 Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seules icônes**, liste d'actifs masquable (`L`), **mode compact** (une petite fenêtre qui ne montre que la liste et les prix, idéale à côté d'un autre travail) et option **garder au premier plan**. Trois thèmes : clair, sombre ou automatique.
 
 <p align="center">
+  <img alt="Navigation réduite aux icônes, fenêtre en grand" src="docs/captures/menu-reduit-clair.png" height="400">
+  &nbsp;&nbsp;
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/captures/compact-sombre.png">
-    <img alt="Mode compact : la liste et les prix dans une petite fenêtre" src="docs/captures/compact-clair.png" height="420">
+    <img alt="Mode compact : la liste et les prix dans une petite fenêtre" src="docs/captures/compact-clair.png" height="400">
   </picture>
-  &nbsp;&nbsp;
-  <img alt="Navigation réduite aux icônes" src="docs/captures/menu-reduit-clair.png" height="420">
 </p>
 
 ### Et aussi
