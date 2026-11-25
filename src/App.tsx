@@ -408,6 +408,7 @@ export default function App() {
                   cotations={cotations}
                   positions={positions}
                   surPositions={changerPositions}
+                  surAjouterActifs={(nouveaux) => setActifs((prec) => [...prec, ...nouveaux.filter((n) => !prec.some((x) => cleActif(x) === cleActif(n)))])}
                   surOuvrir={ouvrirActif}
                   alertesExistantes={alertesPrixHaut}
                   surAlertesObjectifs={(objectifs) => {

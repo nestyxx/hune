@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ImportTransactions } from "./import-transactions-panneau";
 import { categorieDe } from "./categories";
 import { EnTete } from "./composants";
 import { fournisseur } from "./donnees";
@@ -13,6 +14,8 @@ interface Props {
   cotations: Record<string, Cotation>;
   positions: Position[];
   surPositions: (modifier: (l: Position[]) => Position[]) => void;
+  /** Ajoute des actifs à la watchlist (ceux qui y sont déjà sont ignorés). */
+  surAjouterActifs: (nouveaux: Actif[]) => void;
   surOuvrir: (cle: string) => void;
   /** Crée des alertes de prix aux objectifs fournis ; renvoie le nombre réellement créé (hors doublons). */
   surAlertesObjectifs: (objectifs: { actif: Actif; prix: number }[]) => number;
@@ -77,7 +80,9 @@ function ChampLot({ valeur, surChangement, placeholder, large = "w-28" }: { vale
   );
 }
 
-export function VuePortefeuille({ actifs, categories, cotations, positions, surPositions, surOuvrir, surAlertesObjectifs, alertesExistantes }: Props) {
+export function VuePortefeuille({ actifs, categories, cotations, positions, surPositions, surAjouterActifs, surOuvrir, surAlertesObjectifs, alertesExistantes }: Props) {
+  const choixCsv = useRef<HTMLInputElement>(null);
+  const [fichierCsv, setFichierCsv] = useState<File | null>(null);
   const [devises, setDevises] = useState<Record<string, string>>({});
   const [taux, setTaux] = useState<Record<string, number>>({ EUR: 1 });
   const [tri, setTri] = useState<{ col: Colonne; sens: 1 | -1 }>({ col: "valeurEur", sens: -1 });
@@ -221,7 +226,34 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
         <button className="bouton" title="Crée une alerte « prix ≥ objectif » pour chaque objectif saisi" onClick={preparerAlertesTp}>
           🔔 Alertes aux objectifs (TP)
         </button>
+        <button className="bouton" title="Reconstitue quantités et PAMP à partir d'un historique d'achats et de ventes (CoinMarketCap, courtier, exchange…)" onClick={() => choixCsv.current?.click()}>
+          ⇪ Importer des transactions (CSV)
+        </button>
+        <input
+          ref={choixCsv}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={(e) => {
+            setFichierCsv(e.target.files?.[0] ?? null);
+            e.target.value = ""; // permet de rechoisir le même fichier
+          }}
+        />
       </div>
+
+      {fichierCsv && (
+        <ImportTransactions
+          fichier={fichierCsv}
+          actifs={actifs}
+          positions={positions}
+          surAjouterActifs={surAjouterActifs}
+          surPositions={surPositions}
+          surFermer={(message) => {
+            setFichierCsv(null);
+            if (message) setInfo(message);
+          }}
+        />
+      )}
 
       {confirmationTp && (
         <div className="rounded border border-alerte/60 p-3 text-sm">
