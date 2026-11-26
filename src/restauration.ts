@@ -20,6 +20,20 @@ export function dateDepuisNom(nom: string): Date | null {
 /** Nombre d'éléments d'une liste du fichier de données (0 si absente). */
 export const compter = (v: unknown) => (Array.isArray(v) ? v.length : 0);
 
+/**
+ * Le disque contient-il déjà des données de Hune (fichier de données non vide ou copie automatique) ?
+ * Faux hors de l'application, au tout premier lancement, ou si le dossier est illisible.
+ */
+export async function donneesPresentes(): Promise<boolean> {
+  if (!dansTauri()) return false;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return await invoke<boolean>("donnees_presentes");
+  } catch {
+    return false;
+  }
+}
+
 /** Copies automatiques lisibles et valides, de la plus récente à la plus ancienne (liste vide hors de l'application). */
 export async function listerCopies(): Promise<CopieAuto[]> {
   if (!dansTauri()) return [];

@@ -87,6 +87,15 @@ fn lister_sauvegardes(app: AppHandle) -> Vec<String> {
     noms
 }
 
+/// Le disque contient-il déjà des données de l'application (fichier de données non vide ou copie automatique) ?
+/// L'interface s'en sert pour distinguer un premier lancement d'une lecture qui a échoué.
+#[tauri::command]
+fn donnees_presentes(app: AppHandle) -> bool {
+    let Ok(dossier) = app.path().app_data_dir() else { return false };
+    let fichier_non_vide = std::fs::metadata(dossier.join("hune.json")).map(|m| m.len() > 200).unwrap_or(false);
+    fichier_non_vide || !lister_sauvegardes(app).is_empty()
+}
+
 /// Contenu d'une sauvegarde automatique (JSON brut, validé ensuite par l'interface avant toute restauration).
 #[tauri::command]
 fn lire_sauvegarde(app: AppHandle, nom: String) -> Result<String, String> {
@@ -130,7 +139,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde])
+        .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde, donnees_presentes])
         .on_window_event(|fenetre, evenement| {
             // Croix de la fenêtre : on la masque, l'application reste dans la zone de notification.
             if let WindowEvent::CloseRequested { api, .. } = evenement {

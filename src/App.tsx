@@ -17,9 +17,9 @@ import { useMiseAJour } from "./miseajour";
 import type { Position } from "./portefeuille";
 import { Rail, type Onglet } from "./rail";
 import { PanneauReglages, REGLAGES_PAR_DEFAUT, type Reglages } from "./reglages";
-import { listerCopies, type CopieAuto } from "./restauration";
+import { donneesPresentes, listerCopies, type CopieAuto } from "./restauration";
 import { restaurer } from "./sauvegarde";
-import { ecrire, lire } from "./stockage";
+import { ecrire, lire, recharger } from "./stockage";
 import { useTheme, type PreferenceTheme } from "./theme";
 import { majInfobulleTray } from "./tray";
 import { VueMarche } from "./vue-marche";
@@ -57,8 +57,62 @@ function usePersister(cle: string, valeur: unknown, pret: boolean) {
 
 const THEMES: PreferenceTheme[] = ["auto", "clair", "sombre"];
 
+/**
+ * Affiché quand le fichier de données n'a pas pu être lu (ou semble vide alors que des données existent) : rien n'est
+ * modifié sur le disque. « Réessayer » relance l'application ; une copie automatique peut aussi être restaurée.
+ */
+function EcranLectureBloquee() {
+  const [copie, setCopie] = useState<CopieAuto | null>(null);
+  const [confirmer, setConfirmer] = useState(false);
+  useEffect(() => {
+    void listerCopies().then((c) => setCopie(c.find((x) => x.actifs > 0 || x.positions > 0) ?? null));
+  }, []);
+  return (
+    <div className="flex h-screen items-center justify-center p-6">
+      <div className="carte-info max-w-lg space-y-3 p-6">
+        <h1 className="titre-serif m-0 text-2xl">Vos données n'ont pas pu être lues</h1>
+        <p className="m-0 text-sm">
+          Le fichier de données de Hune est momentanément illisible (ou paraît vide). <b>Rien n'a été modifié ni effacé</b> : Hune n'écrit rien tant que la lecture ne réussit pas.
+        </p>
+        <p className="m-0 text-xs text-doux">
+          Fermez Hune puis rouvrez-la (zone de notification › Quitter), ou cliquez sur « Réessayer ». Si le problème persiste, une copie automatique peut être restaurée ; elle remplacera le fichier actuel.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="bouton bouton-actif" onClick={() => location.reload()}>
+            Réessayer
+          </button>
+          {copie && !confirmer && (
+            <button className="bouton" onClick={() => setConfirmer(true)}>
+              Restaurer la copie du {copie.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}…
+            </button>
+          )}
+          {copie && confirmer && (
+            <span className="flex items-center gap-2 text-xs">
+              Remplacer le fichier actuel par cette copie ({copie.actifs} actifs, {copie.positions} positions) ?
+              <button
+                className="bouton bouton-actif !py-0.5"
+                onClick={async () => {
+                  await restaurer(copie.donnees);
+                  location.reload();
+                }}
+              >
+                Oui, restaurer
+              </button>
+              <button className="bouton !py-0.5" onClick={() => setConfirmer(false)}>
+                Non
+              </button>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [pret, setPret] = useState(false);
+  /** La lecture du fichier de données a échoué ou semble vide malgré des données sur le disque : on n'écrit rien. */
+  const [lectureBloquee, setLectureBloquee] = useState(false);
   const [actifs, setActifs] = useState<Actif[]>([]);
   const [categories, setCategories] = useState<string[]>(CATEGORIES_PAR_DEFAUT);
   const [repliees, setRepliees] = useState<string[]>([]);
@@ -90,25 +144,69 @@ export default function App() {
 
   // Chargement initial de toutes les données utilisateur.
   useEffect(() => {
+    let annule = false;
+    /** Une lecture complète du fichier ; null si elle échoue. */
+    const tenter = async () => {
+      try {
+        return {
+          a: await lire<Actif[]>("actifs", []),
+          categories: await lire<string[]>("categories", CATEGORIES_PAR_DEFAUT),
+          repliees: await lire<string[]>("repliees", []),
+          tri: await lire<Tri>("tri", "manuel"),
+          intervalle: await lire<Intervalle>("intervalle", "1h"),
+          profondeur: await lire<Profondeur>("profondeur", "standard"),
+          echelleLog: await lire<boolean>("echelleLog", false),
+          typeGraphique: await lire<TypeGraphique>("typeGraphique", "bougies"),
+          indicateurs: { ...INDICATEURS_PAR_DEFAUT, ...(await lire<Partial<Indicateurs>>("indicateurs", {})) },
+          parametres: { ...PARAMETRES_PAR_DEFAUT, ...(await lire<Partial<Parametres>>("parametres", {})) },
+          reglages: { ...REGLAGES_PAR_DEFAUT, ...(await lire<Partial<Reglages>>("reglages", {})) },
+          ui: { ...PREFS_INTERFACE, ...(await lire<Partial<PrefsInterface>>("interface", {})) },
+          alertes: await lire<Alerte[]>("alertes", []),
+          positions: await lire<Position[]>("positions", []),
+        };
+      } catch {
+        return null;
+      }
+    };
+    // Lecture suspecte : échec, ou résultat vide alors que le disque contient des données (fichier momentanément
+    // inaccessible…). On ne démarre jamais sur du vide dans ce cas : la première modification écraserait les vraies données.
+    const suspecte = async (d: Awaited<ReturnType<typeof tenter>>) => d === null || (!d.a.length && !d.positions.length && !d.alertes.length && (await donneesPresentes()));
     void (async () => {
-      const a = await lire<Actif[]>("actifs", []);
-      setCategories(await lire<string[]>("categories", CATEGORIES_PAR_DEFAUT));
-      setRepliees(await lire<string[]>("repliees", []));
-      setTri(await lire<Tri>("tri", "manuel"));
-      setIntervalle(await lire<Intervalle>("intervalle", "1h"));
-      setProfondeur(await lire<Profondeur>("profondeur", "standard"));
-      setEchelleLog(await lire<boolean>("echelleLog", false));
-      setTypeGraphique(await lire<TypeGraphique>("typeGraphique", "bougies"));
-      setIndicateurs({ ...INDICATEURS_PAR_DEFAUT, ...(await lire<Partial<Indicateurs>>("indicateurs", {})) });
-      setParametres({ ...PARAMETRES_PAR_DEFAUT, ...(await lire<Partial<Parametres>>("parametres", {})) });
-      setReglages({ ...REGLAGES_PAR_DEFAUT, ...(await lire<Partial<Reglages>>("reglages", {})) });
-      setUi({ ...PREFS_INTERFACE, ...(await lire<Partial<PrefsInterface>>("interface", {})) });
-      setAlertes(await lire<Alerte[]>("alertes", []));
-      setPositions(await lire<Position[]>("positions", []));
-      setActifs(a);
-      setSelection(a[0] ? cleActif(a[0]) : null);
+      let d = await tenter();
+      if (await suspecte(d)) {
+        for (const attente of [500, 1500, 3000, 6000]) {
+          await new Promise((r) => setTimeout(r, attente));
+          if (annule) return;
+          await recharger().catch(() => {});
+          d = await tenter();
+          if (!(await suspecte(d))) break;
+        }
+        if (d === null || (await suspecte(d))) {
+          if (!annule) setLectureBloquee(true);
+          return;
+        }
+      }
+      if (annule || d === null) return;
+      setCategories(d.categories);
+      setRepliees(d.repliees);
+      setTri(d.tri);
+      setIntervalle(d.intervalle);
+      setProfondeur(d.profondeur);
+      setEchelleLog(d.echelleLog);
+      setTypeGraphique(d.typeGraphique);
+      setIndicateurs(d.indicateurs);
+      setParametres(d.parametres);
+      setReglages(d.reglages);
+      setUi(d.ui);
+      setAlertes(d.alertes);
+      setPositions(d.positions);
+      setActifs(d.a);
+      setSelection(d.a[0] ? cleActif(d.a[0]) : null);
       setPret(true);
     })();
+    return () => {
+      annule = true;
+    };
   }, []);
 
   usePersister("actifs", actifs, pret);
@@ -239,6 +337,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", surTouche);
   }, [cleVisibles, selection, ouvrirActif, compact, basculerCompact]);
 
+  if (lectureBloquee) return <EcranLectureBloquee />;
   if (!pret) return null;
   const actifSelectionne = actifs.find((a) => cleActif(a) === selection) ?? null;
 

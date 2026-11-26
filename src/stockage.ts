@@ -7,12 +7,22 @@ import { dansTauri } from "./donnees/http";
  */
 const FICHIER = "hune.json";
 
-type Magasin = { get<T>(cle: string): Promise<T | undefined>; set(cle: string, v: unknown): Promise<void>; save(): Promise<void> };
+type Magasin = { get<T>(cle: string): Promise<T | undefined>; set(cle: string, v: unknown): Promise<void>; save(): Promise<void>; reload(options?: { ignoreDefaults?: boolean }): Promise<void> };
 let magasin: Promise<Magasin> | null = null;
 
 function ouvrir(): Promise<Magasin> {
-  magasin ??= import("@tauri-apps/plugin-store").then(({ load }) => load(FICHIER, { defaults: {}, autoSave: false }) as unknown as Magasin);
+  magasin ??= import("@tauri-apps/plugin-store")
+    .then(({ load }) => load(FICHIER, { defaults: {}, autoSave: false }) as unknown as Magasin)
+    .catch((e) => {
+      magasin = null; // une ouverture ratée ne doit pas rester en mémoire : la tentative suivante repart de zéro
+      throw e;
+    });
   return magasin;
+}
+
+/** Relit le fichier sur le disque (utile si la première lecture a vu un fichier momentanément inaccessible). */
+export async function recharger(): Promise<void> {
+  if (dansTauri()) await (await ouvrir()).reload({ ignoreDefaults: true });
 }
 
 export async function lire<T>(cle: string, defaut: T): Promise<T> {
