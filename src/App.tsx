@@ -7,6 +7,7 @@ import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
 import { BarreTitre } from "./barre-titre";
 import { InfoBulles } from "./info-bulles";
+import { deplacerActif } from "./ordre-liste";
 import { CATEGORIES_PAR_DEFAUT, grouper, type Tri } from "./categories";
 import { cotationsActifs, miniCourbesActifs } from "./donnees";
 import type { Profondeur } from "./donnees/historique";
@@ -484,6 +485,13 @@ export default function App() {
         }
       }}
       surDeplacement={(cle, categorie) => setActifs(actifs.map((a) => (cleActif(a) === cle ? { ...a, categorie } : a)))}
+      surReordonner={(cle, avantCle, groupe) => {
+        // On part de l'ordre affiché (même s'il vient d'un tri) : il devient « Mon ordre ».
+        const affiche = groupes.flatMap((g) => g.actifs);
+        const suite = deplacerActif(affiche, categories, cle, avantCle, groupe);
+        if (tri !== "manuel") setTri("manuel");
+        if (suite) setActifs(suite);
+      }}
       surBasculeGroupe={(nom) => setRepliees(repliees.includes(nom) ? repliees.filter((n) => n !== nom) : [...repliees, nom])}
       surCreationCategorie={creerCategorie}
       surRenommageCategorie={renommerCategorie}

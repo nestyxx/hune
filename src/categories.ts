@@ -12,7 +12,7 @@ export function categorieDe(a: Actif, categories: string[]): string {
 }
 
 export type Tri = "manuel" | "symbole" | "variation";
-export const LIBELLE_TRI: Record<Tri, string> = { manuel: "Ordre d'ajout", symbole: "A → Z", variation: "Variation" };
+export const LIBELLE_TRI: Record<Tri, string> = { manuel: "Mon ordre", symbole: "A → Z", variation: "Variation" };
 
 export interface Groupe {
   nom: string;

@@ -3,6 +3,14 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.13.0] - 2026-11-26
+
+### Ajouté
+- **Classer sa liste à la main** : on attrape une ligne de la liste d'actifs et on la glisse où l'on veut (BTC et ETH tout en haut, par exemple). L'ordre est mémorisé. Glisser sur une autre catégorie y range l'actif, glisser sur l'en-tête d'une catégorie le place en fin de catégorie ; un trait bleu montre l'endroit de dépôt, Échap annule. Si la liste était triée par nom ou par variation, l'ordre affiché devient « Mon ordre » dès le premier déplacement.
+
+### Modifié
+- Le tri « Ordre d'ajout » s'appelle désormais « Mon ordre », puisque c'est celui que l'on règle à la main.
+
 ## [0.12.1] - 2026-11-26
 
 ### Modifié

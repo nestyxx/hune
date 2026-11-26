@@ -23,6 +23,8 @@ interface Props {
   surAjout: (a: Actif) => void;
   surSuppression: (cle: string) => void;
   surDeplacement: (cle: string, categorie: string) => void;
+  /** Glisser-déposer : place l'actif devant `avantCle` (ou en fin de catégorie `groupe` si null). */
+  surReordonner: (cle: string, avantCle: string | null, groupe: string) => void;
   surBasculeGroupe: (nom: string) => void;
   surCreationCategorie: (nom: string) => void;
   surRenommageCategorie: (ancien: string, nouveau: string) => void;
@@ -40,6 +42,72 @@ interface Props {
 
 /** Colonne de gauche : recherche (symbole, nom ou ISIN) + actifs suivis, regroupés par catégorie. */
 export function Watchlist(p: Props) {
+  /** Glisser-déposer d'un actif (au pointeur : le glisser-déposer HTML est capté par la fenêtre dans l'application). */
+  const [glisse, setGlisse] = useState<{ cle: string; cible: { cle: string | null; groupe: string; apres: boolean } | null } | null>(null);
+  const groupesRef = useRef(p.groupes);
+  groupesRef.current = p.groupes;
+  const reordonnerRef = useRef(p.surReordonner);
+  reordonnerRef.current = p.surReordonner;
+  const apresGlisse = useRef(false);
+
+  const demarrerGlisse = (e: React.PointerEvent, cle: string) => {
+    if (e.button !== 0 || (e.target as Element).closest("button, input, select")) return;
+    const depart = { x: e.clientX, y: e.clientY };
+    let actif = false;
+    let cible: { cle: string | null; groupe: string; apres: boolean } | null = null;
+    const trouver = (ev: PointerEvent) => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const ligne = el?.closest("[data-actif]") as HTMLElement | null;
+      if (ligne) {
+        const g = groupesRef.current.find((x) => x.actifs.some((a) => cleActif(a) === ligne.dataset.actif));
+        if (!g) return null;
+        const r = ligne.getBoundingClientRect();
+        return { cle: ligne.dataset.actif ?? null, groupe: g.nom, apres: ev.clientY > r.top + r.height / 2 };
+      }
+      const entete = el?.closest("[data-groupe]") as HTMLElement | null;
+      return entete?.dataset.groupe ? { cle: null, groupe: entete.dataset.groupe, apres: true } : null;
+    };
+    const bouger = (ev: PointerEvent) => {
+      if (!actif) {
+        if (Math.hypot(ev.clientX - depart.x, ev.clientY - depart.y) < 6) return;
+        actif = true;
+      }
+      cible = trouver(ev);
+      setGlisse({ cle, cible });
+    };
+    const fin = () => {
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", relacher);
+      window.removeEventListener("keydown", echap);
+      setGlisse(null);
+    };
+    const relacher = () => {
+      const c = cible;
+      const etait = actif;
+      fin();
+      if (!etait) return;
+      apresGlisse.current = true;
+      setTimeout(() => (apresGlisse.current = false), 0);
+      if (!c) return;
+      if (c.cle === null) return reordonnerRef.current(cle, null, c.groupe);
+      const g = groupesRef.current.find((x) => x.nom === c.groupe);
+      if (!g) return;
+      const i = g.actifs.findIndex((a) => cleActif(a) === c.cle);
+      const avant = c.apres ? (g.actifs[i + 1] ? cleActif(g.actifs[i + 1]) : null) : c.cle;
+      reordonnerRef.current(cle, avant, c.groupe);
+    };
+    const echap = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") {
+        cible = null;
+        actif = false;
+        fin();
+      }
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", relacher);
+    window.addEventListener("keydown", echap);
+  };
+
   useNomsCryptos(p.groupes.flatMap((g) => g.actifs));
   const [saisie, setSaisie] = useState("");
   const [resultats, setResultats] = useState<ResultatRecherche[]>([]);
@@ -195,7 +263,7 @@ export function Watchlist(p: Props) {
           const replie = p.repliees.includes(g.nom);
           return (
             <section key={g.nom}>
-              <header className="group sticky top-0 z-10 flex items-center justify-between border-b border-ligne bg-carte px-3 py-1.5 text-xs uppercase tracking-wide text-doux">
+              <header data-groupe={g.nom} className={`group sticky top-0 z-10 flex items-center justify-between border-b border-ligne bg-carte px-3 py-1.5 text-xs uppercase tracking-wide text-doux ${glisse?.cible?.cle === null && glisse.cible.groupe === g.nom ? "!bg-accent-doux" : ""}`}>
                 {renomme === g.nom ? (
                   <input
                     autoFocus
@@ -242,9 +310,10 @@ export function Watchlist(p: Props) {
                       <li
                         key={cle}
                         data-actif={cle}
-                        onClick={() => p.surSelection(cle)}
+                        onClick={() => !apresGlisse.current && p.surSelection(cle)}
+                        onPointerDown={(e) => demarrerGlisse(e, cle)}
                         title={p.uneLigne ? `${nomAffiche(a)} (${cle})` : undefined}
-                        className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
+                        className={`group relative flex cursor-pointer select-none items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""} ${glisse?.cle === cle ? "opacity-40" : ""} ${glisse?.cible?.cle === cle && glisse.cle !== cle ? (glisse.cible.apres ? "!border-b-2 !border-b-accent" : "shadow-[inset_0_2px_0_var(--color-accent)]") : ""}`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-1">
                         <IconeActif actif={a} taille={p.uneLigne ? 18 : 28} />

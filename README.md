@@ -78,7 +78,7 @@ Une carte thermique de votre watchlist par catégorie, les plus fortes hausses e
 
 ### Un affichage qui s'adapte
 
-Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seules icônes**, liste d'actifs masquable (`L`) affichable **sur une ligne par actif** pour en voir davantage, avec des **mini-courbes de 7 jours**, **mode compact** (une petite fenêtre qui ne montre que la liste et les prix, idéale à côté d'un autre travail) et option **garder au premier plan**. Trois thèmes : clair, sombre ou automatique.
+Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seules icônes**, liste d'actifs que l'on **classe à la main par glisser-déposer** (« Mon ordre », y compris d'une catégorie à l'autre), masquable (`L`) affichable **sur une ligne par actif** pour en voir davantage, avec des **mini-courbes de 7 jours**, **mode compact** (une petite fenêtre qui ne montre que la liste et les prix, idéale à côté d'un autre travail) et option **garder au premier plan**. Trois thèmes : clair, sombre ou automatique.
 
 <table>
   <tr>
