@@ -139,6 +139,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde, donnees_presentes])
         .on_window_event(|fenetre, evenement| {
             // Croix de la fenêtre : on la masque, l'application reste dans la zone de notification.

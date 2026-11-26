@@ -1,7 +1,10 @@
+import { ExternalLink, Newspaper } from "lucide-react";
 import { fournisseur } from "./donnees";
 import type { Actif, Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
 import { IconeActif } from "./icone-actif";
+import { liensExternes } from "./liens";
+import { ouvrirLien } from "./ouvrir-lien";
 
 /** Bandeau au-dessus du graphique : actif, prix, variation et — surtout — nature des données (temps réel ou différées). */
 export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotation?: Cotation; prixLive: number | null }) {
@@ -21,12 +24,21 @@ export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotat
           <span className={`text-lg font-medium ${classePct(cotation?.variationPct)}`}>{formaterPct(cotation?.variationPct)}</span>
         </div>
       </div>
-      <span
-        title={f.noteDonnees}
-        className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${f.differe ? "border-alerte/50 bg-alerte/10 text-alerte" : "border-hausse/50 bg-hausse/10 text-hausse"}`}
-      >
-        {f.differe ? "● Données différées" : "● Temps réel"} · {f.nom}
-      </span>
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <span
+          title={f.noteDonnees}
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${f.differe ? "border-alerte/50 bg-alerte/10 text-alerte" : "border-hausse/50 bg-hausse/10 text-hausse"}`}
+        >
+          {f.differe ? "● Données différées" : "● Temps réel"} · {f.nom}
+        </span>
+        <div className="flex gap-1.5">
+          {liensExternes(actif).map((l, i) => (
+            <button key={l.url} className="puce !py-[2px] text-xs" title={l.aide} onClick={() => void ouvrirLien(l.url)}>
+              {i === 0 ? <Newspaper size={12} /> : <ExternalLink size={12} />} {l.libelle}
+            </button>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }

@@ -1,6 +1,7 @@
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { decrire, type Alerte } from "./alertes/moteur";
+import { synchroniserAlertesTp } from "./alertes/tp-auto";
 import { notifier } from "./alertes/notifier";
 import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
@@ -261,7 +262,23 @@ export default function App() {
   }, []);
 
   const changerAlertes = useCallback((modifier: (liste: Alerte[]) => Alerte[]) => setAlertes((prec) => modifier(prec)), []);
-  const changerPositions = useCallback((modifier: (liste: Position[]) => Position[]) => setPositions((prec) => modifier(prec)), []);
+  const positionsRef = useRef<Position[]>([]);
+  positionsRef.current = positions;
+  const cotationsRef = useRef<Record<string, Cotation>>({});
+  cotationsRef.current = cotations;
+  const actifsRef = useRef<Actif[]>([]);
+  actifsRef.current = actifs;
+  /** Modifie les positions ; l'alerte « prix ≥ objectif » de chaque lot suit son objectif (voir `synchroniserAlertesTp`). */
+  const changerPositions = useCallback(
+    (modifier: (liste: Position[]) => Position[]) => {
+      const avant = positionsRef.current;
+      const apres = modifier(avant);
+      positionsRef.current = apres;
+      setPositions(apres);
+      changerAlertes((l) => synchroniserAlertesTp(avant, apres, l, actifsRef.current, (cle) => cotationsRef.current[cle]?.prix, Date.now()));
+    },
+    [changerAlertes],
+  );
 
   // Déclenchement : l'alerte passe à « déclenchée » (elle ne se redéclenchera pas) et on notifie.
   const declencher = useCallback(

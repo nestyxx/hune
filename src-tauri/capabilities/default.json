@@ -25,6 +25,20 @@
     "autostart:allow-is-enabled",
     "updater:default",
     "process:allow-restart",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://finance.yahoo.com/*"
+        },
+        {
+          "url": "https://coinmarketcap.com/*"
+        },
+        {
+          "url": "https://www.coingecko.com/*"
+        }
+      ]
+    },
     "core:tray:allow-get-by-id",
     "core:tray:allow-set-tooltip",
     {

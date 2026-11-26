@@ -29,6 +29,8 @@ export interface Alerte {
   declencheeLe?: number;
   /** Valeur mesurée au déclenchement (prix, % ou RSI), affichée dans la liste. */
   valeur?: number;
+  /** Alerte créée automatiquement pour l'objectif (TP) de ce lot du portefeuille : elle suit l'objectif. */
+  tpLot?: string;
 }
 
 /** Données dont l'évaluation a besoin ; seules celles de la condition sont lues. */
