@@ -35,6 +35,8 @@ Hune réunit ce qui sert au quotidien (graphiques, indicateurs, alertes, portefe
 
 Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste (vue par défaut : journalier, 6 mois, volume + SMA + EMA + RSI). Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
 
+**Analyse** : les **valeurs des plus hauts et plus bas dominants** sont écrites sur le graphique (bouton « Hauts / bas », nombre d'étiquettes adapté au zoom).
+
 **Outils de tracé** : ligne horizontale, ligne de tendance, rayon, retracement de **Fibonacci** et gomme. Les tracés sont mémorisés par actif et suivent le zoom. **Votre portefeuille sur le graphique** : PAMP, objectif (TP) et repères d'achat/vente de vos transactions importées.
 
 **Historique long** : à partir du journalier, choisissez la profondeur *Standard*, *5 ans* ou *Max*, ou **dézoomez simplement** : au-delà de la première bougie, Hune charge la profondeur suivante. Binance remonte jusqu'au début de la cotation de la paire (BTC/USDC : 2018, BTC/USDT : 2017) ; Yahoo remonte jusqu'à l'introduction en bourse (Microsoft : 1986) ou à la création de la crypto (BTC : 2014). Aucune clé n'est nécessaire. En intraday, les sources limitent elles-mêmes la profondeur.
@@ -54,7 +56,7 @@ Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MAC
 
 Saisissez vos lots (quantité, prix d'achat moyen, objectif, plateforme) : Hune calcule la **valeur en euros ou en dollars** (bascule d'un clic, choix mémorisé, conversion des devises), le **P&L latent**, le poids de chaque ligne, la distance à l'objectif et la répartition par catégorie et par plateforme. Un bouton crée les alertes aux objectifs en un clic. Vous avez un historique d'achats et de ventes (export CoinMarketCap, courtier, exchange) ? **Importez le CSV** : Hune reconstitue quantités et prix d'achat moyens, et vous montre le résultat avant d'écrire quoi que ce soit.
 
-Un **graphique de l'évolution de la valeur** (24 h à tout l'historique, reconstitué localement à partir de vos transactions et des cours), la variation du jour, la **base de coût**, la meilleure et la moins bonne performance, un **filtre par plateforme** (Ledger, PEA, exchange…) et un onglet **Transactions** complètent la vue. Les cryptos s'affichent avec leur **icône**, embarquée dans l'application : aucune image n'est téléchargée, donc rien ne révèle ce que vous suivez.
+Un **graphique de l'évolution de la valeur** (24 h à tout l'historique, reconstitué localement à partir de vos transactions et des cours), la variation du jour, la **base de coût**, la meilleure et la moins bonne performance, un **filtre par plateforme** (Ledger, PEA, exchange…) et un onglet **Transactions** (avec le **gain réalisé** de chaque vente) complètent la vue ; répartition en **camembert**, et **export CSV** des positions et des transactions pour Excel. Les cryptos s'affichent avec leur **icône**, embarquée dans l'application : aucune image n'est téléchargée, donc rien ne révèle ce que vous suivez.
 
 <p align="center">
   <picture>
@@ -76,7 +78,7 @@ Une carte thermique de votre watchlist par catégorie, les plus fortes hausses e
 
 ### Un affichage qui s'adapte
 
-Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seules icônes**, liste d'actifs masquable (`L`) et affichable **sur une ligne par actif** pour en voir davantage, **mode compact** (une petite fenêtre qui ne montre que la liste et les prix, idéale à côté d'un autre travail) et option **garder au premier plan**. Trois thèmes : clair, sombre ou automatique.
+Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seules icônes**, liste d'actifs masquable (`L`) affichable **sur une ligne par actif** pour en voir davantage, avec des **mini-courbes de 7 jours**, **mode compact** (une petite fenêtre qui ne montre que la liste et les prix, idéale à côté d'un autre travail) et option **garder au premier plan**. Trois thèmes : clair, sombre ou automatique.
 
 <table>
   <tr>

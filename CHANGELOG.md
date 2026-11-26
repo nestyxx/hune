@@ -3,6 +3,18 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.10.0] - 2026-11-26
+
+### Ajouté
+- **Valeurs aux sommets et aux creux** du graphique, comme sur ProRealTime : les plus hauts et plus bas dominants (au-delà de leurs bougies voisines) sont étiquetés avec leur prix, ainsi que le plus haut et le plus bas de la vue. Le nombre d'étiquettes s'adapte au zoom pour rester lisible. Bouton « Hauts / bas » (activé par défaut, choix mémorisé).
+- **Export CSV du portefeuille** : positions (tableau affiché, devise, plateforme et filtre appliqués) et transactions avec le gain réalisé de chaque vente. Séparateur « ; », virgule décimale et BOM pour Excel ; les textes qui ressemblent à une formule sont neutralisés.
+- **Gains réalisés** sur les ventes de l'historique de transactions importé (méthode du prix moyen, hors frais) : carte « Réalisé » et colonne dans l'onglet Transactions.
+- **Camembert de répartition** (par catégorie et par plateforme) avec légende et pourcentages.
+- **Mini-courbes de 7 jours** dans la liste d'actifs (bouton pour les masquer ; résultats gardés 30 minutes, aucune requête supplémentaire si désactivées).
+
+### Corrigé
+- Les boutons en haut du graphique ne recouvrent plus la légende OHLC sur une fenêtre étroite.
+
 ## [0.9.0] - 2026-11-26
 
 ### Ajouté
