@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.7.1] - 2026-11-26
+
+### Ajouté
+- **Liste d'actifs sur une ligne** : un bouton à côté du compteur d'actifs affiche symbole, prix et variation sur une seule ligne (30 px au lieu de 54), pour voir presque deux fois plus d'actifs sans défiler. Le nom reste visible en info-bulle. Le choix est mémorisé.
+
 ## [0.7.0] - 2026-11-26
 
 ### Ajouté
