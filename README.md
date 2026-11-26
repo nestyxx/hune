@@ -117,7 +117,7 @@ Vous avez déjà vos positions dans un tableur ? Voir [`scripts/importer-excel.p
 
 ## Confidentialité et réseau
 
-Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
+Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Une puce rouge sur « Actualités » signale un article de moins de 24 h que vous n'avez pas ouvert : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
 
 ## Limites à connaître
 

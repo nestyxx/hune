@@ -3,6 +3,14 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.11.1] - 2026-11-26
+
+### Ajouté
+- **Puce « nouvelle actualité »** sur le bouton Actualités au-dessus du graphique : elle apparaît quand un article de moins de 24 h cite l'actif et que vous ne l'avez pas encore ouvert (l'infobulle donne le titre, l'éditeur et l'ancienneté). Les titres viennent de la recherche Yahoo Finance, déjà utilisée pour les cours, pour l'actif affiché seulement et rafraîchis toutes les 10 minutes. Les cryptos très suivies (Bitcoin, Ethereum…) ont des articles ; les petits jetons en ont rarement.
+
+### Corrigé
+- **Devise des prix d'un lot** : changer la devise à côté du PAMP ou de l'objectif convertit maintenant aussitôt la valeur affichée (au taux du jour). Avant, le choix ne s'appliquait qu'à la saisie suivante, ce qui donnait l'impression qu'il n'était pas pris en compte. La valeur reste enregistrée dans la devise de cotation de l'actif.
+
 ## [0.11.0] - 2026-11-26
 
 ### Ajouté

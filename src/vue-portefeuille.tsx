@@ -108,24 +108,25 @@ function ChampLot({ valeur, surChangement, placeholder, large = "w-28", forcer =
   );
 }
 
-/** Champ de prix d'un lot (PAMP, objectif) : on choisit la devise dans laquelle on le saisit, la valeur est convertie au taux du jour puis stockée dans la devise de cotation. */
+/**
+ * Champ de prix d'un lot (PAMP, objectif) avec choix de la devise d'affichage et de saisie.
+ * Changer de devise convertit aussitôt la valeur affichée (au taux du jour) ; ce qu'on tape ensuite est converti en retour
+ * et enregistré dans la devise de cotation de l'actif. Le choix de devise lui-même n'enregistre rien : c'est un affichage.
+ */
 function ChampLotPrix({ valeur, surChangement, placeholder, devise, taux }: { valeur: number | undefined; surChangement: (v: number | undefined) => void; placeholder: string; devise: string | null | undefined; taux: Record<string, number> }) {
   const options = devisesDeSaisie(devise, taux);
-  const [saisie, setSaisie] = useState<string | undefined>(undefined);
-  const courante = (saisie && options.includes(saisie) ? saisie : devise) ?? undefined;
+  const [choix, setChoix] = useState<string | undefined>(undefined);
+  const courante = (choix && options.includes(choix) ? choix : devise) ?? undefined;
+  const affiche = valeur == null ? undefined : courante === devise ? valeur : Number(convertirSaisie(valeur, devise ?? undefined, courante, taux).toPrecision(6));
   return (
     <span className="inline-flex items-center gap-1">
       <ChampLot
-        valeur={valeur}
+        valeur={affiche}
         placeholder={placeholder}
-        forcer={courante !== devise}
-        surChangement={(v) => {
-          setSaisie(undefined);
-          surChangement(v === undefined ? v : convertirSaisie(v, courante, devise, taux));
-        }}
+        surChangement={(v) => surChangement(v === undefined ? v : convertirSaisie(v, courante, devise, taux))}
       />
       {options.length > 1 ? (
-        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise dans laquelle vous saisissez ce prix. Il est converti au taux du jour et enregistré en ${devise}.`} onChange={(e) => setSaisie(e.target.value)}>
+        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise d'affichage de ce prix (conversion au taux du jour). Il reste enregistré en ${devise}.`} onChange={(e) => setChoix(e.target.value)}>
           {options.map((d) => (
             <option key={d} value={d}>
               {d}
