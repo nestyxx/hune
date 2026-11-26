@@ -3,6 +3,18 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.7.0] - 2026-11-26
+
+### Ajouté
+- **Outils de tracé** sur le graphique : ligne horizontale, ligne de tendance, rayon, retracement de Fibonacci (niveaux 0 à 1 avec prix) et gomme. Les tracés sont mémorisés par actif, suivent le zoom et l'échelle logarithmique, et font partie de la sauvegarde. Un clic droit sur un tracé propose de le supprimer.
+- **Portefeuille sur le graphique** : bouton « Portefeuille » affichant le PAMP, l'objectif (TP), un niveau par lot et, pour les transactions importées, une flèche d'achat ou de vente sur la bougie (prix indiqué). Les repères viennent de l'import CSV : réimportez votre fichier pour les voir.
+- **Alertes modifiables depuis le graphique** : glisser la ligne d'une alerte de prix la déplace (elle est réarmée, son sens s'ajuste au prix actuel) ; double-clic ou clic droit › « Modifier cette alerte » ouvre le formulaire ; clic droit › « Supprimer cette alerte ».
+- **Réglage « Variation des cryptos »** : 24 h glissantes (Binance, comme avant) ou depuis 00:00 UTC (la définition de TradingView). S'applique à la liste, à la carte Marché et à l'en-tête.
+
+### Modifié
+- **Vue par défaut du graphique** : journalier, bougies, échelle logarithmique, volume + SMA 20 + EMA 50 + RSI 14. À l'ouverture et au recentrage, le graphique montre 6 mois en journalier (durée adaptée aux autres intervalles). Vos réglages déjà enregistrés ne changent pas.
+- Les cartes ne se soulèvent plus au survol (bordure et ombre légères conservées).
+
 ## [0.6.1] - 2026-11-26
 
 ### Corrigé

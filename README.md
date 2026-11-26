@@ -33,13 +33,15 @@ Hune réunit ce qui sert au quotidien (graphiques, indicateurs, alertes, portefe
 
 ### Graphiques et indicateurs
 
-Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste. Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
+Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heikin-Ashi, ligne ou aire. SMA, EMA, bandes de Bollinger, RSI, MACD, stochastique et volume, tous **paramétrables**, avec échelle logarithmique, légende OHLC et recentrage en un geste (vue par défaut : journalier, 6 mois, volume + SMA + EMA + RSI). Cryptos en temps réel via Binance, actions via Yahoo Finance (données différées).
+
+**Outils de tracé** : ligne horizontale, ligne de tendance, rayon, retracement de **Fibonacci** et gomme. Les tracés sont mémorisés par actif et suivent le zoom. **Votre portefeuille sur le graphique** : PAMP, objectif (TP) et repères d'achat/vente de vos transactions importées.
 
 **Historique long** : à partir du journalier, choisissez la profondeur *Standard*, *5 ans* ou *Max*, ou **dézoomez simplement** : au-delà de la première bougie, Hune charge la profondeur suivante. Binance remonte jusqu'au début de la cotation de la paire (BTC/USDC : 2018, BTC/USDT : 2017) ; Yahoo remonte jusqu'à l'introduction en bourse (Microsoft : 1986) ou à la création de la crypto (BTC : 2014). Aucune clé n'est nécessaire. En intraday, les sources limitent elles-mêmes la profondeur.
 
 ### Alertes
 
-Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MACD/signal, croisement de moyennes (golden / death cross). Une alerte se déclenche **une seule fois** puis se réarme d'un clic. Elles sont **tracées sur le graphique**, un **clic droit** sur le cours crée une alerte à ce niveau, et le bouton crayon permet de **modifier** une alerte existante.
+Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MACD/signal, croisement de moyennes (golden / death cross). Une alerte se déclenche **une seule fois** puis se réarme d'un clic. Elles sont **tracées sur le graphique**, un **clic droit** sur le cours crée une alerte à ce niveau, et le bouton crayon permet de **modifier** une alerte existante. Sur le graphique, une alerte de prix se **déplace à la souris** (glisser la ligne) ou s'édite d'un double-clic.
 
 <p align="center">
   <picture>
@@ -115,6 +117,7 @@ Hune ne contacte que des services publics de données, **sans jamais leur envoye
 
 ## Limites à connaître
 
+- **Variation des cryptos** : par défaut sur 24 h glissantes (valeur de Binance) ; Réglages permet de choisir « depuis 00:00 UTC », la définition de TradingView. Les deux ne coïncident pas (la seconde repart de zéro chaque nuit).
 - **Actions : données différées** (souvent ~15 min). La source est un **endpoint Yahoo Finance non officiel** : il peut changer, être limité ou bloqué sans préavis. L'interface indique « Données différées » ; les cryptos Binance sont en temps réel.
 - Les **alertes ne tournent que si Hune est lancée** (fenêtre fermée dans la zone de notification, oui ; application quittée ou Windows en veille, non). Seul l'état courant est évalué.
 - Le **4 h** des actions est reconstruit à partir du 1 h, par paquets UTC qui ne suivent pas les horaires de séance.
