@@ -893,8 +893,21 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
             {outil === "gomme" ? "Cliquez sur un tracé pour le supprimer" : OUTILS.find((o) => o.id === outil)?.aide} · Échap pour {outil === "gomme" ? "terminer" : "annuler"}
           </div>
         )}
-        {/* Commandes du graphique en surimpression (hors de la barre d'outils, qui reste aérée). */}
-        <div data-surimpression className="absolute right-[76px] top-2 z-10 flex items-center gap-1.5" onDoubleClick={(e) => e.stopPropagation()}>
+        {/* Légende OHLC (à gauche) et commandes du graphique (à droite) dans une même rangée en surimpression : la légende passe à la ligne au lieu d'être recouverte. */}
+        <div className="pointer-events-none absolute left-3 right-[76px] top-2 z-10 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap gap-x-3 font-mono text-xs text-doux">
+          {legende && (
+            <>
+              <span>O <b className="font-normal text-texte">{formaterPrix(legende.o)}</b></span>
+              <span>H <b className="font-normal text-texte">{formaterPrix(legende.h)}</b></span>
+              <span>B <b className="font-normal text-texte">{formaterPrix(legende.l)}</b></span>
+              <span>C <b className={`font-normal ${legende.c >= legende.o ? "text-hausse" : "text-baisse"}`}>{formaterPrix(legende.c)}</b></span>
+              <span className={legende.c >= legende.o ? "text-hausse" : "text-baisse"}>{legende.o ? `${legende.c >= legende.o ? "+" : ""}${(((legende.c - legende.o) / legende.o) * 100).toFixed(2).replace(".", ",")} %` : ""}</span>
+              {legende.v > 0 && <span>Vol <b className="font-normal text-texte">{legende.v.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}</b></span>}
+            </>
+          )}
+        </div>
+        <div data-surimpression className="pointer-events-auto flex shrink-0 items-center gap-1.5" onDoubleClick={(e) => e.stopPropagation()}>
           {niveaux && (
             <button aria-pressed={lignesPortefeuille} title="Afficher le PAMP, l'objectif (TP) et les achats/ventes de votre portefeuille" className="puce" onClick={() => surLignesPortefeuille(!lignesPortefeuille)}>
               Portefeuille
@@ -910,16 +923,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
             ⤢ Recentrer
           </button>
         </div>
-        {legende && (
-          <div className="pointer-events-none absolute left-3 top-2 z-10 flex min-w-[150px] max-w-[calc(100%_-_430px)] flex-wrap gap-x-3 font-mono text-xs text-doux">
-            <span>O <b className="font-normal text-texte">{formaterPrix(legende.o)}</b></span>
-            <span>H <b className="font-normal text-texte">{formaterPrix(legende.h)}</b></span>
-            <span>B <b className="font-normal text-texte">{formaterPrix(legende.l)}</b></span>
-            <span>C <b className={`font-normal ${legende.c >= legende.o ? "text-hausse" : "text-baisse"}`}>{formaterPrix(legende.c)}</b></span>
-            <span className={legende.c >= legende.o ? "text-hausse" : "text-baisse"}>{legende.o ? `${legende.c >= legende.o ? "+" : ""}${(((legende.c - legende.o) / legende.o) * 100).toFixed(2).replace(".", ",")} %` : ""}</span>
-            {legende.v > 0 && <span>Vol <b className="font-normal text-texte">{legende.v.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}</b></span>}
-          </div>
-        )}
+        </div>
         {chargement && <div className="absolute left-14 top-8 text-doux">Chargement…</div>}
         {erreur && <div className="absolute left-14 top-8 rounded border border-baisse/50 bg-carte px-3 py-2 text-baisse">{erreur}</div>}
         {menu && (
