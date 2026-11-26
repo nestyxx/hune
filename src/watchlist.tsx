@@ -1,4 +1,4 @@
-import { Activity, Rows3, Search, StretchHorizontal } from "lucide-react";
+import { Activity, Bell, Check, ChevronDown, ChevronRight, Ellipsis, Pencil, Plus, Rows3, Search, StretchHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
 import { rechercherTout } from "./donnees";
@@ -210,12 +210,12 @@ export function Watchlist(p: Props) {
                 ) : (
                   <>
                     <button className="flex flex-1 items-center gap-1 bg-transparent p-0 text-left uppercase tracking-wide text-doux hover:text-texte" onClick={() => p.surBasculeGroupe(g.nom)}>
-                      <span>{replie ? "▸" : "▾"}</span>
+                      {replie ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
                       {g.nom} <span className="normal-case opacity-70">({g.actifs.length})</span>
                     </button>
                     <span className="invisible flex gap-0.5 group-hover:visible">
                       <button className="bouton-icone" title="Renommer la catégorie" aria-label={`Renommer ${g.nom}`} onClick={() => setRenomme(g.nom)}>
-                        ✎
+                        <Pencil size={13} />
                       </button>
                       <button
                         className="bouton-icone"
@@ -223,7 +223,7 @@ export function Watchlist(p: Props) {
                         aria-label={`Supprimer ${g.nom}`}
                         onClick={() => p.surSuppressionCategorie(g.nom)}
                       >
-                        ✕
+                        <X size={13} />
                       </button>
                     </span>
                   </>
@@ -249,8 +249,8 @@ export function Watchlist(p: Props) {
                           <div className="flex items-center gap-1.5 whitespace-nowrap font-semibold">
                             {a.symbole}
                             {nbAlertes > 0 && (
-                              <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} armée${nbAlertes > 1 ? "s" : ""}`} className="rounded-full bg-alerte/20 px-1.5 text-[10px] font-normal text-alerte">
-                                🔔 {nbAlertes}
+                              <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} armée${nbAlertes > 1 ? "s" : ""}`} className="inline-flex items-center gap-0.5 rounded-full bg-alerte/20 px-1.5 text-[10px] font-normal text-alerte">
+                                <Bell size={10} /> {nbAlertes}
                               </span>
                             )}
                           </div>
@@ -281,7 +281,7 @@ export function Watchlist(p: Props) {
                               setMenu(menu === cle ? null : cle);
                             }}
                           >
-                            ⋯
+                            <Ellipsis size={15} />
                           </button>
                         </div>
                         {menu === cle && (
@@ -291,13 +291,13 @@ export function Watchlist(p: Props) {
                               <button
                                 key={nom}
                                 disabled={nom === g.nom}
-                                className="block w-full bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond disabled:text-doux"
+                                className="flex w-full items-center gap-2 bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond disabled:text-doux"
                                 onClick={() => {
                                   p.surDeplacement(cle, nom);
                                   setMenu(null);
                                 }}
                               >
-                                {nom === g.nom ? `✓ ${nom}` : nom}
+                                {nom === g.nom ? <><Check size={14} /> {nom}</> : nom}
                               </button>
                             ))}
                             <hr className="my-1 border-ligne" />
@@ -326,7 +326,7 @@ export function Watchlist(p: Props) {
       <div className="border-t border-ligne p-2">
         {nouvelle === null ? (
           <button className="bouton w-full text-doux" onClick={() => setNouvelle("")}>
-            ＋ Nouvelle catégorie
+            <Plus size={14} /> Nouvelle catégorie
           </button>
         ) : (
           <input

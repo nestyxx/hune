@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, ChevronDown, ChevronRight, ChevronUp, Download, Plus, Upload, X } from "lucide-react";
 import { GraphiquePortefeuille } from "./graphique-portefeuille";
 import type { EntreeHistorique, PeriodePortefeuille } from "./historique-portefeuille";
 import { IconeActif } from "./icone-actif";
@@ -222,7 +223,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
 
   const entete = (col: Colonne, libelle: string, droite = true) => (
     <th className={`cursor-pointer select-none whitespace-nowrap px-2 py-2 font-normal text-doux hover:text-texte ${droite ? "text-right" : "text-left"}`} onClick={() => surTri({ col, sens: tri.col === col ? (-tri.sens as 1 | -1) : -1 })}>
-      {libelle} {tri.col === col ? (tri.sens === -1 ? "▾" : "▴") : ""}
+      {libelle} {tri.col === col ? (tri.sens === -1 ? <ChevronDown size={12} className="inline" /> : <ChevronUp size={12} className="inline" />) : ""}
     </th>
   );
 
@@ -342,20 +343,20 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
         </div>
         <input className="champ" placeholder="Filtrer…" value={filtre} onChange={(e) => setFiltre(e.target.value)} />
         <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", plateforme: "" })}>
-          ＋ Ajouter une position
+          <Plus size={14} /> Ajouter une position
         </button>
         <button className="bouton" title="Crée une alerte « prix ≥ objectif » pour chaque objectif saisi" onClick={preparerAlertesTp}>
-          🔔 Alertes aux objectifs (TP)
+          <Bell size={14} /> Alertes aux objectifs (TP)
         </button>
         <button className="bouton" title="Reconstitue quantités et PAMP à partir d'un historique d'achats et de ventes (CoinMarketCap, courtier, exchange…)" onClick={() => choixCsv.current?.click()}>
-          ⇪ Importer des transactions (CSV)
+          <Upload size={14} /> Importer des transactions (CSV)
         </button>
         <button className="bouton" disabled={!affichees.length} title="Enregistre le tableau affiché (devise, plateforme et filtre appliqués) en CSV pour Excel" onClick={() => exporter("positions")}>
-          ⇩ Exporter les positions (CSV)
+          <Download size={14} /> Exporter les positions (CSV)
         </button>
         {transactions.length > 0 && (
           <button className="bouton" title="Enregistre vos achats et ventes avec le gain réalisé de chaque vente" onClick={() => exporter("transactions")}>
-            ⇩ Exporter les transactions (CSV)
+            <Download size={14} /> Exporter les transactions (CSV)
           </button>
         )}
         <input
@@ -452,7 +453,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
         <p className="text-doux">Aucune position. Ajoutez-en une ci-dessus, ou importez vos données (Réglages › Sauvegarde › Importer).</p>
       ) : vue === "transactions" ? (
         transactions.length === 0 ? (
-          <p className="text-doux">Aucune transaction enregistrée. Importez l'historique de vos achats et ventes avec « ⇪ Importer des transactions (CSV) » : ils apparaîtront ici et sur les graphiques.</p>
+          <p className="text-doux">Aucune transaction enregistrée. Importez l'historique de vos achats et ventes avec « Importer des transactions (CSV) » : ils apparaîtront ici et sur les graphiques.</p>
         ) : (
           <div className="max-h-[480px] overflow-auto rounded-2xl border border-ligne">
             <table className="w-full border-collapse text-sm">
@@ -529,7 +530,7 @@ function LigneTableau({ l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajo
       <tr className="border-b border-ligne hover:bg-fond">
         <td className="px-2 py-1.5">
           <button className="mr-1 bg-transparent p-0 text-doux hover:text-texte" aria-label="Détail des lots" title="Lots" onClick={surBascule}>
-            {ouverte ? "▾" : "▸"}
+            {ouverte ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
           <span className="mr-1.5 inline-block align-middle">
             <IconeActif actif={l.actif} taille={22} />
@@ -579,12 +580,12 @@ function LigneTableau({ l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajo
                   <input defaultValue={lot.plateforme ?? ""} placeholder="Plateforme" className="champ w-28 !py-1 text-xs" onBlur={(e) => majLot(lot.id, { plateforme: e.target.value.trim() || undefined })} />
                   {lot.montantEur != null && <span className="text-doux">importé : {formaterMontant(lot.montantEur, "EUR", 2)}</span>}
                   <button className="bouton-icone" title="Supprimer ce lot" aria-label="Supprimer ce lot" onClick={() => suppr(lot.id)}>
-                    ✕
+                    <X size={14} />
                   </button>
                 </div>
               ))}
               <button className="bouton !py-0.5 text-xs" onClick={ajouterLot}>
-                ＋ Ajouter un lot
+                <Plus size={14} /> Ajouter un lot
               </button>
             </div>
           </td>

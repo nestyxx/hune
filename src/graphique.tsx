@@ -17,7 +17,7 @@ import {
   type Time,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, ArrowUpRight, Eraser, MousePointer2, Minus, Trash2, TrendingUp } from "lucide-react";
+import { AlignJustify, ArrowUpRight, Bell, Eraser, Maximize2, MousePointer2, Minus, Pencil, Settings, Trash2, TrendingUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PERIODES_VARIATION, type Alerte } from "./alertes/moteur";
 import { fournisseur } from "./donnees";
@@ -438,7 +438,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       const c = a.condition;
       const armee = a.statut === "armee";
       const style = { color: armee ? p.alerte : p.texte, lineWidth: 1 as const, lineStyle: armee ? LineStyle.Dashed : LineStyle.Dotted, axisLabelVisible: true };
-      const marque = armee ? "🔔" : "✓";
+      const marque = armee ? "" : "✓";
       if (c.type === "prix") {
         // Pendant un glissement, la ligne reste là où la souris l'a posée même si un nouveau prix déclenche un redessin.
         const prix = glissement.current?.id === a.id ? glissement.current.prix : c.seuil;
@@ -818,7 +818,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
             </button>
           ))}
           <button className="puce" aria-pressed={panneauParametres} title="Périodes des indicateurs" aria-label="Paramètres des indicateurs" onClick={() => setPanneauParametres(!panneauParametres)}>
-            ⚙
+            <Settings size={13} />
           </button>
         </div>
 
@@ -920,7 +920,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
             Log
           </button>
           <button className="bouton !rounded-full !py-[3px]" title="Recentrer le graphique (R, ou double-clic)" onClick={recentrer}>
-            ⤢ Recentrer
+            <Maximize2 size={13} /> Recentrer
           </button>
         </div>
         </div>
@@ -931,54 +931,54 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
             {menu.alerteId && (
               <>
                 <button
-                  className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                  className="flex w-full items-center gap-2 whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
                   onClick={() => {
                     surEditerAlerte(menu.alerteId!);
                     setMenu(null);
                   }}
                 >
-                  ✎ Modifier cette alerte
+                  <Pencil size={14} /> Modifier cette alerte
                 </button>
                 <button
-                  className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                  className="flex w-full items-center gap-2 whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
                   onClick={() => {
                     surSupprimerAlerte(menu.alerteId!);
                     setMenu(null);
                   }}
                 >
-                  🗑 Supprimer cette alerte
+                  <Trash2 size={14} /> Supprimer cette alerte
                 </button>
               </>
             )}
             {menu.dessinId && (
               <button
-                className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                className="flex w-full items-center gap-2 whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
                 onClick={() => {
                   surDessins(dessins.filter((d) => d.id !== menu.dessinId));
                   setMenu(null);
                 }}
               >
-                🗑 Supprimer ce tracé
+                <Trash2 size={14} /> Supprimer ce tracé
               </button>
             )}
             {(menu.alerteId || menu.dessinId) && <div className="my-1 border-t border-ligne" />}
             <button
-              className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+              className="flex w-full items-center gap-2 whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
               onClick={() => {
                 surCreerAlerte(menu.prix, dernierPrix != null && menu.prix < dernierPrix ? "en-dessous" : "au-dessus");
                 setMenu(null);
               }}
             >
-              🔔 Alerter si le prix {dernierPrix != null && menu.prix < dernierPrix ? "≤" : "≥"} {formaterPrix(menu.prix)}
+              <Bell size={14} /> Alerter si le prix {dernierPrix != null && menu.prix < dernierPrix ? "≤" : "≥"} {formaterPrix(menu.prix)}
             </button>
             <button
-              className="block w-full bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+              className="flex w-full items-center gap-2 bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
               onClick={() => {
                 recentrer();
                 setMenu(null);
               }}
             >
-              ⤢ Recentrer
+              <Maximize2 size={14} /> Recentrer
             </button>
           </div>
         )}

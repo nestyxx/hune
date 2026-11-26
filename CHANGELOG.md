@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.10.2] - 2026-11-26
+
+### Modifié
+- **Icônes unifiées** : les emojis et symboles colorés (🔔 🗑 ✎ ⚙ ✕ ⋯ ＋, flèches d'import/export et de tri) sont remplacés par les icônes monochromes du menu (lucide, embarquées dans l'application), dans le menu du graphique, la liste d'actifs, le portefeuille et les alertes. Les étiquettes d'alerte sur l'échelle de prix n'affichent plus que le sens (≥ / ≤).
+
 ## [0.10.1] - 2026-11-26
 
 ### Modifié

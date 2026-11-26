@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { EnTete } from "../composants";
 import { cleActif, INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Intervalle } from "../donnees/types";
 import { formaterPrix } from "../format";
@@ -355,7 +355,7 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
                   surSuppression(a.id);
                 }}
               >
-                ✕
+                <X size={14} />
               </button>
             </div>
           </li>

@@ -333,3 +333,16 @@ th {
     transition: none !important;
   }
 }
+
+/* Icônes (lucide) alignées avec le texte dans les boutons, puces et menus. */
+.bouton,
+.puce,
+.bouton-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.bouton-icone {
+  gap: 0;
+}
