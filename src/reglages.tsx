@@ -7,6 +7,8 @@ import { PERIODE_PORTEFEUILLE_PAR_DEFAUT, type PeriodePortefeuille } from "./his
 import { TRI_PORTEFEUILLE_PAR_DEFAUT, type DeviseAffichage, type TriPortefeuille } from "./portefeuille";
 import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger, type Sauvegarde } from "./sauvegarde";
 import type { useMiseAJour } from "./miseajour";
+import { SectionSynchro } from "./sync/section-synchro";
+import type { useSynchro } from "./sync/use-synchro";
 import { listerCopies, type CopieAuto } from "./restauration";
 import type { PreferenceTheme } from "./theme";
 
@@ -41,10 +43,11 @@ interface Props {
   reglages: Reglages;
   surChangement: (r: Reglages) => void;
   maj: ReturnType<typeof useMiseAJour>;
+  synchro: ReturnType<typeof useSynchro>;
 }
 
 /** Onglet « Réglages » : apparence, vérification des alertes, démarrage avec Windows, mises à jour, sauvegarde, raccourcis. */
-export function PanneauReglages({ reglages, surChangement, maj }: Props) {
+export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props) {
   const [version, setVersion] = useState<string | null>(null);
   useEffect(() => {
     if (dansTauri()) import("@tauri-apps/api/app").then(({ getVersion }) => getVersion()).then(setVersion).catch(() => {});
@@ -182,6 +185,8 @@ export function PanneauReglages({ reglages, surChangement, maj }: Props) {
         </div>
         <p className="m-0 mt-2 text-xs text-doux">Vérification automatique au démarrage puis toutes les 6 h. Les mises à jour sont signées : l'application refuse tout fichier qui ne l'est pas, et rien n'est installé sans votre clic.</p>
       </section>
+
+      <SectionSynchro synchro={synchro} />
 
       <section className="rounded-2xl border border-ligne bg-carte p-5">
         <h2 className="m-0 mb-3 text-base font-semibold">Sauvegarde</h2>

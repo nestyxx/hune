@@ -96,6 +96,43 @@ fn donnees_presentes(app: AppHandle) -> bool {
     fichier_non_vide || !lister_sauvegardes(app).is_empty()
 }
 
+/// Nom du fichier de synchronisation dans le dossier choisi par l'utilisateur (Drive, OneDrive, NAS…). Seul ce fichier est lu ou écrit.
+const FICHIER_SYNC: &str = "hune-sync.json";
+
+fn dossier_sync(dossier: &str) -> Result<std::path::PathBuf, String> {
+    let d = std::path::PathBuf::from(dossier);
+    if d.is_dir() {
+        Ok(d)
+    } else {
+        Err("Le dossier de synchronisation est introuvable (Drive déconnecté ou dossier déplacé ?).".into())
+    }
+}
+
+/// Lit le fichier de synchronisation ; `None` s'il n'existe pas encore.
+#[tauri::command]
+fn sync_lire(dossier: String) -> Result<Option<String>, String> {
+    let fichier = dossier_sync(&dossier)?.join(FICHIER_SYNC);
+    match std::fs::read_to_string(&fichier) {
+        Ok(texte) => Ok(Some(texte)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Écrit le fichier de synchronisation de façon atomique (fichier temporaire puis renommage) et garde la version précédente
+/// à côté (`hune-sync.precedent.json`) : une fusion ratée ne peut pas détruire l'unique copie.
+#[tauri::command]
+fn sync_ecrire(dossier: String, contenu: String) -> Result<(), String> {
+    let d = dossier_sync(&dossier)?;
+    let fichier = d.join(FICHIER_SYNC);
+    if fichier.exists() {
+        let _ = std::fs::copy(&fichier, d.join("hune-sync.precedent.json"));
+    }
+    let temporaire = d.join("hune-sync.json.tmp");
+    std::fs::write(&temporaire, contenu).map_err(|e| e.to_string())?;
+    std::fs::rename(&temporaire, &fichier).map_err(|e| e.to_string())
+}
+
 /// Contenu d'une sauvegarde automatique (JSON brut, validé ensuite par l'interface avant toute restauration).
 #[tauri::command]
 fn lire_sauvegarde(app: AppHandle, nom: String) -> Result<String, String> {
@@ -108,7 +145,7 @@ fn lire_sauvegarde(app: AppHandle, nom: String) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{jour_depuis_epoch, nom_sauvegarde_valide};
+    use super::{jour_depuis_epoch, nom_sauvegarde_valide, sync_ecrire, sync_lire};
 
     #[test]
     fn noms_de_sauvegarde() {
@@ -126,6 +163,23 @@ mod tests {
         assert_eq!(jour_depuis_epoch(951_868_800), "20000301");
         assert_eq!(jour_depuis_epoch(1_795_564_800), "20261125"); // 25 novembre 2026, 00:00 UTC
     }
+
+    #[test]
+    fn fichier_de_synchronisation() {
+        let dossier = std::env::temp_dir().join(format!("hune-test-sync-{}", std::process::id()));
+        std::fs::create_dir_all(&dossier).unwrap();
+        let d = dossier.to_string_lossy().to_string();
+        assert_eq!(sync_lire(d.clone()).unwrap(), None); // pas encore de fichier
+        sync_ecrire(d.clone(), "un".into()).unwrap();
+        assert_eq!(sync_lire(d.clone()).unwrap().as_deref(), Some("un"));
+        sync_ecrire(d.clone(), "deux".into()).unwrap();
+        assert_eq!(sync_lire(d.clone()).unwrap().as_deref(), Some("deux"));
+        // La version précédente est gardée, sans fichier temporaire oublié.
+        assert_eq!(std::fs::read_to_string(dossier.join("hune-sync.precedent.json")).unwrap(), "un");
+        assert!(!dossier.join("hune-sync.json.tmp").exists());
+        assert!(sync_lire(dossier.join("absent").to_string_lossy().to_string()).is_err()); // dossier introuvable
+        std::fs::remove_dir_all(&dossier).unwrap();
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -140,7 +194,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde, donnees_presentes])
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde, donnees_presentes, sync_lire, sync_ecrire])
         .on_window_event(|fenetre, evenement| {
             // Croix de la fenêtre : on la masque, l'application reste dans la zone de notification.
             if let WindowEvent::CloseRequested { api, .. } = evenement {

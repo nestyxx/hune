@@ -1,7 +1,9 @@
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { decrire, type Alerte } from "./alertes/moteur";
-import { alertesTpManquantes, ignorerTp, lireIgnoresTp, reprendreTp, synchroniserAlertesTp } from "./alertes/tp-auto";
+import { alertesTpManquantes, lireAnciensIgnoresTp, synchroniserAlertesTp } from "./alertes/tp-auto";
+import { useSynchro } from "./sync/use-synchro";
+import type { EtatSync } from "./sync/moteur";
 import { notifier } from "./alertes/notifier";
 import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
@@ -142,6 +144,8 @@ export default function App() {
   const [echelleLog, setEchelleLog] = useState(true);
   /** Tracés de l'utilisateur, par actif (clé `source:symbole`). */
   const [dessins, setDessins] = useState<Record<string, Dessin[]>>({});
+  /** Lots dont l'alerte TP a été supprimée à la main (elle n'est pas recréée tant que l'objectif ne change pas). */
+  const [tpIgnores, setTpIgnores] = useState<string[]>([]);
   const [lignesPortefeuille, setLignesPortefeuille] = useState(true);
   /** Alerte à ouvrir dans le formulaire de l'onglet Alertes (demandée depuis le graphique). */
   const [alerteAEditer, setAlerteAEditer] = useState<string | null>(null);
@@ -180,6 +184,7 @@ export default function App() {
           ui: { ...PREFS_INTERFACE, ...(await lire<Partial<PrefsInterface>>("interface", {})) },
           alertes: await lire<Alerte[]>("alertes", []),
           positions: await lire<Position[]>("positions", []),
+          tpIgnores: [...new Set([...(await lire<string[]>("tpIgnores", [])), ...lireAnciensIgnoresTp()])],
         };
       } catch {
         return null;
@@ -219,6 +224,7 @@ export default function App() {
       setUi(d.ui);
       setAlertes(d.alertes);
       setPositions(d.positions);
+      setTpIgnores(d.tpIgnores);
       setActifs(d.a);
       setSelection(d.a[0] ? cleActif(d.a[0]) : null);
       setPret(true);
@@ -234,6 +240,7 @@ export default function App() {
   usePersister("tri", tri, pret);
   usePersister("alertes", alertes, pret);
   usePersister("positions", positions, pret);
+  usePersister("tpIgnores", tpIgnores, pret);
   usePersister("reglages", reglages, pret);
   usePersister("interface", ui, pret);
   usePersister("indicateurs", indicateurs, pret);
@@ -278,7 +285,8 @@ export default function App() {
       positionsRef.current = apres;
       setPositions(apres);
       const parId = new Map(avant.map((p) => [p.id, p]));
-      reprendreTp(apres.filter((p) => parId.get(p.id)?.objectif !== p.objectif).map((p) => p.id));
+      const changes = new Set(apres.filter((p) => parId.get(p.id)?.objectif !== p.objectif).map((p) => p.id));
+      if (changes.size) setTpIgnores((l) => (l.some((id) => changes.has(id)) ? l.filter((id) => !changes.has(id)) : l));
       changerAlertes((l) => synchroniserAlertesTp(avant, apres, l, actifsRef.current, (cle) => cotationsRef.current[cle]?.prix, Date.now()));
     },
     [changerAlertes],
@@ -338,6 +346,19 @@ export default function App() {
   const groupes = useMemo(() => grouper(actifs, categories, tri, cotations), [actifs, categories, tri, cotations]);
   const cleVisibles = useMemo(() => groupes.filter((g) => !repliees.includes(g.nom)).flatMap((g) => g.actifs.map(cleActif)), [groupes, repliees]);
   const nbArmees = alertes.filter((a) => a.statut === "armee").length;
+  // Synchronisation par dossier (Drive…) : l'état partagé est celui-ci, l'état fusionné revient par `appliquerEtatSync`.
+  const etatSync = useMemo<EtatSync>(() => ({ actifs, categories, positions, alertes, dessins, tpIgnores }), [actifs, categories, positions, alertes, dessins, tpIgnores]);
+  const appliquerEtatSync = useCallback((e: EtatSync) => {
+    setActifs(e.actifs);
+    setCategories(e.categories);
+    setPositions(e.positions);
+    setAlertes(e.alertes);
+    setDessins(e.dessins);
+    setTpIgnores(e.tpIgnores);
+    setSelection((s) => (s && e.actifs.some((a) => cleActif(a) === s) ? s : e.actifs[0] ? cleActif(e.actifs[0]) : null));
+  }, []);
+  const synchro = useSynchro(pret, etatSync, appliquerEtatSync);
+
   /** Alertes déclenchées depuis la dernière visite de l'onglet Alertes : la pastille du menu. */
   const [alertesVuLe, setAlertesVuLe] = useState(() => Number(localStorage.getItem("hune.alertes.vu") ?? 0));
   useEffect(() => {
@@ -358,16 +379,17 @@ export default function App() {
   // sauf si l'utilisateur a supprimé cette alerte). Attend les cours pour ne rien créer pour un objectif déjà atteint.
   useEffect(() => {
     if (!pret) return;
-    const nouvelles = alertesTpManquantes(positions, alertes, actifs, (cle) => cotations[cle]?.prix, lireIgnoresTp(), Date.now());
+    const nouvelles = alertesTpManquantes(positions, alertes, actifs, (cle) => cotations[cle]?.prix, new Set(tpIgnores), Date.now());
     if (nouvelles.length) changerAlertes((l) => [...l, ...nouvelles]);
-  }, [pret, positions, alertes, actifs, cotations, changerAlertes]);
+  }, [pret, positions, alertes, actifs, cotations, tpIgnores, changerAlertes]);
 
   /** Supprime une alerte ; si elle venait d'un objectif (TP), on ne la recrée pas automatiquement. */
   const supprimerAlerte = useCallback(
     (id: string) =>
       changerAlertes((l) => {
         const a = l.find((x) => x.id === id);
-        if (a?.tpLot) ignorerTp(a.tpLot);
+        const lot = a?.tpLot;
+        if (lot) setTpIgnores((ig) => (ig.includes(lot) ? ig : [...ig, lot]));
         return l.filter((x) => x.id !== id);
       }),
     [changerAlertes],
@@ -664,7 +686,7 @@ export default function App() {
                   periodeS={reglages.periodeAlertesS}
                 />
               )}
-              {onglet === "reglages" && <PanneauReglages reglages={reglages} surChangement={setReglages} maj={maj} />}
+              {onglet === "reglages" && <PanneauReglages reglages={reglages} surChangement={setReglages} maj={maj} synchro={synchro} />}
             </main>
           </div>
         </div>

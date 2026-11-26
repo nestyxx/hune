@@ -3,6 +3,18 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.14.0] - 2026-11-26
+
+### Ajouté
+- **Synchronisation entre appareils par dossier** (Réglages › Synchronisation) : on choisit un dossier déjà synchronisé par OneDrive, iCloud Drive, Google Drive, Synology Drive ou Syncthing, et Hune y garde un fichier `hune-sync.json`, fusionné avec les données au démarrage, trois secondes après une modification, chaque minute et au retour sur la fenêtre. Aucun serveur ni compte. Sont synchronisés la liste (actifs, catégories, ordre), le portefeuille, les alertes et les tracés ; les préférences d'affichage restent locales.
+  - **Fusion à trois voies** : chaque côté est comparé au dernier état synchronisé. Un élément modifié, ajouté ou supprimé d'un seul côté suit ce côté ; modifié des deux côtés, le plus récent gagne ; une modification l'emporte toujours sur une suppression faite ailleurs. L'ordre manuel de la liste suit celui qui l'a changé.
+  - **Garde-fous** : un appareil dont les données sont vides ne peut pas effacer celles des autres ; le fichier est écrit de façon atomique et la version précédente est gardée (`hune-sync.precedent.json`) ; un fichier étranger ou d'une version plus récente est refusé avec un message clair.
+  - **Chiffrement facultatif** (AES-256-GCM, clé dérivée du mot de passe par PBKDF2) : le fichier est illisible sans le mot de passe, même pour le fournisseur du Drive.
+  - Nouveaux composants : `tauri-plugin-dialog` (sélecteur de dossier) et deux commandes qui ne lisent ou n'écrivent que `hune-sync.json` dans le dossier choisi.
+
+### Modifié
+- Les alertes créées automatiquement pour les objectifs (TP) ont un identifiant stable et la liste des lots dont on a supprimé l'alerte est enregistrée avec les données, pour qu'elles se synchronisent sans doublon ni retour de l'alerte supprimée.
+
 ## [0.13.0] - 2026-11-26
 
 ### Ajouté

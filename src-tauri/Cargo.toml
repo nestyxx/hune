@@ -1,6 +1,6 @@
 [package]
 name = "hune"
-version = "0.13.0"
+version = "0.14.0"
 description = "Hune : suivi de cryptos et d'actions (graphiques, indicateurs, alertes, portefeuille), en lecture seule"
 authors = ["nestyxx"]
 edition = "2024"
@@ -24,6 +24,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 serde_json = "1"
 tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
 
 [profile.release]
 codegen-units = 1

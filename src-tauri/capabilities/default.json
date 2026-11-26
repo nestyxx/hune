@@ -25,6 +25,7 @@
     "autostart:allow-is-enabled",
     "updater:default",
     "process:allow-restart",
+    "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

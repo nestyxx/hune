@@ -92,6 +92,10 @@ Barre de titre intégrée, navigation latérale que l'on peut **réduire aux seu
   </tr>
 </table>
 
+### Synchronisation entre appareils
+
+Vous avez plusieurs ordinateurs ? Dans **Réglages › Synchronisation**, choisissez un dossier que vous synchronisez déjà (OneDrive, iCloud Drive, Google Drive, Synology Drive, Syncthing…) : Hune y garde un seul fichier, `hune-sync.json`, et le fusionne avec ses données au démarrage, après chaque modification et chaque minute. **Aucun serveur, aucun compte** : c'est votre Drive qui transporte le fichier. La liste, le portefeuille, les alertes et les tracés sont synchronisés ; thème, fenêtre et indicateurs restent propres à chaque appareil. Chaque côté est comparé au dernier état synchronisé : une modification d'un appareil n'écrase jamais celle d'un autre (en cas de désaccord sur un même élément, la plus récente gagne, et une modification l'emporte sur une suppression). Un mot de passe facultatif **chiffre** le fichier (AES-256), et la version précédente est gardée à côté.
+
 ### Et aussi
 
 Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · raccourcis clavier (`Ctrl+K`, `↑`/`↓`, `1`-`6`, `R`, `L`…) · démarrage avec Windows · **sauvegarde** par export/import JSON, **copie automatique quotidienne** et restauration en un clic (proposée d'elle-même si la liste est vide) · **mises à jour automatiques** signées.
@@ -117,7 +121,7 @@ Vous avez déjà vos positions dans un tableur ? Voir [`scripts/importer-excel.p
 
 ## Confidentialité et réseau
 
-Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Un bouton « Actualités » rouge, avec le nombre d'articles, signale ceux de moins de 24 h que vous n'avez pas ouverts : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Les vrais noms des cryptos (Bitcoin, Ethereum…) sont lus une fois par jeton via la même recherche. Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
+Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Un bouton « Actualités » rouge, avec le nombre d'articles, signale ceux de moins de 24 h que vous n'avez pas ouverts : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Les vrais noms des cryptos (Bitcoin, Ethereum…) sont lus une fois par jeton via la même recherche. Si vous activez la synchronisation, le fichier `hune-sync.json` est écrit dans le dossier que vous avez choisi et transporté par votre propre Drive ; Hune ne l'envoie nulle part. Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
 
 ## Limites à connaître
 
