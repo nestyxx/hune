@@ -54,6 +54,8 @@ Prix, variation en %, RSI, cours qui franchit une moyenne mobile, croisement MAC
 
 Saisissez vos lots (quantité, prix d'achat moyen, objectif, plateforme) : Hune calcule la **valeur en euros ou en dollars** (bascule d'un clic, choix mémorisé, conversion des devises), le **P&L latent**, le poids de chaque ligne, la distance à l'objectif et la répartition par catégorie et par plateforme. Un bouton crée les alertes aux objectifs en un clic. Vous avez un historique d'achats et de ventes (export CoinMarketCap, courtier, exchange) ? **Importez le CSV** : Hune reconstitue quantités et prix d'achat moyens, et vous montre le résultat avant d'écrire quoi que ce soit.
 
+Un **graphique de l'évolution de la valeur** (24 h à tout l'historique, reconstitué localement à partir de vos transactions et des cours), la variation du jour, la **base de coût**, la meilleure et la moins bonne performance, un **filtre par plateforme** (Ledger, PEA, exchange…) et un onglet **Transactions** complètent la vue. Les cryptos s'affichent avec leur **icône**, embarquée dans l'application : aucune image n'est téléchargée, donc rien ne révèle ce que vous suivez.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/captures/portefeuille-sombre.png">
@@ -137,5 +139,7 @@ Les idées, retours et contributions sont les bienvenus : ouvrez un ticket pour 
 ## Licence et remerciements
 
 [MIT](LICENSE). Hune s'appuie sur [Tauri](https://tauri.app), [React](https://react.dev), [Vite](https://vite.dev) et [Tailwind CSS](https://tailwindcss.com).
+
+Icônes des cryptomonnaies : [web3icons](https://github.com/0xa3k5/web3icons) (licence MIT, voir [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Graphiques : [TradingView Lightweight Charts™](https://www.tradingview.com/lightweight-charts/) (licence Apache 2.0). Le logo d'attribution TradingView affiché sur les graphiques est exigé par cette licence.

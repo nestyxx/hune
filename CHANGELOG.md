@@ -3,6 +3,15 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.9.0] - 2026-11-26
+
+### Ajouté
+- **Graphique de l'évolution de la valeur du portefeuille** : 24 h, 7 j, 30 j, 90 j, 1 an ou Tout, avec survol (valeur et variation depuis le début de la période). Reconstitué localement à partir des cours et des quantités détenues ; l'historique des transactions importées donne les quantités exactes, un lot sans historique est supposé détenu sur toute la période (une note l'indique, ainsi que les actifs non inclus). La période est mémorisée.
+- **Nouvelles cartes** : variation de la valeur totale, base de coût, meilleure et moins bonne performance.
+- **Filtre par plateforme** (« Vue d'ensemble », Ledger, PEA…) qui recalcule cartes, graphique et tableau.
+- **Onglet « Transactions »** : achats et ventes issus de l'import CSV.
+- **Icônes des cryptos** (liste d'actifs, en-tête du graphique, portefeuille, Marché) : 223 icônes embarquées dans l'application, aucune image n'est chargée depuis Internet. Les actions et les tokens sans icône ont une pastille colorée avec leurs initiales. Licence MIT des icônes dans `THIRD-PARTY-NOTICES.md` ; `scripts/preparer-icones.mjs` régénère le jeu.
+
 ## [0.8.0] - 2026-11-26
 
 ### Ajouté
