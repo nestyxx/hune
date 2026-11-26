@@ -14,7 +14,7 @@ import { classePct, formaterMontant, formaterPct, formaterPrix } from "./format"
 import { segmentsDonut } from "./donut";
 import { csvPositions, csvTransactions } from "./export-csv";
 import { telecharger } from "./sauvegarde";
-import { agreger, extremesPerformance, gainsRealises as gainsRealisesDe, gainsRealisesTotal, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
+import { agreger, convertirSaisie, devisesDeSaisie, extremesPerformance, gainsRealises as gainsRealisesDe, gainsRealisesTotal, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
 
 interface Props {
   actifs: Actif[];
@@ -89,7 +89,7 @@ function BarreRepartition({ titre, parts, m }: { titre: string; parts: PartRepar
 }
 
 /** Champ numérique d'un lot : validé à la sortie du champ (Entrée ou perte du focus). */
-function ChampLot({ valeur, surChangement, placeholder, large = "w-28" }: { valeur: number | undefined; surChangement: (v: number | undefined) => void; placeholder: string; large?: string }) {
+function ChampLot({ valeur, surChangement, placeholder, large = "w-28", forcer = false }: { valeur: number | undefined; surChangement: (v: number | undefined) => void; placeholder: string; large?: string; forcer?: boolean }) {
   const [invalide, setInvalide] = useState(false);
   return (
     <input
@@ -102,9 +102,40 @@ function ChampLot({ valeur, surChangement, placeholder, large = "w-28" }: { vale
       onBlur={(e) => {
         const n = lireNombre(e.target.value);
         setInvalide(n === null);
-        if (n !== null && n !== valeur) surChangement(n);
+        if (n !== null && (n !== valeur || forcer)) surChangement(n);
       }}
     />
+  );
+}
+
+/** Champ de prix d'un lot (PAMP, objectif) : on choisit la devise dans laquelle on le saisit, la valeur est convertie au taux du jour puis stockée dans la devise de cotation. */
+function ChampLotPrix({ valeur, surChangement, placeholder, devise, taux }: { valeur: number | undefined; surChangement: (v: number | undefined) => void; placeholder: string; devise: string | null | undefined; taux: Record<string, number> }) {
+  const options = devisesDeSaisie(devise, taux);
+  const [saisie, setSaisie] = useState<string | undefined>(undefined);
+  const courante = (saisie && options.includes(saisie) ? saisie : devise) ?? undefined;
+  return (
+    <span className="inline-flex items-center gap-1">
+      <ChampLot
+        valeur={valeur}
+        placeholder={placeholder}
+        forcer={courante !== devise}
+        surChangement={(v) => {
+          setSaisie(undefined);
+          surChangement(v === undefined ? v : convertirSaisie(v, courante, devise, taux));
+        }}
+      />
+      {options.length > 1 ? (
+        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise dans laquelle vous saisissez ce prix. Il est converti au taux du jour et enregistré en ${devise}.`} onChange={(e) => setSaisie(e.target.value)}>
+          {options.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+      ) : (
+        devise && <span className="text-doux">{devise}</span>
+      )}
+    </span>
   );
 }
 
@@ -121,7 +152,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [filtre, setFiltre] = useState("");
   const [confirmationTp, setConfirmationTp] = useState<{ actif: Actif; prix: number }[] | null>(null);
-  const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; plateforme: string } | null>(null);
+  const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; plateforme: string; saisie: string } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
   // Plateformes présentes (pour le filtre) ; un filtre qui ne correspond plus à rien (plateforme supprimée) est ignoré.
@@ -243,7 +274,9 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
     const pamp = lireNombre(formulaire.pamp);
     const objectif = lireNombre(formulaire.objectif);
     if (!formulaire.cle || q == null || q <= 0 || pamp === null || objectif === null) return setInfo("Choisissez un actif et saisissez une quantité positive (PAMP et objectif doivent être des nombres).");
-    surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp, objectif, plateforme: formulaire.plateforme.trim() || undefined }]);
+    const dCot = devises[formulaire.cle];
+    const conv = (v: number | undefined) => (v == null ? v : convertirSaisie(v, formulaire.saisie || dCot, dCot, taux));
+    surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp: conv(pamp), objectif: conv(objectif), plateforme: formulaire.plateforme.trim() || undefined }]);
     setFormulaire(null);
     setInfo(null);
   };
@@ -342,7 +375,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           ))}
         </div>
         <input className="champ" placeholder="Filtrer…" value={filtre} onChange={(e) => setFiltre(e.target.value)} />
-        <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", plateforme: "" })}>
+        <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", plateforme: "", saisie: "" })}>
           <Plus size={14} /> Ajouter une position
         </button>
         <button className="bouton" title="Crée une alerte « prix ≥ objectif » pour chaque objectif saisi" onClick={preparerAlertesTp}>
@@ -421,7 +454,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           {(
             [
               ["quantite", "Quantité", "w-28"],
-              ["pamp", "PAMP (devise de cotation)", "w-36"],
+              ["pamp", "PAMP", "w-28"],
               ["objectif", "Objectif (TP)", "w-28"],
               ["plateforme", "Plateforme", "w-28"],
             ] as const
@@ -431,6 +464,19 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
               <input className={`champ ${large}`} value={formulaire[k]} onChange={(e) => setFormulaire({ ...formulaire, [k]: e.target.value })} onKeyDown={(e) => e.key === "Enter" && ajouterPosition()} />
             </label>
           ))}
+          {devisesDeSaisie(devises[formulaire.cle], taux).length > 1 && (
+            <label className="flex flex-col gap-1 text-xs text-doux" title="Devise dans laquelle vous saisissez le PAMP et l'objectif ; ils sont convertis au taux du jour et enregistrés dans la devise de cotation de l'actif.">
+              Prix saisis en
+              <select className="champ" value={formulaire.saisie || devises[formulaire.cle]} onChange={(e) => setFormulaire({ ...formulaire, saisie: e.target.value })}>
+                {devisesDeSaisie(devises[formulaire.cle], taux).map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                    {d === devises[formulaire.cle] ? " (cotation)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <button className="bouton bouton-actif" onClick={ajouterPosition}>
             Ajouter
           </button>
@@ -514,7 +560,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
             </thead>
             <tbody>
               {affichees.map((l) => (
-                <LigneTableau key={l.cle} l={l} m={m} ouverte={ouverte === l.cle} surBascule={() => setOuverte(ouverte === l.cle ? null : l.cle)} surOuvrir={() => surOuvrir(l.cle)} majLot={majLot} suppr={(id) => surPositions((p) => p.filter((x) => x.id !== id))} ajouterLot={() => surPositions((p) => [...p, { id: crypto.randomUUID(), cle: l.cle, quantite: 0 }])} />
+                <LigneTableau key={l.cle} taux={taux} l={l} m={m} ouverte={ouverte === l.cle} surBascule={() => setOuverte(ouverte === l.cle ? null : l.cle)} surOuvrir={() => surOuvrir(l.cle)} majLot={majLot} suppr={(id) => surPositions((p) => p.filter((x) => x.id !== id))} ajouterLot={() => surPositions((p) => [...p, { id: crypto.randomUUID(), cle: l.cle, quantite: 0 }])} />
               ))}
             </tbody>
           </table>
@@ -524,7 +570,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   );
 }
 
-function LigneTableau({ l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajouterLot }: { l: LignePortefeuille; m: Montant; ouverte: boolean; surBascule: () => void; surOuvrir: () => void; majLot: (id: string, p: Partial<Position>) => void; suppr: (id: string) => void; ajouterLot: () => void }) {
+function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajouterLot }: { taux: Record<string, number>; l: LignePortefeuille; m: Montant; ouverte: boolean; surBascule: () => void; surOuvrir: () => void; majLot: (id: string, p: Partial<Position>) => void; suppr: (id: string) => void; ajouterLot: () => void }) {
   return (
     <>
       <tr className="border-b border-ligne hover:bg-fond">
@@ -575,8 +621,8 @@ function LigneTableau({ l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajo
               {l.lots.map((lot) => (
                 <div key={lot.id} className="flex flex-wrap items-center gap-2 text-xs">
                   <ChampLot valeur={lot.quantite} placeholder="Quantité" surChangement={(v) => majLot(lot.id, { quantite: v })} />
-                  <ChampLot valeur={lot.pamp} placeholder="PAMP" surChangement={(v) => majLot(lot.id, { pamp: v })} />
-                  <ChampLot valeur={lot.objectif} placeholder="Objectif" surChangement={(v) => majLot(lot.id, { objectif: v })} />
+                  <ChampLotPrix valeur={lot.pamp} placeholder="PAMP" devise={l.devise} taux={taux} surChangement={(v) => majLot(lot.id, { pamp: v })} />
+                  <ChampLotPrix valeur={lot.objectif} placeholder="Objectif" devise={l.devise} taux={taux} surChangement={(v) => majLot(lot.id, { objectif: v })} />
                   <input defaultValue={lot.plateforme ?? ""} placeholder="Plateforme" className="champ w-28 !py-1 text-xs" onBlur={(e) => majLot(lot.id, { plateforme: e.target.value.trim() || undefined })} />
                   {lot.montantEur != null && <span className="text-doux">importé : {formaterMontant(lot.montantEur, "EUR", 2)}</span>}
                   <button className="bouton-icone" title="Supprimer ce lot" aria-label="Supprimer ce lot" onClick={() => suppr(lot.id)}>

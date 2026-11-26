@@ -296,3 +296,16 @@ export function valeurLotEur(l: Position, e: Entrees): number | null {
 }
 
 export { cleActif };
+
+/** Convertit un montant saisi dans `saisie` vers la devise de cotation (taux : valeur en euros d'une unité de chaque devise). */
+export function convertirSaisie(v: number, saisie: string | undefined, cotation: string | null | undefined, taux: Record<string, number>): number {
+  if (!saisie || !cotation || saisie === cotation || !taux[saisie] || !taux[cotation]) return v;
+  return Number(((v * taux[saisie]) / taux[cotation]).toPrecision(8));
+}
+
+/** Devises proposées pour saisir un prix : celle de cotation de l'actif, plus l'euro et le dollar si leur taux est connu. */
+export function devisesDeSaisie(cotation: string | null | undefined, taux: Record<string, number>): string[] {
+  if (!cotation) return [];
+  const autres = ["EUR", "USD"].filter((d) => d !== cotation && taux[d] && taux[cotation]);
+  return [cotation, ...autres];
+}

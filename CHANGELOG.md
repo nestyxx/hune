@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.10.3] - 2026-11-26
+
+### Ajouté
+- **Devise de saisie du PAMP et de l'objectif (TP)** : sur chaque lot et dans le formulaire d'ajout, on choisit la devise dans laquelle on saisit le prix (celle de cotation de l'actif, ou l'euro / le dollar). Il est converti au taux du jour et enregistré dans la devise de cotation. Utile pour une action cotée en dollars suivie depuis un compte en euros : un objectif de 225 € n'est plus pris pour 225 $.
+
 ## [0.10.2] - 2026-11-26
 
 ### Modifié

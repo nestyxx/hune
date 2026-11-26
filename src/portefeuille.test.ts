@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Actif, Cotation } from "./donnees/types";
-import { agreger, extremesPerformance, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, variationPortefeuille, versDevise, type LignePortefeuille, type Position } from "./portefeuille";
+import { agreger, convertirSaisie, devisesDeSaisie, extremesPerformance, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, variationPortefeuille, versDevise, type LignePortefeuille, type Position } from "./portefeuille";
 
 describe("variation et extrêmes du portefeuille", () => {
   const ligne = (cle: string, valeurEur: number | null, pnlPct: number | null, pnlEur: number | null) => ({ cle, valeurEur, pnlPct, pnlEur }) as unknown as LignePortefeuille;
@@ -133,5 +133,23 @@ describe("totaux et répartition", () => {
   it("valorise un lot isolé (répartition par plateforme)", () => {
     expect(valeurLotEur(lot("1", "binance:ADAUSDC", 100), entrees)).toBeCloseTo(45, 10);
     expect(valeurLotEur({ id: "2", cle: "binance:ADAUSDC" }, entrees)).toBeNull();
+  });
+});
+
+describe("saisie des prix dans une autre devise", () => {
+  const taux = { EUR: 1, USD: 0.9, GBp: 0.01 };
+  it("convertit un prix saisi en euros vers la devise de cotation", () => {
+    expect(convertirSaisie(225, "EUR", "USD", taux)).toBeCloseTo(250, 6);
+  });
+  it("ne change rien si la devise est celle de cotation, ou si un taux manque", () => {
+    expect(convertirSaisie(225, "USD", "USD", taux)).toBe(225);
+    expect(convertirSaisie(225, "EUR", "CHF", taux)).toBe(225);
+    expect(convertirSaisie(225, undefined, "USD", taux)).toBe(225);
+  });
+  it("propose la devise de cotation puis l'euro et le dollar connus", () => {
+    expect(devisesDeSaisie("USD", taux)).toEqual(["USD", "EUR"]);
+    expect(devisesDeSaisie("EUR", taux)).toEqual(["EUR", "USD"]);
+    expect(devisesDeSaisie("CHF", taux)).toEqual(["CHF"]);
+    expect(devisesDeSaisie(undefined, taux)).toEqual([]);
   });
 });
