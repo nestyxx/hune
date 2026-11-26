@@ -37,7 +37,7 @@ Chandeliers de **15 min à 1 mois** (15 min, 1 h, 4 h, 1 j, 1 sem, 1 mois), Heik
 
 **Analyse** : les **valeurs des plus hauts et plus bas dominants** sont écrites sur le graphique (bouton « Hauts / bas », nombre d'étiquettes adapté au zoom).
 
-**Outils de tracé** : ligne horizontale, ligne de tendance, rayon, retracement de **Fibonacci** et gomme. Les tracés sont mémorisés par actif et suivent le zoom. **Votre portefeuille sur le graphique** : PAMP, objectif (TP) et repères d'achat/vente de vos transactions importées.
+**Outils de tracé** : ligne horizontale, ligne de tendance, rayon, retracement de **Fibonacci** et gomme. Les tracés sont mémorisés par actif et suivent le zoom. Un **aimant** (bouton en forme d'aimant, activé par défaut) cale les tracés, les alertes que l'on déplace et le niveau « Alerter si… » du clic droit sur l'ouverture, le plus haut, le plus bas ou la clôture de la bougie voisine, comme sur TradingView. **Votre portefeuille sur le graphique** : PAMP, objectif (TP) et repères d'achat/vente de vos transactions importées.
 
 **Historique long** : à partir du journalier, choisissez la profondeur *Standard*, *5 ans* ou *Max*, ou **dézoomez simplement** : au-delà de la première bougie, Hune charge la profondeur suivante. Binance remonte jusqu'au début de la cotation de la paire (BTC/USDC : 2018, BTC/USDT : 2017) ; Yahoo remonte jusqu'à l'introduction en bourse (Microsoft : 1986) ou à la création de la crypto (BTC : 2014). Aucune clé n'est nécessaire. En intraday, les sources limitent elles-mêmes la profondeur.
 
@@ -117,7 +117,7 @@ Vous avez déjà vos positions dans un tableur ? Voir [`scripts/importer-excel.p
 
 ## Confidentialité et réseau
 
-Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Une puce rouge sur « Actualités » signale un article de moins de 24 h que vous n'avez pas ouvert : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
+Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Un bouton « Actualités » rouge, avec le nombre d'articles, signale ceux de moins de 24 h que vous n'avez pas ouverts : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
 
 ## Limites à connaître
 

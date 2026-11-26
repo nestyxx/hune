@@ -17,12 +17,13 @@ import {
   type Time,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, ArrowUpRight, Bell, Eraser, Maximize2, MousePointer2, Minus, Pencil, Settings, Trash2, TrendingUp } from "lucide-react";
+import { AlignJustify, ArrowUpRight, Bell, Eraser, Magnet, Maximize2, MousePointer2, Minus, Pencil, Settings, Trash2, TrendingUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PERIODES_VARIATION, type Alerte } from "./alertes/moteur";
 import { fournisseur } from "./donnees";
 import { LIBELLE_PROFONDEUR, PROFONDEUR_DISPONIBLE, PROFONDEURS, type Profondeur } from "./donnees/historique";
 import { INTERVALLES, LIBELLE_INTERVALLE, SECONDES_INTERVALLE, type Actif, type Bougie, type Intervalle } from "./donnees/types";
+import { aimanter } from "./aimant";
 import { LIBELLE_DESSIN, POINTS_REQUIS, tempsDepuisIndice, type Dessin, type PointDessin, type TypeDessin } from "./dessins";
 import { CalqueDessins } from "./dessins-calque";
 import { arrondirPrix, formaterPrix } from "./format";
@@ -173,6 +174,10 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
   /** Lignes d'alerte de prix par identifiant (pour les déplacer pendant un glissement). */
   const lignesAlertesParId = useRef(new Map<string, IPriceLine>());
   /** Alerte en cours de déplacement à la souris. */
+  /** Aimant : les tracés et alertes se calent sur les bougies (choix mémorisé). */
+  const [aimant, setAimant] = useState(() => localStorage.getItem("hune.aimant") !== "0");
+  const aimantRef = useRef(aimant);
+  aimantRef.current = aimant;
   const glissement = useRef<{ id: string; prix: number; departY: number; bouge: boolean } | null>(null);
   const [outil, setOutil] = useState<Outil>("curseur");
   const [effacerTout, setEffacerTout] = useState(false);
@@ -568,11 +573,20 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     return { r, largeur: r.width - (ch?.priceScale("right").width() ?? 0), hauteur: ch?.panes()[0]?.getHeight() ?? 0 };
   };
 
+  /** Prix calé sur l'ouverture, le plus haut, le plus bas ou la clôture de la bougie située en x (si l'aimant est actif et qu'une valeur est proche). */
+  const aimanterPrix = (x: number, prix: number): number => {
+    if (!aimantRef.current) return prix;
+    const logique = graphique.current?.timeScale().coordinateToLogical(x);
+    if (logique == null) return prix;
+    return aimanter(donnees.current[Math.round(logique)], prix, (p) => principale.current?.priceToCoordinate(p) ?? null);
+  };
+
   /** Point (instant, prix) sous la souris ; l'instant est calé sur une bougie, y compris dans le vide à droite ou à gauche. */
   const ancrage = (x: number, y: number): PointDessin | null => {
     const logique = graphique.current?.timeScale().coordinateToLogical(x);
-    const prix = principale.current?.coordinateToPrice(y);
-    if (logique == null || prix == null) return null;
+    const brut = principale.current?.coordinateToPrice(y);
+    if (logique == null || brut == null) return null;
+    const prix = aimanterPrix(x, brut);
     return { temps: tempsDepuisIndice(tempsBougies(), Math.round(logique), SECONDES_INTERVALLE[intervalleRef.current]), prix };
   };
 
@@ -650,7 +664,8 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       const g = glissement.current;
       if (g) {
         if (Math.abs(y - g.departY) > 3) g.bouge = true;
-        const prix = g.bouge ? principale.current?.coordinateToPrice(y) : null;
+        const brut = g.bouge ? principale.current?.coordinateToPrice(y) : null;
+        const prix = brut != null ? aimanterPrix(x, brut) : null;
         if (prix != null && prix > 0) {
           g.prix = prix;
           lignesAlertesParId.current.get(g.id)?.applyOptions({ price: prix });
@@ -771,7 +786,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     const hauteurPrix = graphique.current?.panes()[0]?.getHeight() ?? 0;
     const brut = principale.current?.coordinateToPrice(y);
     if (brut == null || y > hauteurPrix) return setMenu(null); // pas sur le panneau des prix
-    setMenu({ x, y, prix: arrondirPrix(brut), dessinId: calque.current?.toucher(x, y, zonePrix().largeur) ?? null, alerteId: alerteSous(y)?.id ?? null });
+    setMenu({ x, y, prix: arrondirPrix(aimanterPrix(x, brut)), dessinId: calque.current?.toucher(x, y, zonePrix().largeur) ?? null, alerteId: alerteSous(y)?.id ?? null });
   };
 
   const dernierPrix = donnees.current[donnees.current.length - 1]?.cloture;
@@ -870,6 +885,18 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           ))}
           <button className="puce !px-2" aria-pressed={outil === "gomme"} title="Gomme : cliquez sur un tracé pour le supprimer" aria-label="Gomme" onClick={() => setOutil(outil === "gomme" ? "curseur" : "gomme")}>
             <Eraser size={14} />
+          </button>
+          <button
+            className="puce !px-2"
+            aria-pressed={aimant}
+            title="Aimant : les tracés et les alertes se calent sur l'ouverture, le plus haut, le plus bas et la clôture des bougies"
+            aria-label="Aimant"
+            onClick={() => {
+              localStorage.setItem("hune.aimant", aimant ? "0" : "1");
+              setAimant(!aimant);
+            }}
+          >
+            <Magnet size={14} />
           </button>
           {dessins.length > 0 && (
             <button

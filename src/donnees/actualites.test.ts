@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actualiteNouvelle, actualitesPertinentes } from "./actualites";
+import { actualiteNouvelle, actualitesPertinentes, nombreNouvelles } from "./actualites";
 
 const brute = (titre: string, date: number, tickers: string[]) => ({ title: titre, publisher: "Éditeur", providerPublishTime: date, link: "https://exemple.test/" + date, relatedTickers: tickers });
 
@@ -27,5 +27,14 @@ describe("actualiteNouvelle", () => {
   });
   it("rien sans actualité", () => {
     expect(actualiteNouvelle([], 0, maintenant)).toBeNull();
+  });
+});
+
+describe("nombreNouvelles", () => {
+  const maintenant = 1_000_000 * 1000;
+  const a = (ageH: number) => ({ titre: "t", editeur: "e", date: 1_000_000 - ageH * 3600, lien: "" });
+  it("compte les articles de moins de 24 h publiés après la dernière consultation", () => {
+    expect(nombreNouvelles([a(1), a(5), a(30)], 0, maintenant)).toBe(2);
+    expect(nombreNouvelles([a(1), a(5), a(30)], maintenant - 2 * 3600 * 1000, maintenant)).toBe(1);
   });
 });

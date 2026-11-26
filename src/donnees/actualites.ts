@@ -40,6 +40,11 @@ export function actualiteNouvelle(actus: Actualite[], vuLe: number, maintenantMs
   return maintenantMs - ms <= delaiS * 1000 && ms > vuLe ? recente : null;
 }
 
+/** Nombre d'actualités nouvelles (même règle que `actualiteNouvelle`) : récentes et publiées après la dernière consultation. */
+export function nombreNouvelles(actus: Actualite[], vuLe: number, maintenantMs: number, delaiS = 24 * 3600): number {
+  return actus.filter((a) => maintenantMs - a.date * 1000 <= delaiS * 1000 && a.date * 1000 > vuLe).length;
+}
+
 const requeteur = new Requeteur();
 
 async function chercher(q: string): Promise<BrutActualite[]> {

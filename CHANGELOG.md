@@ -3,6 +3,14 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.11.2] - 2026-11-26
+
+### Ajouté
+- **Aimant sur le graphique**, comme sur TradingView : en traçant une ligne, en déplaçant une alerte à la souris ou en créant une alerte par clic droit, le prix se cale sur l'ouverture, le plus haut, le plus bas ou la clôture de la bougie voisine quand il en est à moins de 10 pixels. Bouton en forme d'aimant dans la barre d'outils de tracé (activé par défaut, choix mémorisé).
+
+### Modifié
+- **Bouton « Actualités »** bien plus visible quand il y a du nouveau : il passe en rouge et affiche le nombre d'articles de moins de 24 h non ouverts (9+ au-delà), au lieu d'une simple pastille.
+
 ## [0.11.1] - 2026-11-26
 
 ### Ajouté
