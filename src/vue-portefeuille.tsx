@@ -6,12 +6,18 @@ import { fournisseur } from "./donnees";
 import { tauxVersEur } from "./donnees/change";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, espaceOrdinaire, formaterPct, formaterPrix } from "./format";
-import { agreger, repartition, totaux, valeurLotEur, type LignePortefeuille, type PartRepartition, type Position } from "./portefeuille";
+import { agreger, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
 
 interface Props {
   actifs: Actif[];
   categories: string[];
   cotations: Record<string, Cotation>;
+  /** Devise d'affichage (€ ou $) et sa mémorisation. */
+  devise: DeviseAffichage;
+  surDevise: (d: DeviseAffichage) => void;
+  /** Tri du tableau et sa mémorisation. */
+  tri: TriPortefeuille;
+  surTri: (t: TriPortefeuille) => void;
   positions: Position[];
   surPositions: (modifier: (l: Position[]) => Position[]) => void;
   /** Ajoute des actifs à la watchlist (ceux qui y sont déjà sont ignorés). */
@@ -23,9 +29,13 @@ interface Props {
   alertesExistantes: { cle: string; seuil: number }[];
 }
 
-type Colonne = "valeurEur" | "pnlPct" | "pnlEur" | "poids" | "versObjectifPct" | "symbole";
+type Colonne = ColonnePortefeuille;
 
-const eur = (v: number | null, decimales = 0) => (v == null ? "—" : espaceOrdinaire(v.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: decimales, minimumFractionDigits: decimales })));
+/** Montant déjà exprimé dans `devise` (« 1 234 € », « 1 234 $ ») ; « — » s'il est inconnu. */
+const formaterMontant = (v: number | null, devise: DeviseAffichage, decimales = 0) =>
+  v == null ? "—" : espaceOrdinaire(v.toLocaleString("fr-FR", { style: "currency", currency: devise, currencyDisplay: "narrowSymbol", maximumFractionDigits: decimales, minimumFractionDigits: decimales }));
+/** Formateur de montants fourni aux sous-composants : prend un montant en euros, l'affiche dans la devise choisie. */
+type Montant = (valeurEur: number | null, decimales?: number) => string;
 const quantite = (q: number) => q.toLocaleString("fr-FR", { maximumFractionDigits: q >= 1000 ? 0 : q >= 1 ? 4 : 8 });
 const pourcent = (p: number | null) => (p == null ? "—" : `${(p * 100).toFixed(1).replace(".", ",")} %`);
 
@@ -37,7 +47,7 @@ function lireNombre(s: string): number | undefined | null {
 }
 
 /** Barre de répartition empilée avec légende. */
-function BarreRepartition({ titre, parts }: { titre: string; parts: PartRepartition[] }) {
+function BarreRepartition({ titre, parts, m }: { titre: string; parts: PartRepartition[]; m: Montant }) {
   const couleurs = ["#2f81f7", "#26a69a", "#e08a00", "#8e6bff", "#d3569a", "#6ca6c1", "#9aa75b", "#c2674a"];
   if (!parts.length) return null;
   return (
@@ -45,7 +55,7 @@ function BarreRepartition({ titre, parts }: { titre: string; parts: PartRepartit
       <div className="mb-2 text-xs text-doux">{titre}</div>
       <div className="flex h-3 overflow-hidden rounded-full bg-fond">
         {parts.map((p, i) => (
-          <div key={p.nom} title={`${p.nom} : ${eur(p.valeurEur)} (${pourcent(p.part)})`} style={{ width: `${p.part * 100}%`, background: couleurs[i % couleurs.length] }} />
+          <div key={p.nom} title={`${p.nom} : ${m(p.valeurEur)} (${pourcent(p.part)})`} style={{ width: `${p.part * 100}%`, background: couleurs[i % couleurs.length] }} />
         ))}
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -80,12 +90,11 @@ function ChampLot({ valeur, surChangement, placeholder, large = "w-28" }: { vale
   );
 }
 
-export function VuePortefeuille({ actifs, categories, cotations, positions, surPositions, surAjouterActifs, surOuvrir, surAlertesObjectifs, alertesExistantes }: Props) {
+export function VuePortefeuille({ actifs, categories, cotations, devise, surDevise, tri, surTri, positions, surPositions, surAjouterActifs, surOuvrir, surAlertesObjectifs, alertesExistantes }: Props) {
   const choixCsv = useRef<HTMLInputElement>(null);
   const [fichierCsv, setFichierCsv] = useState<File | null>(null);
   const [devises, setDevises] = useState<Record<string, string>>({});
   const [taux, setTaux] = useState<Record<string, number>>({ EUR: 1 });
-  const [tri, setTri] = useState<{ col: Colonne; sens: 1 | -1 }>({ col: "valeurEur", sens: -1 });
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [filtre, setFiltre] = useState("");
   const [confirmationTp, setConfirmationTp] = useState<{ actif: Actif; prix: number }[] | null>(null);
@@ -113,7 +122,8 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
   }, [clesDetenues, devises, actifsParCle]);
 
   // Taux de change vers l'euro, rafraîchis toutes les 5 minutes.
-  const listeDevises = useMemo(() => [...new Set(Object.values(devises))].sort().join(","), [devises]);
+  // Le dollar est demandé dès qu'il sert à l'affichage, même si aucun actif n'est coté en dollars.
+  const listeDevises = useMemo(() => [...new Set([...Object.values(devises), ...(devise === "USD" ? ["USD"] : [])])].sort().join(","), [devises, devise]);
   useEffect(() => {
     if (!listeDevises) return;
     let annule = false;
@@ -142,6 +152,10 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
   const entrees = useMemo(() => ({ actifs: actifsParCle, cotations, devises, taux }), [actifsParCle, cotations, devises, taux]);
   const lignes = useMemo(() => agreger(positions, entrees), [positions, entrees]);
   const tot = useMemo(() => totaux(lignes), [lignes]);
+  /** Les calculs sont en euros : la conversion vers la devise choisie ne se fait qu'ici, à l'affichage (« — » si le taux manque). */
+  const m: Montant = (valeurEur, decimales = 0) => formaterMontant(versDevise(valeurEur, devise, taux), devise, decimales);
+  const symbole = SYMBOLE_DEVISE[devise];
+  const tauxManquant = devise === "USD" && !taux.USD;
 
   const parCategorie = useMemo(() => repartition(lignes.map((l) => ({ nom: categorieDe(l.actif, categories), valeurEur: l.valeurEur }))), [lignes, categories]);
   const parPlateforme = useMemo(
@@ -161,7 +175,7 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
   }, [lignes, filtre, tri]);
 
   const entete = (col: Colonne, libelle: string, droite = true) => (
-    <th className={`cursor-pointer select-none whitespace-nowrap px-2 py-2 font-normal text-doux hover:text-texte ${droite ? "text-right" : "text-left"}`} onClick={() => setTri((t) => ({ col, sens: t.col === col ? (-t.sens as 1 | -1) : -1 }))}>
+    <th className={`cursor-pointer select-none whitespace-nowrap px-2 py-2 font-normal text-doux hover:text-texte ${droite ? "text-right" : "text-left"}`} onClick={() => surTri({ col, sens: tri.col === col ? (-tri.sens as 1 | -1) : -1 })}>
       {libelle} {tri.col === col ? (tri.sens === -1 ? "▾" : "▴") : ""}
     </th>
   );
@@ -191,16 +205,17 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
 
   return (
     <div className="apparait flex-1 space-y-5 overflow-auto p-6">
-      <EnTete titre="Portefeuille" sousTitre="Valeur en euros, plus-values latentes et répartition de vos positions. Lecture seule : rien n'est envoyé nulle part." />
+      <EnTete titre="Portefeuille" sousTitre={`Valeur en ${devise === "USD" ? "dollars" : "euros"}, plus-values latentes et répartition de vos positions. Lecture seule : rien n'est envoyé nulle part.`} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="carte-info p-4">
           <div className="text-xs text-doux">Valeur totale</div>
-          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{eur(tot.valeurEur)}</div>
+          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{m(tot.valeurEur)}</div>
+          {tauxManquant && <div className="text-xs text-alerte">Taux EUR/USD indisponible : montants non convertis.</div>}
           {tot.nonValorisees > 0 && <div className="text-xs text-alerte">{tot.nonValorisees} ligne{tot.nonValorisees > 1 ? "s" : ""} non valorisée{tot.nonValorisees > 1 ? "s" : ""} (prix ou change manquant)</div>}
         </div>
         <div className="carte-info p-4">
           <div className="text-xs text-doux" title="Calculé sur les lots dont le prix d'achat moyen (PAMP) est connu">P&amp;L latent</div>
-          <div className={`titre-serif whitespace-nowrap text-[34px] leading-none ${classePct(tot.pnlEur)}`}>{eur(tot.pnlEur)}</div>
+          <div className={`titre-serif whitespace-nowrap text-[34px] leading-none ${classePct(tot.pnlEur)}`}>{m(tot.pnlEur)}</div>
           <div className={`text-xs ${classePct(tot.pnlPct)}`}>{formaterPct(tot.pnlPct)}</div>
         </div>
         <div className="carte-info p-4">
@@ -214,11 +229,18 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <BarreRepartition titre="Répartition par catégorie" parts={parCategorie} />
-        <BarreRepartition titre="Répartition par plateforme" parts={parPlateforme} />
+        <BarreRepartition titre="Répartition par catégorie" parts={parCategorie} m={m} />
+        <BarreRepartition titre="Répartition par plateforme" parts={parPlateforme} m={m} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <div className="segments" role="group" aria-label="Devise d'affichage" title="Devise d'affichage du portefeuille (mémorisée)">
+          {(["EUR", "USD"] as const).map((d) => (
+            <button key={d} aria-pressed={devise === d} className="segment" onClick={() => surDevise(d)}>
+              {SYMBOLE_DEVISE[d]} {d === "EUR" ? "Euro" : "Dollar"}
+            </button>
+          ))}
+        </div>
         <input className="champ" placeholder="Filtrer…" value={filtre} onChange={(e) => setFiltre(e.target.value)} />
         <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", plateforme: "" })}>
           ＋ Ajouter une position
@@ -321,14 +343,14 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
                 <th className="px-2 py-2 text-right font-normal text-doux">Prix</th>
                 {entete("valeurEur", "Valeur")}
                 {entete("pnlPct", "P&L %")}
-                {entete("pnlEur", "P&L €")}
+                {entete("pnlEur", `P&L ${symbole}`)}
                 {entete("poids", "Poids")}
                 {entete("versObjectifPct", "Objectif (TP)")}
               </tr>
             </thead>
             <tbody>
               {affichees.map((l) => (
-                <LigneTableau key={l.cle} l={l} ouverte={ouverte === l.cle} surBascule={() => setOuverte(ouverte === l.cle ? null : l.cle)} surOuvrir={() => surOuvrir(l.cle)} majLot={majLot} suppr={(id) => surPositions((p) => p.filter((x) => x.id !== id))} ajouterLot={() => surPositions((p) => [...p, { id: crypto.randomUUID(), cle: l.cle, quantite: 0 }])} />
+                <LigneTableau key={l.cle} l={l} m={m} ouverte={ouverte === l.cle} surBascule={() => setOuverte(ouverte === l.cle ? null : l.cle)} surOuvrir={() => surOuvrir(l.cle)} majLot={majLot} suppr={(id) => surPositions((p) => p.filter((x) => x.id !== id))} ajouterLot={() => surPositions((p) => [...p, { id: crypto.randomUUID(), cle: l.cle, quantite: 0 }])} />
               ))}
             </tbody>
           </table>
@@ -338,7 +360,7 @@ export function VuePortefeuille({ actifs, categories, cotations, positions, surP
   );
 }
 
-function LigneTableau({ l, ouverte, surBascule, surOuvrir, majLot, suppr, ajouterLot }: { l: LignePortefeuille; ouverte: boolean; surBascule: () => void; surOuvrir: () => void; majLot: (id: string, p: Partial<Position>) => void; suppr: (id: string) => void; ajouterLot: () => void }) {
+function LigneTableau({ l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajouterLot }: { l: LignePortefeuille; m: Montant; ouverte: boolean; surBascule: () => void; surOuvrir: () => void; majLot: (id: string, p: Partial<Position>) => void; suppr: (id: string) => void; ajouterLot: () => void }) {
   return (
     <>
       <tr className="border-b border-ligne hover:bg-fond">
@@ -365,9 +387,9 @@ function LigneTableau({ l, ouverte, surBascule, surOuvrir, majLot, suppr, ajoute
         <td className="whitespace-nowrap px-2 text-right font-mono">
           {formaterPrix(l.prix)} <span className="text-xs text-doux">{l.devise ?? ""}</span>
         </td>
-        <td className="whitespace-nowrap px-2 text-right font-mono">{eur(l.valeurEur)}</td>
+        <td className="whitespace-nowrap px-2 text-right font-mono">{m(l.valeurEur)}</td>
         <td className={`whitespace-nowrap px-2 text-right font-mono ${classePct(l.pnlPct)}`}>{formaterPct(l.pnlPct)}</td>
-        <td className={`whitespace-nowrap px-2 text-right font-mono ${classePct(l.pnlEur)}`}>{eur(l.pnlEur)}</td>
+        <td className={`whitespace-nowrap px-2 text-right font-mono ${classePct(l.pnlEur)}`}>{m(l.pnlEur)}</td>
         <td className="whitespace-nowrap px-2 text-right font-mono">{pourcent(l.poids)}</td>
         <td className="whitespace-nowrap px-2 text-right font-mono">
           {l.objectif != null ? (
@@ -389,7 +411,7 @@ function LigneTableau({ l, ouverte, surBascule, surOuvrir, majLot, suppr, ajoute
                   <ChampLot valeur={lot.pamp} placeholder="PAMP" surChangement={(v) => majLot(lot.id, { pamp: v })} />
                   <ChampLot valeur={lot.objectif} placeholder="Objectif" surChangement={(v) => majLot(lot.id, { objectif: v })} />
                   <input defaultValue={lot.plateforme ?? ""} placeholder="Plateforme" className="champ w-28 !py-1 text-xs" onBlur={(e) => majLot(lot.id, { plateforme: e.target.value.trim() || undefined })} />
-                  {lot.montantEur != null && <span className="text-doux">importé : {eur(lot.montantEur, 2)}</span>}
+                  {lot.montantEur != null && <span className="text-doux">importé : {formaterMontant(lot.montantEur, "EUR", 2)}</span>}
                   <button className="bouton-icone" title="Supprimer ce lot" aria-label="Supprimer ce lot" onClick={() => suppr(lot.id)}>
                     ✕
                   </button>

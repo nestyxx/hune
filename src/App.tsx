@@ -15,7 +15,7 @@ import { formaterPrix } from "./format";
 import { Graphique, INDICATEURS_PAR_DEFAUT, PARAMETRES_PAR_DEFAUT, type Indicateurs, type Parametres, type TypeGraphique } from "./graphique";
 import { useMiseAJour } from "./miseajour";
 import type { Dessin } from "./dessins";
-import { niveauxPortefeuille, type Position } from "./portefeuille";
+import { niveauxPortefeuille, triPortefeuilleValide, type Position } from "./portefeuille";
 import { Rail, type Onglet } from "./rail";
 import { PanneauReglages, REGLAGES_PAR_DEFAUT, type Reglages } from "./reglages";
 import { donneesPresentes, listerCopies, type CopieAuto } from "./restauration";
@@ -541,6 +541,10 @@ export default function App() {
                   actifs={actifs}
                   categories={categories}
                   cotations={cotations}
+                  devise={reglages.devise === "USD" ? "USD" : "EUR"}
+                  surDevise={(devise) => setReglages((r) => ({ ...r, devise }))}
+                  tri={triPortefeuilleValide(reglages.triPortefeuille)}
+                  surTri={(triPortefeuille) => setReglages((r) => ({ ...r, triPortefeuille }))}
                   positions={positions}
                   surPositions={changerPositions}
                   surAjouterActifs={(nouveaux) => setActifs((prec) => [...prec, ...nouveaux.filter((n) => !prec.some((x) => cleActif(x) === cleActif(n)))])}

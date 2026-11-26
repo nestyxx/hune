@@ -62,12 +62,7 @@ export function ImportTransactions({ fichier, actifs, positions, surAjouterActif
         devise: (a) => fournisseur(a.source).devise(a.symbole),
       });
       const devises = [...new Set([deviseFichier, ...[...r.values()].flatMap((x) => (x ? [x.devise] : []))])];
-      let t = await tauxVersEur(devises).catch(() => ({ EUR: 1 }) as Record<string, number>);
-      // Yahoo indisponible ou limité : le dollar se déduit de la paire EUR/USDC de Binance (l'USDC est indexé sur l'USD).
-      if (devises.includes("USD") && t.USD == null) {
-        const prixEur = await fournisseur("binance").cotations(["EURUSDC"]).then((c) => c[0]?.prix).catch(() => undefined);
-        if (prixEur) t = { ...t, USD: 1 / prixEur };
-      }
+      const t = await tauxVersEur(devises).catch(() => ({ EUR: 1 }) as Record<string, number>);
       if (!annule) {
         setTaux(t);
         setResolutions(r);

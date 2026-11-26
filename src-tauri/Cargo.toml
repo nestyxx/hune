@@ -1,6 +1,6 @@
 [package]
 name = "hune"
-version = "0.7.1"
+version = "0.8.0"
 description = "Hune : suivi de cryptos et d'actions (graphiques, indicateurs, alertes, portefeuille), en lecture seule"
 authors = ["nestyxx"]
 edition = "2024"

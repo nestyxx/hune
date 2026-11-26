@@ -33,6 +33,33 @@ export interface Mouvement {
   prix: number;
 }
 
+/** Devise dans laquelle le portefeuille est présenté (les calculs restent en euros, la conversion se fait à l'affichage). */
+export type DeviseAffichage = "EUR" | "USD";
+export const SYMBOLE_DEVISE: Record<DeviseAffichage, string> = { EUR: "€", USD: "$" };
+
+/** Colonnes triables du tableau du portefeuille et sens (-1 = décroissant). */
+export type ColonnePortefeuille = "valeurEur" | "pnlPct" | "pnlEur" | "poids" | "versObjectifPct" | "symbole";
+export interface TriPortefeuille {
+  col: ColonnePortefeuille;
+  sens: 1 | -1;
+}
+export const TRI_PORTEFEUILLE_PAR_DEFAUT: TriPortefeuille = { col: "valeurEur", sens: -1 };
+const COLONNES_TRI: ColonnePortefeuille[] = ["valeurEur", "pnlPct", "pnlEur", "poids", "versObjectifPct", "symbole"];
+
+/** Tri relu du fichier de données : toute valeur inattendue retombe sur le tri par défaut. */
+export function triPortefeuilleValide(t: unknown): TriPortefeuille {
+  const o = t as Partial<TriPortefeuille> | null | undefined;
+  return o && COLONNES_TRI.includes(o.col as ColonnePortefeuille) && (o.sens === 1 || o.sens === -1) ? { col: o.col as ColonnePortefeuille, sens: o.sens } : TRI_PORTEFEUILLE_PAR_DEFAUT;
+}
+
+/** Montant en euros → devise d'affichage ; null si le taux de change manque. `taux` : valeur en euros d'une unité de chaque devise. */
+export function versDevise(montantEur: number | null, devise: DeviseAffichage, taux: Record<string, number>): number | null {
+  if (montantEur == null) return null;
+  if (devise === "EUR") return montantEur;
+  const t = taux[devise];
+  return t ? montantEur / t : null;
+}
+
 /** Niveaux du portefeuille à tracer sur le graphique d'un actif. */
 export interface NiveauxPortefeuille {
   pamp: number | null;

@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 import type { Actif, Cotation } from "./donnees/types";
-import { agreger, repartition, totaux, valeurLotEur, type Position } from "./portefeuille";
+import { agreger, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, versDevise, type Position } from "./portefeuille";
+
+describe("devise d'affichage", () => {
+  it("l'euro est inchangé, le dollar divise par le taux (valeur en euros d'un dollar)", () => {
+    expect(versDevise(1000, "EUR", { EUR: 1 })).toBe(1000);
+    expect(versDevise(800, "USD", { EUR: 1, USD: 0.8 })).toBe(1000);
+    expect(versDevise(-80, "USD", { EUR: 1, USD: 0.8 })).toBe(-100);
+  });
+  it("renvoie null (affiché « — ») si le taux manque ou si le montant est inconnu", () => {
+    expect(versDevise(1000, "USD", { EUR: 1 })).toBeNull();
+    expect(versDevise(null, "USD", { EUR: 1, USD: 0.8 })).toBeNull();
+    expect(versDevise(null, "EUR", { EUR: 1 })).toBeNull();
+  });
+});
+
+describe("tri mémorisé du portefeuille", () => {
+  it("accepte un tri valide relu du fichier", () => {
+    expect(triPortefeuilleValide({ col: "pnlPct", sens: 1 })).toEqual({ col: "pnlPct", sens: 1 });
+  });
+  it("retombe sur le tri par défaut pour toute valeur inattendue", () => {
+    for (const mauvais of [undefined, null, 5, {}, { col: "inconnue", sens: 1 }, { col: "poids", sens: 2 }, { col: "poids" }]) {
+      expect(triPortefeuilleValide(mauvais)).toEqual(TRI_PORTEFEUILLE_PAR_DEFAUT);
+    }
+  });
+});
 
 const ada: Actif = { source: "binance", symbole: "ADAUSDC", nom: "ADA/USDC" };
 const bnb: Actif = { source: "binance", symbole: "BNBUSDC", nom: "BNB/USDC" };

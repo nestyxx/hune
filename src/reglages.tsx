@@ -3,6 +3,7 @@ import { notifier } from "./alertes/notifier";
 import { EnTete } from "./composants";
 import { dansTauri } from "./donnees/http";
 import type { ModeVariation } from "./donnees/types";
+import { TRI_PORTEFEUILLE_PAR_DEFAUT, type DeviseAffichage, type TriPortefeuille } from "./portefeuille";
 import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger, type Sauvegarde } from "./sauvegarde";
 import type { useMiseAJour } from "./miseajour";
 import { listerCopies, type CopieAuto } from "./restauration";
@@ -14,8 +15,12 @@ export interface Reglages {
   theme: PreferenceTheme;
   /** Variation affichée pour les cryptos : 24 h glissantes ou journée UTC (voir `ModeVariation`). */
   variation: ModeVariation;
+  /** Devise d'affichage du portefeuille (€ ou $). */
+  devise: DeviseAffichage;
+  /** Colonne et sens de tri du tableau du portefeuille. */
+  triPortefeuille: TriPortefeuille;
 }
-export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h" };
+export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h", devise: "EUR", triPortefeuille: TRI_PORTEFEUILLE_PAR_DEFAUT };
 
 const RACCOURCIS: [string, string][] = [
   ["Ctrl + K", "Aller à la recherche"],
