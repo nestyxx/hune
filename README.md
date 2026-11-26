@@ -98,7 +98,7 @@ Vous avez plusieurs ordinateurs ? Dans **Réglages › Synchronisation**, choisi
 
 ### Et aussi
 
-Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · raccourcis clavier (`Ctrl+K`, `↑`/`↓`, `1`-`6`, `R`, `L`…) · démarrage avec Windows · **sauvegarde** par export/import JSON, **copie automatique quotidienne** et restauration en un clic (proposée d'elle-même si la liste est vide) · **mises à jour automatiques** signées.
+Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · raccourcis clavier (`Ctrl+K`, `↑`/`↓`, `1`-`6`, `R`, `L`…) · démarrage avec Windows ou macOS · **sauvegarde** par export/import JSON, **copie automatique quotidienne** et restauration en un clic (proposée d'elle-même si la liste est vide) · **mises à jour automatiques** signées.
 
 > Les captures ci-dessus utilisent un portefeuille **fictif**.
 
@@ -109,6 +109,10 @@ Recherche par **symbole, nom ou ISIN** · **catégories** personnalisables · ra
 3. L'installeur n'est pas signé par un certificat de signature de code : **Windows SmartScreen** peut afficher « Windows a protégé votre ordinateur ». Cliquez sur *Informations complémentaires* puis *Exécuter quand même*. Le code source est ici, vous pouvez le relire ou compiler vous-même (voir [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 Prérequis : Windows 10 ou 11 (WebView2, déjà présent sur Windows 11). Hune se met ensuite à jour toute seule : une bannière vous propose l'installation, rien n'est installé sans votre clic.
+
+### Sur Mac
+
+Téléchargez `Hune_X.Y.Z_macOS_universel.dmg` depuis la [dernière release](https://github.com/nestyxx/hune/releases/latest) (un seul fichier pour les Mac Apple Silicon et Intel, macOS 11 ou plus récent), ouvrez-le et glissez Hune dans *Applications*. L'application n'est **pas signée par Apple** (pas de compte développeur) : au premier lancement, faites un clic droit sur Hune › *Ouvrir* › *Ouvrir*, ou, si macOS la déclare « endommagée », `xattr -dr com.apple.quarantine /Applications/Hune.app` dans le Terminal. Sur Mac, fermer la fenêtre garde Hune dans la barre de menus (icône en haut) pour surveiller les alertes ; Cmd+Q quitte. Les mises à jour automatiques ne sont pas encore proposées sur Mac : téléchargez la nouvelle version à chaque release. Cette version est récente et peu testée : les retours sont les bienvenus.
 
 ## Premiers pas
 

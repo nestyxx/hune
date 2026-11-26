@@ -32,6 +32,7 @@ export interface Chiffre {
 }
 
 export async function chiffrer(texte: string, motDePasse: string): Promise<Chiffre> {
+  if (!globalThis.crypto?.subtle) throw new Error("Le chiffrement n'est pas disponible dans cet environnement : retirez le mot de passe de chiffrement.");
   const sel = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const k = await cle(motDePasse, sel);
@@ -40,6 +41,7 @@ export async function chiffrer(texte: string, motDePasse: string): Promise<Chiff
 }
 
 export async function dechiffrer(c: Chiffre, motDePasse: string): Promise<string> {
+  if (!globalThis.crypto?.subtle) throw new Error("Le chiffrement n'est pas disponible dans cet environnement : impossible de lire ce fichier chiffré.");
   try {
     const k = await cle(motDePasse, depuisBase64(c.sel));
     const brut = await crypto.subtle.decrypt({ name: "AES-GCM", iv: depuisBase64(c.iv) as BufferSource }, k, depuisBase64(c.donnees) as BufferSource);

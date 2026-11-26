@@ -238,6 +238,15 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("erreur au lancement de l'application");
+        .build(tauri::generate_context!())
+        .expect("erreur au lancement de l'application")
+        .run(|app, evenement| {
+            // macOS : un clic sur l'icône du Dock rouvre la fenêtre masquée (l'application reste dans la barre de menus).
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = evenement {
+                montrer_fenetre(app);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, evenement);
+        });
 }

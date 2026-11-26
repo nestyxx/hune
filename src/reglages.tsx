@@ -5,6 +5,7 @@ import { dansTauri } from "./donnees/http";
 import type { ModeVariation } from "./donnees/types";
 import { PERIODE_PORTEFEUILLE_PAR_DEFAUT, type PeriodePortefeuille } from "./historique-portefeuille";
 import { TRI_PORTEFEUILLE_PAR_DEFAUT, type DeviseAffichage, type TriPortefeuille } from "./portefeuille";
+import { NOM_SYSTEME, TOUCHE_RACCOURCI, ZONE_ICONE } from "./plateforme";
 import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger, type Sauvegarde } from "./sauvegarde";
 import type { useMiseAJour } from "./miseajour";
 import { SectionSynchro } from "./sync/section-synchro";
@@ -30,7 +31,7 @@ export interface Reglages {
 export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h", devise: "EUR", triPortefeuille: TRI_PORTEFEUILLE_PAR_DEFAUT, periodePortefeuille: PERIODE_PORTEFEUILLE_PAR_DEFAUT, sommets: true };
 
 const RACCOURCIS: [string, string][] = [
-  ["Ctrl + K", "Aller à la recherche"],
+  [`${TOUCHE_RACCOURCI} + K`, "Aller à la recherche"],
   ["↑ / ↓", "Actif précédent / suivant dans la liste"],
   ["1 à 6", "Intervalle 15 min · 1 h · 4 h · 1 j · 1 sem · 1 mois"],
   ["L", "Afficher / masquer la liste des actifs"],
@@ -156,11 +157,11 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
         <h2 className="m-0 mb-3 text-base font-semibold">Application</h2>
         <label className="flex items-center gap-3">
           <input type="checkbox" checked={!!demarrage} disabled={demarrage === null} onChange={(e) => void basculerDemarrage(e.target.checked)} />
-          Démarrer avec Windows (réduite dans la zone de notification)
+          Démarrer avec {NOM_SYSTEME} (réduite dans la {ZONE_ICONE})
         </label>
         {demarrage === null && !erreur && <p className="m-0 mt-2 text-xs text-doux">Disponible uniquement dans l'application installée ou lancée avec Tauri.</p>}
         {erreur && <p className="m-0 mt-2 text-xs text-baisse">{erreur}</p>}
-        <p className="m-0 mt-3 text-xs text-doux">Fermer la fenêtre ne quitte pas l'application : elle reste dans la zone de notification pour surveiller les alertes. Pour quitter : clic droit sur l'icône › Quitter.</p>
+        <p className="m-0 mt-3 text-xs text-doux">Fermer la fenêtre ne quitte pas l'application : elle reste dans la {ZONE_ICONE} pour surveiller les alertes. Pour quitter : clic droit sur l'icône › Quitter.</p>
       </section>
 
       <section className="rounded-2xl border border-ligne bg-carte p-5">

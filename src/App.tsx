@@ -9,6 +9,7 @@ import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
 import { BarreTitre } from "./barre-titre";
 import { InfoBulles } from "./info-bulles";
+import { ZONE_ICONE } from "./plateforme";
 import { deplacerActif } from "./ordre-liste";
 import { CATEGORIES_PAR_DEFAUT, grouper, type Tri } from "./categories";
 import { cotationsActifs, miniCourbesActifs } from "./donnees";
@@ -86,7 +87,7 @@ function EcranLectureBloquee() {
           Le fichier de données de Hune est momentanément illisible (ou paraît vide). <b>Rien n'a été modifié ni effacé</b> : Hune n'écrit rien tant que la lecture ne réussit pas.
         </p>
         <p className="m-0 text-xs text-doux">
-          Fermez Hune puis rouvrez-la (zone de notification › Quitter), ou cliquez sur « Réessayer ». Si le problème persiste, une copie automatique peut être restaurée ; elle remplacera le fichier actuel.
+          Fermez Hune puis rouvrez-la ({ZONE_ICONE} › Quitter), ou cliquez sur « Réessayer ». Si le problème persiste, une copie automatique peut être restaurée ; elle remplacera le fichier actuel.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button className="bouton bouton-actif" onClick={() => location.reload()}>

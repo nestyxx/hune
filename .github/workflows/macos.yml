@@ -1,0 +1,49 @@
+name: macOS
+
+# Construit Hune pour Mac (Apple Silicon et Intel en un seul .dmg « universel ») et l'ajoute à une release existante.
+# Déclenchement manuel : Actions › macOS › Run workflow, avec le tag de la release (ex. v0.14.1).
+# L'application n'est pas signée par Apple (pas de compte développeur) : au premier lancement, clic droit › Ouvrir.
+# La clé de signature des mises à jour reste sur le poste de développement : ce build ne produit donc pas d'artefacts de mise à jour,
+# les Mac installent chaque nouvelle version à la main.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de la release à compléter (ex. v0.14.1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npx tsc
+      - run: npm test
+      - name: Construire le .dmg universel
+        run: npx tauri build --target universal-apple-darwin --bundles dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Nommer et joindre le .dmg à la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -e
+          VERSION="${TAG#v}"
+          DMG=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -n 1)
+          cp "$DMG" "Hune_${VERSION}_macOS_universel.dmg"
+          gh release upload "$TAG" "Hune_${VERSION}_macOS_universel.dmg" --clobber

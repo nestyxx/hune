@@ -3,6 +3,13 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.14.1] - 2026-11-26
+
+### Ajouté
+- **Version Mac** (macOS 11 ou plus récent), en un seul `.dmg` pour Apple Silicon et Intel, construit par GitHub Actions (workflow « macOS ») et joint à la release. L'application n'est pas signée par Apple : clic droit › Ouvrir au premier lancement (voir le README). Les mises à jour automatiques ne sont pas encore proposées sur Mac.
+  - Barre de titre superposée avec les boutons de fenêtre du système à gauche ; icône dans la barre de menus ; un clic sur le Dock rouvre la fenêtre masquée ; Cmd+Q quitte.
+  - Les textes suivent le système : « barre de menus » au lieu de « zone de notification », ⌘K au lieu de Ctrl+K, « démarrer avec macOS ».
+
 ## [0.14.0] - 2026-11-26
 
 ### Ajouté

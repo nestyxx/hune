@@ -1,4 +1,5 @@
 import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
+import { TOUCHE_RACCOURCI } from "./plateforme";
 import { Activity, Bell, Check, ChevronDown, ChevronRight, Ellipsis, Pencil, Plus, Rows3, Search, StretchHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
@@ -157,7 +158,7 @@ export function Watchlist(p: Props) {
         <input
           id="recherche"
           className="champ w-full !pl-9"
-          placeholder="Symbole, nom ou ISIN…  (Ctrl+K)"
+          placeholder={`Symbole, nom ou ISIN…  (${TOUCHE_RACCOURCI}+K)`}
           value={saisie}
           onChange={(e) => {
             setSaisie(e.target.value);
