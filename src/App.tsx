@@ -1,7 +1,7 @@
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { decrire, type Alerte } from "./alertes/moteur";
-import { synchroniserAlertesTp } from "./alertes/tp-auto";
+import { alertesTpManquantes, ignorerTp, lireIgnoresTp, reprendreTp, synchroniserAlertesTp } from "./alertes/tp-auto";
 import { notifier } from "./alertes/notifier";
 import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
@@ -276,6 +276,8 @@ export default function App() {
       const apres = modifier(avant);
       positionsRef.current = apres;
       setPositions(apres);
+      const parId = new Map(avant.map((p) => [p.id, p]));
+      reprendreTp(apres.filter((p) => parId.get(p.id)?.objectif !== p.objectif).map((p) => p.id));
       changerAlertes((l) => synchroniserAlertesTp(avant, apres, l, actifsRef.current, (cle) => cotationsRef.current[cle]?.prix, Date.now()));
     },
     [changerAlertes],
@@ -335,11 +337,40 @@ export default function App() {
   const groupes = useMemo(() => grouper(actifs, categories, tri, cotations), [actifs, categories, tri, cotations]);
   const cleVisibles = useMemo(() => groupes.filter((g) => !repliees.includes(g.nom)).flatMap((g) => g.actifs.map(cleActif)), [groupes, repliees]);
   const nbArmees = alertes.filter((a) => a.statut === "armee").length;
-  const alertesArmees = useMemo(() => {
+  /** Alertes déclenchées depuis la dernière visite de l'onglet Alertes : la pastille du menu. */
+  const [alertesVuLe, setAlertesVuLe] = useState(() => Number(localStorage.getItem("hune.alertes.vu") ?? 0));
+  useEffect(() => {
+    if (onglet !== "alertes") return;
+    const maintenant = Date.now();
+    localStorage.setItem("hune.alertes.vu", String(maintenant));
+    setAlertesVuLe(maintenant);
+  }, [onglet, alertes]);
+  const nbNouvellesDeclenchees = alertes.filter((a) => a.statut === "declenchee" && (a.declencheeLe ?? 0) > alertesVuLe).length;
+  /** Alertes déclenchées par actif : la pastille de la liste, jusqu'à ce qu'on les réarme ou les supprime. */
+  const alertesDeclenchees = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const a of alertes) if (a.statut === "armee") m[cleActif(a.actif)] = (m[cleActif(a.actif)] ?? 0) + 1;
+    for (const a of alertes) if (a.statut === "declenchee") m[cleActif(a.actif)] = (m[cleActif(a.actif)] ?? 0) + 1;
     return m;
   }, [alertes]);
+
+  // Portefeuille existant : crée l'alerte « prix ≥ objectif » des objectifs saisis avant que cela soit automatique (une seule fois par objectif,
+  // sauf si l'utilisateur a supprimé cette alerte). Attend les cours pour ne rien créer pour un objectif déjà atteint.
+  useEffect(() => {
+    if (!pret) return;
+    const nouvelles = alertesTpManquantes(positions, alertes, actifs, (cle) => cotations[cle]?.prix, lireIgnoresTp(), Date.now());
+    if (nouvelles.length) changerAlertes((l) => [...l, ...nouvelles]);
+  }, [pret, positions, alertes, actifs, cotations, changerAlertes]);
+
+  /** Supprime une alerte ; si elle venait d'un objectif (TP), on ne la recrée pas automatiquement. */
+  const supprimerAlerte = useCallback(
+    (id: string) =>
+      changerAlertes((l) => {
+        const a = l.find((x) => x.id === id);
+        if (a?.tpLot) ignorerTp(a.tpLot);
+        return l.filter((x) => x.id !== id);
+      }),
+    [changerAlertes],
+  );
   const alertesPrixHaut = useMemo(() => alertes.filter((a) => a.statut === "armee" && a.condition.type === "prix" && a.condition.sens === "au-dessus").map((a) => ({ cle: cleActif(a.actif), seuil: (a.condition as { seuil: number }).seuil })), [alertes]);
 
   // Info-bulle de l'icône de la zone de notification.
@@ -431,7 +462,7 @@ export default function App() {
       categories={categories}
       repliees={repliees}
       cotations={cotations}
-      alertesArmees={alertesArmees}
+      alertesDeclenchees={alertesDeclenchees}
       selection={selection}
       tri={tri}
       surTri={setTri}
@@ -484,7 +515,7 @@ export default function App() {
             listeVisible={ui.listeVisible}
             listeApplicable={onglet === "graphique"}
             surBasculerListe={() => setUi({ ...ui, listeVisible: !ui.listeVisible })}
-            alertesArmees={nbArmees}
+            nouvellesDeclenchees={nbNouvellesDeclenchees}
             majDisponible={maj.etat.etat === "disponible" ? maj.etat.version : null}
             theme={reglages.theme}
             surBasculerTheme={basculerTheme}
@@ -566,7 +597,7 @@ export default function App() {
                         setAlerteAEditer(id);
                         setOnglet("alertes");
                       }}
-                      surSupprimerAlerte={(id) => changerAlertes((l) => l.filter((a) => a.id !== id))}
+                      surSupprimerAlerte={supprimerAlerte}
                       niveaux={niveaux}
                       lignesPortefeuille={lignesPortefeuille}
                       surLignesPortefeuille={setLignesPortefeuille}
@@ -616,7 +647,7 @@ export default function App() {
                     prevenir(`Alerte modifiée et réarmée : ${m.actif.symbole} ${decrire(m.condition)}`);
                   }}
                   surRearmement={(id) => changerAlertes((l) => l.map((a) => (a.id === id ? { ...a, statut: "armee", creeeLe: Date.now(), declencheeLe: undefined, valeur: undefined } : a)))}
-                  surSuppression={(id) => changerAlertes((l) => l.filter((a) => a.id !== id))}
+                  surSuppression={supprimerAlerte}
                   surOuvrirActif={ouvrirActif}
                   editerId={alerteAEditer}
                   surEditionOuverte={() => setAlerteAEditer(null)}

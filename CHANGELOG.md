@@ -3,6 +3,14 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.12.1] - 2026-11-26
+
+### Modifié
+- **Pastilles d'alerte** : elles signalent désormais une alerte ou un objectif (TP) **atteint**, plus une alerte créée. Dans le menu, la pastille de « Alertes » compte les alertes déclenchées depuis votre dernière visite de l'onglet (elle disparaît quand vous l'ouvrez). Dans la liste d'actifs, la pastille rouge indique les alertes déclenchées de l'actif, jusqu'à ce que vous les réarmiez ou les supprimiez.
+
+### Ajouté
+- **Alertes TP pour le portefeuille existant** : au lancement, Hune crée l'alerte « prix ≥ objectif » des objectifs déjà saisis qui n'en ont pas et ne sont pas encore atteints (une seule fois par objectif, sans doublon avec une alerte existante). Si vous supprimez l'alerte d'un objectif, elle n'est pas recréée tant que vous ne changez pas cet objectif. Le bouton « Alertes aux objectifs » reste disponible.
+
 ## [0.12.0] - 2026-11-26
 
 ### Ajouté

@@ -23,7 +23,8 @@ interface Props {
   /** La liste d'actifs n'existe que sur l'onglet Graphique : le bouton n'a de sens que là. */
   listeApplicable: boolean;
   surBasculerListe: () => void;
-  alertesArmees: number;
+  /** Alertes déclenchées depuis la dernière visite de l'onglet Alertes. */
+  nouvellesDeclenchees: number;
   majDisponible: string | null;
   theme: PreferenceTheme;
   surBasculerTheme: () => void;
@@ -31,7 +32,7 @@ interface Props {
 }
 
 /** Navigation latérale : icônes seules en mode réduit, avec info-bulles. */
-export function Rail({ onglet, surOnglet, reduit, surReduire, listeVisible, listeApplicable, surBasculerListe, alertesArmees, majDisponible, theme, surBasculerTheme, surCompact }: Props) {
+export function Rail({ onglet, surOnglet, reduit, surReduire, listeVisible, listeApplicable, surBasculerListe, nouvellesDeclenchees, majDisponible, theme, surBasculerTheme, surCompact }: Props) {
   const IconeTheme = ICONE_THEME[theme];
   const action = (icone: LucideIcon, libelle: string, onClick: () => void, titre = libelle) => {
     const Icone = icone;
@@ -47,12 +48,12 @@ export function Rail({ onglet, surOnglet, reduit, surReduire, listeVisible, list
     <button key={id} className="nav-item" aria-current={onglet === id ? "page" : undefined} onClick={() => surOnglet(id)} title={`${libelle} (${touche})`}>
       <Icone size={18} />
       {!reduit && <span className="flex-1">{libelle}</span>}
-      {id === "alertes" && alertesArmees > 0 && (
+      {id === "alertes" && nouvellesDeclenchees > 0 && (
         <span
           className={`grid h-[18px] min-w-[18px] place-items-center rounded-full bg-alerte px-1 text-[11px] font-semibold leading-none text-white ${reduit ? "absolute right-1 top-1" : ""}`}
-          title={`${alertesArmees} alerte${alertesArmees > 1 ? "s" : ""} armée${alertesArmees > 1 ? "s" : ""}`}
+          title={`${nouvellesDeclenchees} alerte${nouvellesDeclenchees > 1 ? "s" : ""} déclenchée${nouvellesDeclenchees > 1 ? "s" : ""} depuis votre dernière visite`}
         >
-          {alertesArmees}
+          {nouvellesDeclenchees}
         </span>
       )}
     </button>

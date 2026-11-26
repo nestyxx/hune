@@ -14,7 +14,8 @@ interface Props {
   repliees: string[];
   cotations: Record<string, Cotation>;
   /** Nombre d'alertes armées par actif (clé `source:symbole`). */
-  alertesArmees: Record<string, number>;
+  /** Alertes déclenchées par actif (clé `source:symbole`). */
+  alertesDeclenchees: Record<string, number>;
   selection: string | null;
   tri: Tri;
   surTri: (t: Tri) => void;
@@ -236,7 +237,7 @@ export function Watchlist(p: Props) {
                   {g.actifs.map((a) => {
                     const cle = cleActif(a);
                     const c = p.cotations[cle];
-                    const nbAlertes = p.alertesArmees[cle] ?? 0;
+                    const nbAlertes = p.alertesDeclenchees[cle] ?? 0;
                     return (
                       <li
                         key={cle}
@@ -251,7 +252,7 @@ export function Watchlist(p: Props) {
                           <div className="flex items-center gap-1.5 whitespace-nowrap font-semibold">
                             {a.symbole}
                             {nbAlertes > 0 && (
-                              <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} armée${nbAlertes > 1 ? "s" : ""}`} className="inline-flex items-center gap-0.5 rounded-full bg-alerte/20 px-1.5 text-[10px] font-normal text-alerte">
+                              <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} déclenchée${nbAlertes > 1 ? "s" : ""}`} className="inline-flex items-center gap-0.5 rounded-full bg-alerte px-1.5 text-[10px] font-semibold text-white">
                                 <Bell size={10} /> {nbAlertes}
                               </span>
                             )}

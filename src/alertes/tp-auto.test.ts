@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Actif } from "../donnees/types";
 import type { Position } from "../portefeuille";
 import type { Alerte } from "./moteur";
-import { synchroniserAlertesTp } from "./tp-auto";
+import { alertesTpManquantes, synchroniserAlertesTp } from "./tp-auto";
 
 const actif: Actif = { source: "yahoo", symbole: "TTWO", nom: "Take-Two" };
 const cle = "yahoo:TTWO";
@@ -47,5 +47,25 @@ describe("alertes TP automatiques", () => {
 
   it("crée l'alerte même si le prix n'est pas encore connu", () => {
     expect(sync([lot()], [lot(250)], [], () => undefined)).toHaveLength(1);
+  });
+});
+
+describe("alertesTpManquantes", () => {
+  const p = (objectif?: number, id = "l1"): Position => ({ id, cle, quantite: 1, objectif });
+  const manquantes = (positions: Position[], alertes: Alerte[] = [], ignores = new Set<string>(), prixDe: (c: string) => number | undefined = prix) => alertesTpManquantes(positions, alertes, [actif], prixDe, ignores, 1000);
+
+  it("crée l'alerte des objectifs déjà saisis, encore au-dessus du prix", () => {
+    const r = manquantes([p(250), p(225, "l2"), p(undefined, "l3")]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ tpLot: "l1", condition: { seuil: 250 } });
+  });
+  it("n'en crée pas sans prix connu, pour un lot ignoré ou si une alerte existe déjà à ce seuil (même déclenchée)", () => {
+    expect(manquantes([p(250)], [], new Set(), () => undefined)).toHaveLength(0);
+    expect(manquantes([p(250)], [], new Set(["l1"]))).toHaveLength(0);
+    const declenchee: Alerte = { id: "d", actif, condition: { type: "prix", sens: "au-dessus", seuil: 250 }, statut: "declenchee", creeeLe: 1 };
+    expect(manquantes([p(250)], [declenchee])).toHaveLength(0);
+  });
+  it("ne double pas deux lots au même objectif", () => {
+    expect(manquantes([p(250), p(250, "l2")])).toHaveLength(1);
   });
 });
