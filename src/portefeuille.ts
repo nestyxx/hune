@@ -49,7 +49,9 @@ export function niveauxPortefeuille(lots: Position[]): NiveauxPortefeuille | nul
   const qPamp = avecPamp.reduce((s, l) => s + l.quantite!, 0);
   const pamp = qPamp > 0 ? avecPamp.reduce((s, l) => s + l.quantite! * l.pamp!, 0) / qPamp : null;
   const objectif = lots.find((l) => l.objectif != null)?.objectif ?? null;
-  const achats = lots.filter((l) => l.pamp != null && l.quantite && !l.mouvements?.length).map((l) => ({ prix: l.pamp!, quantite: l.quantite!, plateforme: l.plateforme }));
+  // Un seul lot : son niveau d'achat serait confondu avec le PAMP, on ne le trace pas deux fois.
+  const lotsAchat = lots.filter((l) => l.pamp != null && l.quantite && !l.mouvements?.length);
+  const achats = lotsAchat.length > 1 || (lotsAchat.length === 1 && lots.length > 1) ? lotsAchat.map((l) => ({ prix: l.pamp!, quantite: l.quantite!, plateforme: l.plateforme })) : [];
   const mouvements = lots.flatMap((l) => l.mouvements ?? []).sort((a, b) => a.date - b.date);
   return pamp == null && objectif == null && !achats.length && !mouvements.length ? null : { pamp, objectif, achats, mouvements };
 }

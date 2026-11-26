@@ -54,6 +54,11 @@ describe("niveauxPortefeuille", () => {
     expect(n.objectif).toBe(300);
     expect(n.achats).toEqual([{ prix: 100, quantite: 1, plateforme: "A" }, { prix: 200, quantite: 3, plateforme: undefined }]);
   });
+  it("un lot unique n'ajoute pas de niveau d'achat (confondu avec le PAMP)", () => {
+    const n = niveauxPortefeuille([lot({ quantite: 1, pamp: 100, plateforme: "A" })])!;
+    expect(n.pamp).toBe(100);
+    expect(n.achats).toEqual([]);
+  });
   it("un lot avec historique n'ajoute pas de niveau d'achat mais ses mouvements, triés", () => {
     const m = (date: number) => ({ date, sens: "achat" as const, quantite: 1, prix: 10 });
     const n = niveauxPortefeuille([lot({ quantite: 2, pamp: 10, mouvements: [m(5), m(1)] }), lot({ quantite: 1, pamp: 12, mouvements: [m(3)] })])!;
