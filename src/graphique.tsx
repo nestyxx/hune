@@ -911,7 +911,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           </button>
         </div>
         {legende && (
-          <div className="pointer-events-none absolute left-3 top-2 z-10 flex max-w-[48%] flex-wrap gap-x-3 font-mono text-xs text-doux">
+          <div className="pointer-events-none absolute left-3 top-2 z-10 flex min-w-[150px] max-w-[calc(100%-430px)] flex-wrap gap-x-3 font-mono text-xs text-doux">
             <span>O <b className="font-normal text-texte">{formaterPrix(legende.o)}</b></span>
             <span>H <b className="font-normal text-texte">{formaterPrix(legende.h)}</b></span>
             <span>B <b className="font-normal text-texte">{formaterPrix(legende.l)}</b></span>

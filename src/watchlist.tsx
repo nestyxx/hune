@@ -243,7 +243,7 @@ export function Watchlist(p: Props) {
                         title={p.uneLigne ? `${a.nom} (${cle})` : undefined}
                         className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
                       >
-                        <div className="flex min-w-0 items-center gap-2.5">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-1">
                         <IconeActif actif={a} taille={p.uneLigne ? 18 : 28} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 font-semibold">
@@ -258,7 +258,7 @@ export function Watchlist(p: Props) {
                         </div>
                         </div>
                         {p.afficherCourbes && <MiniCourbe valeurs={p.courbes[cle]} />}
-                        <div className="flex items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
                           {p.uneLigne ? (
                             // Une ligne : prix et variation côte à côte, variation sur une largeur fixe pour aligner la colonne.
                             <div className="flex items-baseline gap-2 whitespace-nowrap text-right font-mono">
