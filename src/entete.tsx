@@ -6,26 +6,9 @@ import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
 import { IconeActif } from "./icone-actif";
 import { liensExternes } from "./liens";
+import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
+import { ecrireVu, lireVus } from "./actualites-vues";
 import { ouvrirLien } from "./ouvrir-lien";
-
-const CLE_VU = "hune.actualites.vu";
-
-/** Instant (ms) de la dernière ouverture des actualités de chaque actif ; simple confort d'affichage, perdu sans conséquence. */
-function lireVus(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(CLE_VU) ?? "{}") as Record<string, number>;
-  } catch {
-    return {};
-  }
-}
-
-function ecrireVu(cle: string, ms: number) {
-  try {
-    localStorage.setItem(CLE_VU, JSON.stringify({ ...lireVus(), [cle]: ms }));
-  } catch {
-    // stockage indisponible : la puce réapparaîtra, rien de grave
-  }
-}
 
 function depuis(dateS: number): string {
   const h = Math.max(0, Math.round((Date.now() / 1000 - dateS) / 3600));
@@ -67,6 +50,7 @@ function useActualites(actif: Actif) {
 export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotation?: Cotation; prixLive: number | null }) {
   const f = fournisseur(actif.source);
   const prix = prixLive ?? cotation?.prix;
+  useNomsCryptos([actif]);
   const { nouvelle, nombre, marquerVu } = useActualites(actif);
   return (
     <header className="flex items-end justify-between gap-4 px-6 pb-3 pt-5">
@@ -74,7 +58,7 @@ export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotat
         <h1 className="m-0 flex items-center gap-2 truncate text-[13px] font-medium text-doux">
           <IconeActif actif={actif} taille={22} />
           <span className="truncate">
-            <span className="text-texte">{actif.symbole}</span> · {actif.nom}
+            <span className="text-texte">{actif.symbole}</span> · {nomAffiche(actif)}
           </span>
         </h1>
         <div className="mt-0.5 flex items-baseline gap-3">

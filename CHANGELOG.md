@@ -3,13 +3,18 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
-## [0.11.2] - 2026-11-26
+## [0.12.0] - 2026-11-26
 
 ### Ajouté
+- **Vrais noms des cryptos** : Bitcoin, Ethereum, Chainlink… s'affichent dans le portefeuille, la liste et l'en-tête du graphique à la place de « BTC/USDC ». Hune les lit une fois par jeton dans la recherche Yahoo Finance (seul le symbole du jeton est envoyé) et les garde sur le poste.
+- **Bulle d'actualités sur les tuiles du Marché** : un petit rond rouge avec le nombre d'articles de moins de 24 h non ouverts, en haut de la tuile d'un actif, pour comprendre d'un coup d'œil un mouvement rapide avant d'ouvrir le graphique puis les actualités. Interrogation deux actifs à la fois, toutes les 10 minutes, seulement quand l'écran Marché est affiché.
+- **Infobulles aux couleurs de l'application** à la place de celles de Windows, pour tous les textes d'aide au survol (le texte reste lu par les lecteurs d'écran).
 - **Aimant sur le graphique**, comme sur TradingView : en traçant une ligne, en déplaçant une alerte à la souris ou en créant une alerte par clic droit, le prix se cale sur l'ouverture, le plus haut, le plus bas ou la clôture de la bougie voisine quand il en est à moins de 10 pixels. Bouton en forme d'aimant dans la barre d'outils de tracé (activé par défaut, choix mémorisé).
 
 ### Modifié
 - **Bouton « Actualités »** bien plus visible quand il y a du nouveau : il passe en rouge et affiche le nombre d'articles de moins de 24 h non ouverts (9+ au-delà), au lieu d'une simple pastille.
+- **Devise du PAMP et de l'objectif** : la devise choisie pour un lot est désormais mémorisée. Ce qui est noté en euros reste en euros (et en dollars, en dollars) ; Hune convertit au taux du jour pour les valeurs, tableaux, graphiques et alertes, et remet à jour la conversion quand le taux change (écart de plus de 0,05 %). Un seul sélecteur de devise par lot, à côté de l'objectif.
+- **Portefeuille** : le nom de l'actif est aligné sur la ligne du symbole.
 
 ## [0.11.1] - 2026-11-26
 

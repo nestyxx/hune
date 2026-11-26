@@ -1,3 +1,4 @@
+import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
 import { Activity, Bell, Check, ChevronDown, ChevronRight, Ellipsis, Pencil, Plus, Rows3, Search, StretchHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
@@ -38,6 +39,7 @@ interface Props {
 
 /** Colonne de gauche : recherche (symbole, nom ou ISIN) + actifs suivis, regroupés par catégorie. */
 export function Watchlist(p: Props) {
+  useNomsCryptos(p.groupes.flatMap((g) => g.actifs));
   const [saisie, setSaisie] = useState("");
   const [resultats, setResultats] = useState<ResultatRecherche[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -240,7 +242,7 @@ export function Watchlist(p: Props) {
                         key={cle}
                         data-actif={cle}
                         onClick={() => p.surSelection(cle)}
-                        title={p.uneLigne ? `${a.nom} (${cle})` : undefined}
+                        title={p.uneLigne ? `${nomAffiche(a)} (${cle})` : undefined}
                         className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-1">
@@ -254,7 +256,7 @@ export function Watchlist(p: Props) {
                               </span>
                             )}
                           </div>
-                          {!p.uneLigne && <div className="max-w-[110px] truncate text-xs text-doux">{a.nom}</div>}
+                          {!p.uneLigne && <div className="max-w-[130px] truncate text-xs text-doux">{nomAffiche(a)}</div>}
                         </div>
                         </div>
                         {p.afficherCourbes && <MiniCourbe valeurs={p.courbes[cle]} />}

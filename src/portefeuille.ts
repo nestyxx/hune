@@ -16,6 +16,14 @@ export interface Position {
   pamp?: number;
   /** Prix objectif (« take profit »), dans la devise de cotation. */
   objectif?: number;
+  /**
+   * Devise dans laquelle l'utilisateur a saisi PAMP et objectif, quand ce n'est pas la devise de cotation (ex. « EUR » pour une action cotée en dollars).
+   * Les valeurs saisies sont gardées telles quelles (`pampSaisi`, `objectifSaisi`) ; `pamp` et `objectif` en sont la conversion en devise de cotation,
+   * recalculée au taux du jour, et servent à tous les calculs, graphiques et alertes.
+   */
+  devisePrix?: string;
+  pampSaisi?: number;
+  objectifSaisi?: number;
   plateforme?: string;
   /** La quantité a été déduite de `montantEur` (donc approximative). */
   estimee?: boolean;

@@ -3,6 +3,7 @@ import { Bell, ChevronDown, ChevronRight, ChevronUp, Download, Plus, Upload, X }
 import { GraphiquePortefeuille } from "./graphique-portefeuille";
 import type { EntreeHistorique, PeriodePortefeuille } from "./historique-portefeuille";
 import { IconeActif } from "./icone-actif";
+import { nomAffiche, nomEstUnePaire, useNomsCryptos } from "./noms-cryptos";
 import { ImportTransactions } from "./import-transactions-panneau";
 import type { ThemeResolu } from "./theme";
 import { categorieDe } from "./categories";
@@ -109,24 +110,29 @@ function ChampLot({ valeur, surChangement, placeholder, large = "w-28", forcer =
 }
 
 /**
- * Champ de prix d'un lot (PAMP, objectif) avec choix de la devise d'affichage et de saisie.
- * Changer de devise convertit aussitôt la valeur affichée (au taux du jour) ; ce qu'on tape ensuite est converti en retour
- * et enregistré dans la devise de cotation de l'actif. Le choix de devise lui-même n'enregistre rien : c'est un affichage.
+ * PAMP et objectif d'un lot, avec le choix de la devise dans laquelle on les note. Les valeurs restent dans la devise choisie
+ * (ce qui est noté en euros reste en euros) ; Hune les convertit au taux du jour pour les calculs, graphiques et alertes.
+ * Changer de devise convertit les valeurs affichées et mémorise ce choix pour le lot.
  */
-function ChampLotPrix({ valeur, surChangement, placeholder, devise, taux }: { valeur: number | undefined; surChangement: (v: number | undefined) => void; placeholder: string; devise: string | null | undefined; taux: Record<string, number> }) {
+function PrixLot({ lot, devise, taux, majLot }: { lot: Position; devise: string | null | undefined; taux: Record<string, number>; majLot: (id: string, p: Partial<Position>) => void }) {
   const options = devisesDeSaisie(devise, taux);
-  const [choix, setChoix] = useState<string | undefined>(undefined);
-  const courante = (choix && options.includes(choix) ? choix : devise) ?? undefined;
-  const affiche = valeur == null ? undefined : courante === devise ? valeur : Number(convertirSaisie(valeur, devise ?? undefined, courante, taux).toPrecision(6));
+  const courante = (lot.devisePrix && options.includes(lot.devisePrix) ? lot.devisePrix : devise) ?? undefined;
+  const horsCotation = courante !== devise;
+  const modifier = (champ: "pamp" | "objectif", v: number | undefined) => {
+    if (!horsCotation) return majLot(lot.id, { [champ]: v });
+    majLot(lot.id, { [champ === "pamp" ? "pampSaisi" : "objectifSaisi"]: v, [champ]: v === undefined ? undefined : convertirSaisie(v, courante, devise, taux) });
+  };
+  const changerDevise = (nouvelle: string) => {
+    if (nouvelle === devise) return majLot(lot.id, { devisePrix: undefined, pampSaisi: undefined, objectifSaisi: undefined });
+    const conv = (v: number | undefined) => (v === undefined ? undefined : Number(convertirSaisie(v, devise ?? undefined, nouvelle, taux).toPrecision(6)));
+    majLot(lot.id, { devisePrix: nouvelle, pampSaisi: conv(lot.pamp), objectifSaisi: conv(lot.objectif) });
+  };
   return (
-    <span className="inline-flex items-center gap-1">
-      <ChampLot
-        valeur={affiche}
-        placeholder={placeholder}
-        surChangement={(v) => surChangement(v === undefined ? v : convertirSaisie(v, courante, devise, taux))}
-      />
+    <>
+      <ChampLot valeur={horsCotation ? lot.pampSaisi : lot.pamp} placeholder="PAMP" surChangement={(v) => modifier("pamp", v)} />
+      <ChampLot valeur={horsCotation ? lot.objectifSaisi : lot.objectif} placeholder="Objectif" surChangement={(v) => modifier("objectif", v)} />
       {options.length > 1 ? (
-        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise d'affichage de ce prix (conversion au taux du jour). Il reste enregistré en ${devise}.`} onChange={(e) => setChoix(e.target.value)}>
+        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise dans laquelle le PAMP et l'objectif de ce lot sont notés. Changer de devise les convertit ; ils restent dans cette devise ensuite (convertis au taux du jour pour les calculs, en ${devise}).`} onChange={(e) => changerDevise(e.target.value)}>
           {options.map((d) => (
             <option key={d} value={d}>
               {d}
@@ -136,7 +142,7 @@ function ChampLotPrix({ valeur, surChangement, placeholder, devise, taux }: { va
       ) : (
         devise && <span className="text-doux">{devise}</span>
       )}
-    </span>
+    </>
   );
 }
 
@@ -162,6 +168,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   /** Positions affichées : toutes, ou celles de la plateforme choisie. */
   const positions = useMemo(() => (filtreActif ? toutesPositions.filter((p) => (p.plateforme ?? SANS_PLATEFORME) === filtreActif) : toutesPositions), [toutesPositions, filtreActif]);
 
+  useNomsCryptos(actifs);
   const actifsParCle = useMemo(() => Object.fromEntries(actifs.map((a) => [cleActif(a), a])), [actifs]);
   const clesDetenues = useMemo(() => [...new Set(toutesPositions.map((p) => p.cle))].filter((c) => actifsParCle[c]), [toutesPositions, actifsParCle]);
 
@@ -196,6 +203,20 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       clearInterval(t);
     };
   }, [listeDevises]);
+
+  // Prix notés dans une autre devise que celle de cotation : on recalcule leur conversion au taux du jour (seuls les écarts > 0,05 % sont écrits).
+  useEffect(() => {
+    const ecart = (a: number | undefined, b: number | undefined) => (a === undefined || b === undefined ? a !== b : Math.abs(a - b) > 5e-4 * Math.abs(b || 1));
+    const patches = new Map<string, Partial<Position>>();
+    for (const p of toutesPositions) {
+      const d = devises[p.cle];
+      if (!p.devisePrix || !d || p.devisePrix === d || !taux[p.devisePrix] || !taux[d]) continue;
+      const pamp = p.pampSaisi === undefined ? p.pamp : convertirSaisie(p.pampSaisi, p.devisePrix, d, taux);
+      const objectif = p.objectifSaisi === undefined ? p.objectif : convertirSaisie(p.objectifSaisi, p.devisePrix, d, taux);
+      if (ecart(pamp, p.pamp) || ecart(objectif, p.objectif)) patches.set(p.id, { pamp, objectif });
+    }
+    if (patches.size) surPositions((l) => l.map((p) => (patches.has(p.id) ? { ...p, ...patches.get(p.id) } : p)));
+  }, [toutesPositions, devises, taux, surPositions]);
 
   // Lots importés avec un montant en euros mais sans quantité : on déduit la quantité du premier prix reçu (puis on la fige).
   useEffect(() => {
@@ -277,7 +298,8 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
     if (!formulaire.cle || q == null || q <= 0 || pamp === null || objectif === null) return setInfo("Choisissez un actif et saisissez une quantité positive (PAMP et objectif doivent être des nombres).");
     const dCot = devises[formulaire.cle];
     const conv = (v: number | undefined) => (v == null ? v : convertirSaisie(v, formulaire.saisie || dCot, dCot, taux));
-    surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp: conv(pamp), objectif: conv(objectif), plateforme: formulaire.plateforme.trim() || undefined }]);
+    const horsCot = !!formulaire.saisie && !!dCot && formulaire.saisie !== dCot;
+    surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp: conv(pamp), objectif: conv(objectif), ...(horsCot ? { devisePrix: formulaire.saisie, pampSaisi: pamp, objectifSaisi: objectif } : {}), plateforme: formulaire.plateforme.trim() || undefined }]);
     setFormulaire(null);
     setInfo(null);
   };
@@ -576,21 +598,23 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
     <>
       <tr className="border-b border-ligne hover:bg-fond">
         <td className="px-2 py-1.5">
-          <button className="mr-1 bg-transparent p-0 text-doux hover:text-texte" aria-label="Détail des lots" title="Lots" onClick={surBascule}>
+          <div className="flex items-center gap-1.5">
+          <button className="flex bg-transparent p-0 text-doux hover:text-texte" aria-label="Détail des lots" title="Lots" onClick={surBascule}>
             {ouverte ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
-          <span className="mr-1.5 inline-block align-middle">
+          <span className="inline-flex shrink-0">
             <IconeActif actif={l.actif} taille={22} />
           </span>
           <button className="bg-transparent p-0 font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={surOuvrir}>
             {l.actif.symbole}
           </button>
-          {!/^[A-Z0-9]+\/[A-Z0-9]+$/.test(l.actif.nom) && (
-            <span className="ml-2 inline-block max-w-[210px] truncate align-bottom text-doux" title={l.actif.nom}>
-              {l.actif.nom}
+          {!nomEstUnePaire(nomAffiche(l.actif)) && (
+            <span className="max-w-[210px] truncate text-doux" title={nomAffiche(l.actif)}>
+              {nomAffiche(l.actif)}
             </span>
           )}
-          {l.lots.length > 1 && <span className="ml-1 text-xs text-doux">({l.lots.length} lots)</span>}
+          {l.lots.length > 1 && <span className="shrink-0 text-xs text-doux">({l.lots.length} lots)</span>}
+          </div>
         </td>
         <td className="whitespace-nowrap px-2 text-right font-mono">
           {quantite(l.quantite)}
@@ -624,8 +648,7 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
               {l.lots.map((lot) => (
                 <div key={lot.id} className="flex flex-wrap items-center gap-2 text-xs">
                   <ChampLot valeur={lot.quantite} placeholder="Quantité" surChangement={(v) => majLot(lot.id, { quantite: v })} />
-                  <ChampLotPrix valeur={lot.pamp} placeholder="PAMP" devise={l.devise} taux={taux} surChangement={(v) => majLot(lot.id, { pamp: v })} />
-                  <ChampLotPrix valeur={lot.objectif} placeholder="Objectif" devise={l.devise} taux={taux} surChangement={(v) => majLot(lot.id, { objectif: v })} />
+                  <PrixLot lot={lot} devise={l.devise} taux={taux} majLot={majLot} />
                   <input defaultValue={lot.plateforme ?? ""} placeholder="Plateforme" className="champ w-28 !py-1 text-xs" onBlur={(e) => majLot(lot.id, { plateforme: e.target.value.trim() || undefined })} />
                   {lot.montantEur != null && <span className="text-doux">importé : {formaterMontant(lot.montantEur, "EUR", 2)}</span>}
                   <button className="bouton-icone" title="Supprimer ce lot" aria-label="Supprimer ce lot" onClick={() => suppr(lot.id)}>

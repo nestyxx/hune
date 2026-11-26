@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Groupe } from "./categories";
+import { useNouvellesActualites } from "./actualites-vues";
 import { EnTete } from "./composants";
 import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donnees/sentiment";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
@@ -53,6 +54,7 @@ function Sentiment() {
 /** Onglet « Marché » : carte thermique de la watchlist par catégorie et plus fortes variations. */
 export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
   const tous = useMemo(() => groupes.flatMap((g) => g.actifs), [groupes]);
+  const nouvelles = useNouvellesActualites(tous, true);
   const variations = useMemo(() => {
     const avec = tous.filter((a) => cotations[cleActif(a)]?.variationPct != null);
     const tri = [...avec].sort((a, b) => cotations[cleActif(b)].variationPct! - cotations[cleActif(a)].variationPct!);
@@ -101,16 +103,22 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
                 .sort((a, b) => (cotations[cleActif(b)]?.variationPct ?? -Infinity) - (cotations[cleActif(a)]?.variationPct ?? -Infinity))
                 .map((a) => {
                   const c = cotations[cleActif(a)];
+                  const n = nouvelles[cleActif(a)] ?? 0;
                   return (
                     <button
                       key={cleActif(a)}
-                      title={`${a.nom} — ${formaterPrix(c?.prix)}`}
+                      title={`${a.nom} — ${formaterPrix(c?.prix)}${n ? ` · ${n} nouvelle${n > 1 ? "s" : ""} actualité${n > 1 ? "s" : ""}` : ""}`}
                       onClick={() => surOuvrir(cleActif(a))}
-                      className="flex h-16 flex-col items-center justify-center rounded-2xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
+                      className="relative flex h-16 flex-col items-center justify-center rounded-2xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
                       style={{ background: couleurTuile(c?.variationPct) }}
                     >
                       <span className="max-w-full truncate px-1 text-sm font-semibold">{a.symbole.replace(/(USDT|USDC|EUR|-USD)$/, "")}</span>
                       <span className="font-mono text-xs">{formaterPct(c?.variationPct)}</span>
+                      {n > 0 && (
+                        <span aria-label={`${n} nouvelle${n > 1 ? "s" : ""} actualité${n > 1 ? "s" : ""}`} className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-alerte px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-2 ring-fond">
+                          {n > 9 ? "9+" : n}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
