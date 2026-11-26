@@ -34,8 +34,10 @@ const PERIODE_COTATIONS_MS = 30_000;
 interface PrefsInterface {
   menuReduit: boolean;
   listeVisible: boolean;
+  /** Liste d'actifs sur une seule ligne par actif. */
+  listeUneLigne: boolean;
 }
-const PREFS_INTERFACE: PrefsInterface = { menuReduit: false, listeVisible: true };
+const PREFS_INTERFACE: PrefsInterface = { menuReduit: false, listeVisible: true, listeUneLigne: false };
 
 /**
  * Écrit une donnée dans le stockage quand elle CHANGE, jamais au démarrage : la première valeur observée après le
@@ -381,6 +383,8 @@ export default function App() {
   const liste = (pleineLargeur: boolean) => (
     <Watchlist
       pleineLargeur={pleineLargeur}
+      uneLigne={ui.listeUneLigne}
+      surUneLigne={() => setUi((u) => ({ ...u, listeUneLigne: !u.listeUneLigne }))}
       groupes={groupes}
       categories={categories}
       repliees={repliees}

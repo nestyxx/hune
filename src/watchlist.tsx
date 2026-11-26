@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Rows3, Search, StretchHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
 import { rechercherTout } from "./donnees";
@@ -25,6 +25,9 @@ interface Props {
   surSuppressionCategorie: (nom: string) => void;
   /** Mode compact : la liste occupe toute la largeur de la fenêtre. */
   pleineLargeur?: boolean;
+  /** Une seule ligne par actif (symbole, prix, variation) : plus d'actifs visibles sans défiler. */
+  uneLigne: boolean;
+  surUneLigne: () => void;
 }
 
 /** Colonne de gauche : recherche (symbole, nom ou ISIN) + actifs suivis, regroupés par catégorie. */
@@ -159,7 +162,18 @@ export function Watchlist(p: Props) {
               ))}
             </select>
           </label>
-          <span>{tous.length} actif{tous.length > 1 ? "s" : ""}</span>
+          <span className="flex items-center gap-1.5">
+            {tous.length} actif{tous.length > 1 ? "s" : ""}
+            <button
+              className="bouton-icone"
+              aria-pressed={p.uneLigne}
+              title={p.uneLigne ? "Afficher le nom sous chaque symbole" : "Une seule ligne par actif (plus de lignes visibles)"}
+              aria-label="Affichage de la liste sur une ligne"
+              onClick={p.surUneLigne}
+            >
+              {p.uneLigne ? <Rows3 size={15} /> : <StretchHorizontal size={15} />}
+            </button>
+          </span>
         </div>
       </div>
 
@@ -217,7 +231,8 @@ export function Watchlist(p: Props) {
                         key={cle}
                         data-actif={cle}
                         onClick={() => p.surSelection(cle)}
-                        className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 py-2 hover:bg-fond/80 ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
+                        title={p.uneLigne ? `${a.nom} (${cle})` : undefined}
+                        className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 font-semibold">
@@ -228,15 +243,24 @@ export function Watchlist(p: Props) {
                               </span>
                             )}
                           </div>
-                          <div className="max-w-[130px] truncate text-xs text-doux">{a.nom}</div>
+                          {!p.uneLigne && <div className="max-w-[130px] truncate text-xs text-doux">{a.nom}</div>}
                         </div>
                         <div className="flex items-center gap-1">
-                          <div className="text-right font-mono">
-                            <div>{formaterPrix(c?.prix)}</div>
-                            <div className={`text-xs ${classePct(c?.variationPct)}`}>{formaterPct(c?.variationPct)}</div>
-                          </div>
+                          {p.uneLigne ? (
+                            // Une ligne : prix et variation côte à côte, variation sur une largeur fixe pour aligner la colonne.
+                            <div className="flex items-baseline gap-2 whitespace-nowrap text-right font-mono">
+                              <span className="text-sm">{formaterPrix(c?.prix)}</span>
+                              <span className={`w-[58px] text-xs ${classePct(c?.variationPct)}`}>{formaterPct(c?.variationPct)}</span>
+                            </div>
+                          ) : (
+                            <div className="text-right font-mono">
+                              <div>{formaterPrix(c?.prix)}</div>
+                              <div className={`text-xs ${classePct(c?.variationPct)}`}>{formaterPct(c?.variationPct)}</div>
+                            </div>
+                          )}
                           <button
-                            className="bouton-icone invisible group-hover:visible"
+                            // Une ligne : le bouton flotte au survol par-dessus la variation au lieu de réserver de la largeur.
+                            className={`bouton-icone invisible group-hover:visible ${p.uneLigne ? "absolute right-0.5 top-1/2 -translate-y-1/2 bg-carte shadow-sm" : ""}`}
                             title="Déplacer / retirer"
                             aria-label={`Options de ${a.symbole}`}
                             onClick={(e) => {
