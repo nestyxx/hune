@@ -22,8 +22,10 @@ export interface Reglages {
   triPortefeuille: TriPortefeuille;
   /** Période du graphique de valeur du portefeuille. */
   periodePortefeuille: PeriodePortefeuille;
+  /** Valeurs affichées aux sommets et aux creux du graphique. */
+  sommets: boolean;
 }
-export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h", devise: "EUR", triPortefeuille: TRI_PORTEFEUILLE_PAR_DEFAUT, periodePortefeuille: PERIODE_PORTEFEUILLE_PAR_DEFAUT };
+export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h", devise: "EUR", triPortefeuille: TRI_PORTEFEUILLE_PAR_DEFAUT, periodePortefeuille: PERIODE_PORTEFEUILLE_PAR_DEFAUT, sommets: true };
 
 const RACCOURCIS: [string, string][] = [
   ["Ctrl + K", "Aller à la recherche"],

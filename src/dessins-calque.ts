@@ -1,6 +1,8 @@
 import type { IChartApi, ISeriesApi, ISeriesPrimitive, Logical, SeriesAttachedParameter, SeriesType, Time } from "lightweight-charts";
 import type { CanvasRenderingTarget2D } from "fancy-canvas";
+import type { Bougie } from "./donnees/types";
 import { distanceSegment, indiceDepuisTemps, NIVEAUX_FIBONACCI, prixFibonacci, prolongement, type Dessin } from "./dessins";
+import { detecterSommets, fenetreSommets } from "./sommets";
 
 /** Couleurs des niveaux de Fibonacci (0 → 1). */
 const COULEURS_FIBO = ["#8a93a3", "#e08a00", "#26a69a", "#2f81f7", "#8e6bff", "#d3569a", "#8a93a3"];
@@ -11,6 +13,8 @@ export interface Sources {
   temps: () => number[];
   /** Durée d'une bougie en secondes. */
   pas: () => number;
+  /** Bougies chargées (pour les valeurs aux sommets et aux creux). */
+  bougies: () => Bougie[];
   couleurs: () => { trait: string; texte: string; fond: string };
   formater: (prix: number) => string;
 }
@@ -33,6 +37,9 @@ export class CalqueDessins implements ISeriesPrimitive<Time> {
   brouillon: Dessin | null = null;
   /** Tracé survolé (gomme) : mis en évidence. */
   survol: string | null = null;
+  /** Affiche la valeur des plus hauts et plus bas dominants (à la ProRealTime). */
+  sommets = false;
+  private cacheBarres: { cle: string; hauts: number[]; bas: number[] } = { cle: "", hauts: [], bas: [] };
   private chart: IChartApi | null = null;
   private serie: ISeriesApi<SeriesType> | null = null;
   private demander: (() => void) | null = null;
@@ -127,7 +134,48 @@ export class CalqueDessins implements ISeriesPrimitive<Time> {
         else this.dessinerLigne(c, d, largeur, coul);
       }
       c.restore();
+      this.dessinerSommets(c, largeur, coul);
     });
+  }
+
+  /**
+   * Prix écrits au-dessus des plus hauts et sous les plus bas dominants. La fenêtre de dominance s'adapte à l'écart entre
+   * bougies : en dézoomant, il y a moins d'étiquettes, mais elles restent lisibles. Un halo de la couleur du fond garde le texte net.
+   */
+  private dessinerSommets(c: CanvasRenderingContext2D, largeur: number, coul: { texte: string; fond: string }) {
+    if (!this.sommets || !this.chart || !this.serie) return;
+    const barres = this.src.bougies();
+    const plage = this.chart.timeScale().getVisibleLogicalRange();
+    if (!barres.length || !plage) return;
+    const cle = `${barres.length}:${barres[0].temps}:${barres[barres.length - 1].temps}:${barres[barres.length - 1].haut}:${barres[barres.length - 1].bas}`;
+    if (this.cacheBarres.cle !== cle) this.cacheBarres = { cle, hauts: barres.map((b) => b.haut), bas: barres.map((b) => b.bas) };
+    const x0 = this.chart.timeScale().logicalToCoordinate(0 as Logical);
+    const x1 = this.chart.timeScale().logicalToCoordinate(1 as Logical);
+    const f = fenetreSommets(x0 != null && x1 != null ? Math.abs(x1 - x0) : 0);
+    c.save();
+    c.font = "11px Figtree, system-ui, sans-serif";
+    c.textAlign = "center";
+    c.lineJoin = "round";
+    c.lineWidth = 3;
+    c.strokeStyle = coul.fond;
+    c.fillStyle = coul.texte;
+    let dernierHaut = -Infinity;
+    let dernierBas = -Infinity;
+    for (const s of detecterSommets(this.cacheBarres.hauts, this.cacheBarres.bas, f, plage.from - 1, plage.to + 1)) {
+      const x = this.chart.timeScale().logicalToCoordinate(s.indice as Logical);
+      const y = this.serie.priceToCoordinate(s.prix);
+      if (x == null || y == null || x < 0 || x > largeur) continue;
+      const texte = this.src.formater(s.prix);
+      const l = c.measureText(texte).width + 6;
+      if (s.haut ? x - dernierHaut < l : x - dernierBas < l) continue; // évite le chevauchement avec l'étiquette précédente du même côté
+      if (s.haut) dernierHaut = x;
+      else dernierBas = x;
+      c.textBaseline = s.haut ? "bottom" : "top";
+      const yTexte = s.haut ? y - 4 : y + 4;
+      c.strokeText(texte, x, yTexte);
+      c.fillText(texte, x, yTexte);
+    }
+    c.restore();
   }
 
   private etiquette(c: CanvasRenderingContext2D, texte: string, x: number, y: number, droite: boolean, coul: { texte: string; fond: string }) {

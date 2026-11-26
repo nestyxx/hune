@@ -98,9 +98,9 @@ export async function restaurer(donnees: Sauvegarde["donnees"]): Promise<void> {
   for (const [cle, valeur] of Object.entries(donnees)) await ecrire(cle, valeur);
 }
 
-/** Déclenche le téléchargement d'un fichier JSON depuis la page. */
-export function telecharger(nom: string, contenu: string) {
-  const url = URL.createObjectURL(new Blob([contenu], { type: "application/json" }));
+/** Déclenche le téléchargement d'un fichier (JSON par défaut) depuis la page. */
+export function telecharger(nom: string, contenu: string, type = "application/json") {
+  const url = URL.createObjectURL(new Blob([contenu], { type }));
   const a = document.createElement("a");
   a.href = url;
   a.download = nom;

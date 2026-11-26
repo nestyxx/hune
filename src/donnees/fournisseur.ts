@@ -25,6 +25,11 @@ export interface DataProvider {
   /** Devise de cotation d'un symbole (code ISO : EUR, USD… ; « GBp » pour les pence). Sert à valoriser le portefeuille en euros. */
   devise(symbole: string): Promise<string>;
   /**
+   * Cours de clôture des sept derniers jours environ, pour les mini-courbes de la liste (un tableau par symbole ; un symbole
+   * en échec est absent). Mis en cache plusieurs dizaines de minutes : ce n'est pas du temps réel.
+   */
+  miniCourbes?(symboles: string[]): Promise<Record<string, number[]>>;
+  /**
    * Flux temps réel facultatif de la bougie en cours. Renvoie la fonction d'arrêt.
    * Sans flux, l'interface réinterroge `bougies` périodiquement.
    */

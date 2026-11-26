@@ -98,6 +98,30 @@ export class Yahoo implements DataProvider {
     return sortie;
   }
 
+  /** Cinq jours en bougies d'une heure via l'endpoint groupé `spark` (un appel par paquet de 20), gardés 30 minutes. */
+  async miniCourbes(symboles: string[]): Promise<Record<string, number[]>> {
+    const liste = [...new Set(symboles)].sort();
+    const paquets: string[][] = [];
+    for (let i = 0; i < liste.length; i += 20) paquets.push(liste.slice(i, i + 20));
+    const sortie: Record<string, number[]> = {};
+    await Promise.all(
+      paquets.map(async (p) => {
+        try {
+          const rep = await this.requeteur.obtenir(`mc:${p.join(",")}`, 30 * 60_000, () =>
+            getJson<Record<string, { close?: (number | null)[] }>>(`${BASE}/v8/finance/spark?symbols=${encodeURIComponent(p.join(","))}&range=5d&interval=60m`),
+          );
+          for (const [symbole, d] of Object.entries(rep)) {
+            const v = (d.close ?? []).filter((x): x is number => x != null);
+            if (v.length > 1) sortie[symbole] = v;
+          }
+        } catch {
+          /* paquet en échec : ces actions n'auront pas de mini-courbe */
+        }
+      }),
+    );
+    return sortie;
+  }
+
   /** Devise de cotation lue dans les métadonnées du graphique (mise en cache 24 h : elle ne change pas). */
   async devise(symbole: string): Promise<string> {
     return this.requeteur.obtenir(`dev:${symbole}`, 24 * 3600_000, async () => {

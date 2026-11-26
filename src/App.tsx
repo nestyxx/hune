@@ -6,7 +6,7 @@ import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
 import { BarreTitre } from "./barre-titre";
 import { CATEGORIES_PAR_DEFAUT, grouper, type Tri } from "./categories";
-import { cotationsActifs } from "./donnees";
+import { cotationsActifs, miniCourbesActifs } from "./donnees";
 import type { Profondeur } from "./donnees/historique";
 import { INTERVALLES, cleActif, type Actif, type Cotation, type Intervalle } from "./donnees/types";
 import { EnteteActif } from "./entete";
@@ -37,8 +37,10 @@ interface PrefsInterface {
   listeVisible: boolean;
   /** Liste d'actifs sur une seule ligne par actif. */
   listeUneLigne: boolean;
+  /** Mini-courbes de 7 jours dans la liste d'actifs. */
+  listeCourbes: boolean;
 }
-const PREFS_INTERFACE: PrefsInterface = { menuReduit: false, listeVisible: true, listeUneLigne: false };
+const PREFS_INTERFACE: PrefsInterface = { menuReduit: false, listeVisible: true, listeUneLigne: false, listeCourbes: true };
 
 /**
  * Écrit une donnée dans le stockage quand elle CHANGE, jamais au démarrage : la première valeur observée après le
@@ -291,6 +293,24 @@ export default function App() {
     };
   }, [actifs, reglages.variation]);
 
+  // Mini-courbes de la liste (7 jours) : chargées à l'ouverture et quand la liste change, puis toutes les 30 minutes.
+  // Elles ne sont demandées que si l'affichage est activé : désactivé, aucun appel réseau supplémentaire.
+  const [courbes, setCourbes] = useState<Record<string, number[]>>({});
+  const clesActifs = useMemo(() => actifs.map(cleActif).sort().join(","), [actifs]);
+  useEffect(() => {
+    if (!pret || !ui.listeCourbes || !actifs.length) return;
+    let annule = false;
+    const charger = () => void miniCourbesActifs(actifs).then((c) => !annule && setCourbes((prec) => ({ ...prec, ...c })));
+    charger();
+    const t = setInterval(charger, 30 * 60_000);
+    return () => {
+      annule = true;
+      clearInterval(t);
+    };
+    // Seule la liste des actifs compte, pas l'identité du tableau.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pret, ui.listeCourbes, clesActifs]);
+
   // Le prix « live » du graphique ne vaut que pour l'actif affiché : on l'efface au changement.
   useEffect(() => setPrixLive(null), [selection]);
 
@@ -386,6 +406,9 @@ export default function App() {
       pleineLargeur={pleineLargeur}
       uneLigne={ui.listeUneLigne}
       surUneLigne={() => setUi((u) => ({ ...u, listeUneLigne: !u.listeUneLigne }))}
+      courbes={courbes}
+      afficherCourbes={ui.listeCourbes}
+      surCourbes={() => setUi((u) => ({ ...u, listeCourbes: !u.listeCourbes }))}
       groupes={groupes}
       categories={categories}
       repliees={repliees}
@@ -528,6 +551,8 @@ export default function App() {
                       niveaux={niveaux}
                       lignesPortefeuille={lignesPortefeuille}
                       surLignesPortefeuille={setLignesPortefeuille}
+                      sommets={reglages.sommets !== false}
+                      surSommets={(sommets) => setReglages((r) => ({ ...r, sommets }))}
                       dessins={dessinsActif}
                       surDessins={(liste) => setDessins((prec) => ({ ...prec, [actifSelectionne ? cleActif(actifSelectionne) : ""]: liste }))}
                     />

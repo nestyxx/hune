@@ -10,7 +10,10 @@ import { fournisseur } from "./donnees";
 import { tauxVersEur } from "./donnees/change";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterMontant, formaterPct, formaterPrix } from "./format";
-import { agreger, extremesPerformance, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
+import { segmentsDonut } from "./donut";
+import { csvPositions, csvTransactions } from "./export-csv";
+import { telecharger } from "./sauvegarde";
+import { agreger, extremesPerformance, gainsRealises as gainsRealisesDe, gainsRealisesTotal, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
 
 interface Props {
   actifs: Actif[];
@@ -51,25 +54,34 @@ function lireNombre(s: string): number | undefined | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Barre de répartition empilée avec légende. */
+/** Camembert (anneau) de répartition avec légende : nom, part et montant de chaque tranche. */
 function BarreRepartition({ titre, parts, m }: { titre: string; parts: PartRepartition[]; m: Montant }) {
   const couleurs = ["#2f81f7", "#26a69a", "#e08a00", "#8e6bff", "#d3569a", "#6ca6c1", "#9aa75b", "#c2674a"];
   if (!parts.length) return null;
+  const rayon = 40;
+  const circonference = 2 * Math.PI * rayon;
+  const segments = segmentsDonut(parts.map((p) => p.valeurEur), circonference);
   return (
     <div className="carte-info p-4">
       <div className="mb-2 text-xs text-doux">{titre}</div>
-      <div className="flex h-3 overflow-hidden rounded-full bg-fond">
-        {parts.map((p, i) => (
-          <div key={p.nom} title={`${p.nom} : ${m(p.valeurEur)} (${pourcent(p.part)})`} style={{ width: `${p.part * 100}%`, background: couleurs[i % couleurs.length] }} />
-        ))}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        {parts.map((p, i) => (
-          <span key={p.nom} className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: couleurs[i % couleurs.length] }} />
-            {p.nom} <span className="text-doux">{pourcent(p.part)}</span>
-          </span>
-        ))}
+      <div className="flex items-center gap-5">
+        <svg viewBox="0 0 100 100" width="108" height="108" className="shrink-0 -rotate-90" role="img" aria-label={titre}>
+          <circle cx="50" cy="50" r={rayon} fill="none" strokeWidth="16" className="stroke-fond" />
+          {parts.map((p, i) => (
+            <circle key={p.nom} cx="50" cy="50" r={rayon} fill="none" strokeWidth="16" stroke={couleurs[i % couleurs.length]} strokeDasharray={`${segments[i].longueur} ${circonference}`} strokeDashoffset={segments[i].decalage}>
+              <title>{`${p.nom} : ${m(p.valeurEur)} (${pourcent(p.part)})`}</title>
+            </circle>
+          ))}
+        </svg>
+        <ul className="m-0 grid min-w-0 flex-1 list-none gap-x-4 gap-y-1 p-0 text-xs sm:grid-cols-2">
+          {parts.map((p, i) => (
+            <li key={p.nom} className="flex min-w-0 items-center gap-1.5" title={`${p.nom} : ${m(p.valeurEur)}`}>
+              <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: couleurs[i % couleurs.length] }} />
+              <span className="min-w-0 flex-1 truncate">{p.nom}</span>
+              <span className="shrink-0 font-mono text-doux">{pourcent(p.part)}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -181,13 +193,17 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
 
   // Cartes complémentaires et données du graphique de valeur.
   const variationJour = useMemo(() => variationPortefeuille(lignes, cotations), [lignes, cotations]);
+  const gainsRealises = useMemo(() => gainsRealisesTotal(lignes, taux), [lignes, taux]);
   const extremes = useMemo(() => extremesPerformance(lignes), [lignes]);
   const entreesGraphique = useMemo<EntreeHistorique[]>(() => lignes.map((l) => ({ cle: l.cle, source: l.actif.source, symbole: l.actif.symbole, devise: l.devise, lots: l.lots })), [lignes]);
   /** Achats et ventes connus des positions affichées, du plus récent au plus ancien. */
   const transactions = useMemo(
     () =>
       positions
-        .flatMap((p) => (p.mouvements ?? []).map((mv) => ({ ...mv, cle: p.cle, plateforme: p.plateforme })))
+        .flatMap((p) => {
+          const gains = new Map(gainsRealisesDe(p.mouvements ?? []).map((g) => [g.date, g.gain]));
+          return (p.mouvements ?? []).map((mv) => ({ ...mv, cle: p.cle, plateforme: p.plateforme, gain: mv.sens === "vente" ? (gains.get(mv.date) ?? null) : null }));
+        })
         .filter((t) => actifsParCle[t.cle])
         .sort((a, b) => b.date - a.date),
     [positions, actifsParCle],
@@ -231,6 +247,18 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
     setInfo(null);
   };
 
+  /** Export CSV de ce qui est affiché (plateforme et filtre appliqués) : positions, ou transactions avec leurs gains réalisés. */
+  const exporter = (quoi: "positions" | "transactions") => {
+    const jour = new Date().toISOString().slice(0, 10);
+    if (quoi === "positions") {
+      telecharger(`hune-portefeuille-${jour}.csv`, csvPositions(affichees, devise, taux, (l) => categorieDe(l.actif, categories)), "text/csv;charset=utf-8");
+    } else {
+      const lots = positions.filter((p) => p.mouvements?.length && actifsParCle[p.cle]).map((p) => ({ symbole: actifsParCle[p.cle].symbole, devise: devises[p.cle] ?? null, plateforme: p.plateforme, mouvements: p.mouvements! }));
+      telecharger(`hune-transactions-${jour}.csv`, csvTransactions(lots), "text/csv;charset=utf-8");
+    }
+    setInfo(`Fichier ${quoi === "positions" ? "des positions" : "des transactions"} enregistré dans vos téléchargements (séparateur « ; », prêt pour Excel).`);
+  };
+
   const majLot = (id: string, patch: Partial<Position>) => surPositions((l) => l.map((p) => (p.id === id ? { ...p, ...patch, estimee: "quantite" in patch ? false : p.estimee } : p)));
 
   return (
@@ -265,6 +293,11 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           <div className="text-xs text-doux" title="Calculé sur les lots dont le prix d'achat moyen (PAMP) est connu">P&amp;L latent</div>
           <div className={`titre-serif whitespace-nowrap text-[34px] leading-none ${classePct(tot.pnlEur)}`}>{m(tot.pnlEur)}</div>
           <div className={`text-xs ${classePct(tot.pnlPct)}`}>{formaterPct(tot.pnlPct)}</div>
+          {gainsRealises != null && (
+            <div className="mt-0.5 text-xs text-doux" title="Gains réalisés sur les ventes de l'historique de transactions importé (méthode du prix moyen, hors frais)">
+              Réalisé : <span className={classePct(gainsRealises)}>{gainsRealises >= 0 ? "+" : "−"}{m(Math.abs(gainsRealises))}</span>
+            </div>
+          )}
         </div>
         <div className="carte-info p-4">
           <div className="text-xs text-doux" title="Ce que vous avez payé pour les positions détenues (quantité × PAMP), sur les lots dont le PAMP est connu">Base de coût</div>
@@ -317,6 +350,14 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
         <button className="bouton" title="Reconstitue quantités et PAMP à partir d'un historique d'achats et de ventes (CoinMarketCap, courtier, exchange…)" onClick={() => choixCsv.current?.click()}>
           ⇪ Importer des transactions (CSV)
         </button>
+        <button className="bouton" disabled={!affichees.length} title="Enregistre le tableau affiché (devise, plateforme et filtre appliqués) en CSV pour Excel" onClick={() => exporter("positions")}>
+          ⇩ Exporter les positions (CSV)
+        </button>
+        {transactions.length > 0 && (
+          <button className="bouton" title="Enregistre vos achats et ventes avec le gain réalisé de chaque vente" onClick={() => exporter("transactions")}>
+            ⇩ Exporter les transactions (CSV)
+          </button>
+        )}
         <input
           ref={choixCsv}
           type="file"
@@ -423,6 +464,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
                   <th className="px-2 py-2 text-right font-normal">Quantité</th>
                   <th className="px-2 py-2 text-right font-normal">Prix</th>
                   <th className="px-2 py-2 text-right font-normal">Montant</th>
+                  <th className="px-2 py-2 text-right font-normal" title="Gain réalisé par la vente, au prix moyen d'achat du moment, hors frais (devise de cotation)">Gain réalisé</th>
                   <th className="px-2 py-2 text-left font-normal">Plateforme</th>
                 </tr>
               </thead>
@@ -444,6 +486,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
                         {formaterPrix(t.prix)} <span className="text-xs text-doux">{devises[t.cle] ?? ""}</span>
                       </td>
                       <td className="whitespace-nowrap px-2 text-right font-mono">{formaterPrix(t.prix * t.quantite)}</td>
+                      <td className={`whitespace-nowrap px-2 text-right font-mono ${classePct(t.gain)}`}>{t.gain == null ? "" : `${t.gain >= 0 ? "+" : "−"}${formaterPrix(Math.abs(t.gain))}`}</td>
                       <td className="px-2 text-doux">{t.plateforme ?? "—"}</td>
                     </tr>
                   );

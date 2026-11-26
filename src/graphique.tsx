@@ -141,6 +141,9 @@ interface Props {
   /** Tracés de l'utilisateur sur cet actif. */
   dessins: Dessin[];
   surDessins: (d: Dessin[]) => void;
+  /** Valeurs écrites aux plus hauts et plus bas dominants (comme sur ProRealTime). */
+  sommets: boolean;
+  surSommets: (v: boolean) => void;
 }
 
 type Outil = "curseur" | TypeDessin | "gomme";
@@ -159,7 +162,9 @@ interface Legende {
   v: number;
 }
 
-export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte, surDeplacerAlerte, surEditerAlerte, surSupprimerAlerte, niveaux, lignesPortefeuille, surLignesPortefeuille, dessins, surDessins }: Props) {
+export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte, surDeplacerAlerte, surEditerAlerte, surSupprimerAlerte, niveaux, lignesPortefeuille, surLignesPortefeuille, dessins, surDessins, sommets, surSommets }: Props) {
+  const sommetsRef = useRef(sommets);
+  sommetsRef.current = sommets;
   const enveloppe = useRef<HTMLDivElement>(null);
   const conteneur = useRef<HTMLDivElement>(null);
   const calque = useRef<CalqueDessins | null>(null);
@@ -261,6 +266,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       calque.current = new CalqueDessins({
         temps: tempsBougies,
         pas: () => SECONDES_INTERVALLE[intervalleRef.current],
+        bougies: () => donnees.current,
         couleurs: () => {
           const c = paletteGraphique();
           return { trait: c.accent, texte: c.texte, fond: c.fond };
@@ -269,6 +275,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       });
     }
     calque.current.dessins = dessinsRef.current;
+    calque.current.sommets = sommetsRef.current;
     principale.current.attachPrimitive(calque.current);
     marqueurs.current = createSeriesMarkers(principale.current, []);
     typePrincipale.current = typeRef.current; // l'échelle de prix (normale/log) appartient au graphique : elle survit au changement de série
@@ -546,6 +553,13 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     calque.current.dessins = dessins;
     calque.current.actualiser();
   }, [dessins]);
+
+  // Valeurs aux sommets et aux creux : affichage activé ou non.
+  useEffect(() => {
+    if (!calque.current) return;
+    calque.current.sommets = sommets;
+    calque.current.actualiser();
+  }, [sommets]);
 
   /** Zone des prix en pixels (hors échelles de prix et de temps) et position du conteneur. */
   const zonePrix = () => {
@@ -886,6 +900,9 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
               Portefeuille
             </button>
           )}
+          <button aria-pressed={sommets} title="Écrire la valeur des plus hauts et plus bas dominants sur le graphique" className="puce" onClick={() => surSommets(!sommets)}>
+            Hauts / bas
+          </button>
           <button aria-pressed={echelleLog} title="Échelle logarithmique" className="puce" onClick={() => surEchelleLog(!echelleLog)}>
             Log
           </button>
@@ -894,7 +911,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           </button>
         </div>
         {legende && (
-          <div className="pointer-events-none absolute left-3 top-2 z-10 flex gap-3 font-mono text-xs text-doux">
+          <div className="pointer-events-none absolute left-3 top-2 z-10 flex max-w-[48%] flex-wrap gap-x-3 font-mono text-xs text-doux">
             <span>O <b className="font-normal text-texte">{formaterPrix(legende.o)}</b></span>
             <span>H <b className="font-normal text-texte">{formaterPrix(legende.h)}</b></span>
             <span>B <b className="font-normal text-texte">{formaterPrix(legende.l)}</b></span>

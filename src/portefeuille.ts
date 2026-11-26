@@ -167,6 +167,56 @@ export function agreger(positions: Position[], e: Entrees): LignePortefeuille[] 
   return ajouterPoids(lignes);
 }
 
+/** Une vente et le gain qu'elle a réalisé (devise de cotation de l'actif, hors frais). */
+export interface GainRealise {
+  date: number;
+  quantite: number;
+  gain: number;
+}
+
+/**
+ * Gains réalisés sur les ventes d'une suite de transactions, au prix d'achat moyen du moment : une vente retire la quantité
+ * au PAMP courant (qui ne bouge pas), le gain est quantité × (prix de vente − PAMP). Les frais ne sont pas connus ici
+ * (les prix sont hors frais) : le résultat est un peu optimiste. Une vente supérieure à la quantité connue est plafonnée.
+ */
+export function gainsRealises(mouvements: Mouvement[]): GainRealise[] {
+  const ordre = [...mouvements].sort((a, b) => a.date - b.date);
+  let quantite = 0;
+  let cout = 0;
+  const sortie: GainRealise[] = [];
+  for (const m of ordre) {
+    if (m.sens === "achat") {
+      quantite += m.quantite;
+      cout += m.quantite * m.prix;
+      continue;
+    }
+    const q = Math.min(m.quantite, quantite);
+    if (q <= 0) continue;
+    const pamp = cout / quantite;
+    sortie.push({ date: m.date, quantite: q, gain: q * (m.prix - pamp) });
+    cout -= pamp * q;
+    quantite -= q;
+  }
+  return sortie;
+}
+
+/** Total des gains réalisés sur les lignes qui ont un historique de transactions, en euros ; null s'il n'y a aucune vente. */
+export function gainsRealisesTotal(lignes: LignePortefeuille[], taux: Record<string, number>): number | null {
+  let total = 0;
+  let nb = 0;
+  for (const l of lignes) {
+    const t = l.devise ? taux[l.devise] : undefined;
+    for (const lot of l.lots) {
+      if (!lot.mouvements?.length) continue;
+      for (const g of gainsRealises(lot.mouvements)) {
+        nb++;
+        if (t != null) total += g.gain * t;
+      }
+    }
+  }
+  return nb ? total : null;
+}
+
 /**
  * Variation de la valeur du portefeuille sur la période de la variation affichée (24 h glissantes ou jour, voir les réglages) :
  * pour chaque ligne, valeur d'hier = valeur d'aujourd'hui / (1 + variation). Seules les lignes valorisées et dotées d'une

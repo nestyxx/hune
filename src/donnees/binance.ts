@@ -94,6 +94,25 @@ export class Binance implements DataProvider {
     return reponses.flat().map((t) => ({ symbole: t.symbol, prix: +t.lastPrice, variationPct: +t.priceChangePercent }));
   }
 
+  /** Sept jours en bougies de 4 h (42 points), un appel par symbole, six à la fois, gardés 30 minutes. */
+  async miniCourbes(symboles: string[]): Promise<Record<string, number[]>> {
+    const sortie: Record<string, number[]> = {};
+    let prochain = 0;
+    const travailleur = async () => {
+      while (prochain < symboles.length) {
+        const s = symboles[prochain++];
+        try {
+          const lignes = await this.requeteur.obtenir(`mc:${s}`, 30 * 60_000, () => getJson<LigneKline[]>(`${REST}/klines?symbol=${encodeURIComponent(s)}&interval=4h&limit=42`));
+          sortie[s] = lignes.map((l) => +l[4]);
+        } catch {
+          /* ce symbole n'aura simplement pas de mini-courbe */
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, symboles.length) }, travailleur));
+    return sortie;
+  }
+
   /** Devise déduite du symbole : paires en EUR, sinon dollar (USDT/USDC… sont indexés sur l'USD). */
   async devise(symbole: string): Promise<string> {
     return symbole.endsWith("EUR") ? "EUR" : "USD";

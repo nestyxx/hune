@@ -35,6 +35,24 @@ export async function rechercherTout(requete: string): Promise<{ resultats: Resu
   return { resultats, erreurs, note };
 }
 
+/** Mini-courbes d'une liste d'actifs, regroupées par source. Renvoie une table `source:symbole` → cours (jamais d'erreur : une source en échec est absente). */
+export async function miniCourbesActifs(actifs: Actif[]): Promise<Record<string, number[]>> {
+  const sortie: Record<string, number[]> = {};
+  await Promise.all(
+    (Object.keys(fournisseurs) as SourceId[]).map(async (source) => {
+      const f = fournisseurs[source];
+      const symboles = actifs.filter((a) => a.source === source).map((a) => a.symbole);
+      if (!f.miniCourbes || !symboles.length) return;
+      try {
+        for (const [symbole, valeurs] of Object.entries(await f.miniCourbes(symboles))) sortie[`${source}:${symbole}`] = valeurs;
+      } catch {
+        /* pas de mini-courbes pour cette source */
+      }
+    }),
+  );
+  return sortie;
+}
+
 /** Cotations d'une liste d'actifs, regroupées par source. Renvoie une table `source:symbole` → cotation. */
 export async function cotationsActifs(actifs: Actif[], variation: ModeVariation = "24h"): Promise<Record<string, Cotation>> {
   const sortie: Record<string, Cotation> = {};

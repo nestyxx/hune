@@ -1,10 +1,11 @@
-import { Rows3, Search, StretchHorizontal } from "lucide-react";
+import { Activity, Rows3, Search, StretchHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
 import { rechercherTout } from "./donnees";
 import { cleActif, type Actif, type Cotation, type ResultatRecherche } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
 import { IconeActif } from "./icone-actif";
+import { MiniCourbe } from "./mini-courbe";
 
 interface Props {
   groupes: Groupe[];
@@ -29,6 +30,10 @@ interface Props {
   /** Une seule ligne par actif (symbole, prix, variation) : plus d'actifs visibles sans défiler. */
   uneLigne: boolean;
   surUneLigne: () => void;
+  /** Mini-courbes de 7 jours (clé `source:symbole` → cours) et leur affichage. */
+  courbes: Record<string, number[]>;
+  afficherCourbes: boolean;
+  surCourbes: () => void;
 }
 
 /** Colonne de gauche : recherche (symbole, nom ou ISIN) + actifs suivis, regroupés par catégorie. */
@@ -75,7 +80,7 @@ export function Watchlist(p: Props) {
   const locaux = requete ? tous.filter((a) => a.symbole.toLowerCase().includes(requete) || a.nom.toLowerCase().includes(requete)).slice(0, 6) : [];
 
   return (
-    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : "w-72 border-r border-ligne"}`}>
+    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : `${p.afficherCourbes ? "w-80" : "w-72"} border-r border-ligne`}`}>
       <div className="relative border-b border-ligne p-3">
         <Search size={15} className="pointer-events-none absolute left-[25px] top-[25px] text-doux" aria-hidden />
         <input
@@ -165,6 +170,9 @@ export function Watchlist(p: Props) {
           </label>
           <span className="flex items-center gap-1.5">
             {tous.length} actif{tous.length > 1 ? "s" : ""}
+            <button className="bouton-icone" aria-pressed={p.afficherCourbes} title={p.afficherCourbes ? "Masquer les mini-courbes (7 jours)" : "Afficher une mini-courbe de 7 jours par actif"} aria-label="Mini-courbes de la liste" onClick={p.surCourbes}>
+              <Activity size={15} className={p.afficherCourbes ? "text-accent" : undefined} />
+            </button>
             <button
               className="bouton-icone"
               aria-pressed={p.uneLigne}
@@ -249,6 +257,7 @@ export function Watchlist(p: Props) {
                           {!p.uneLigne && <div className="max-w-[110px] truncate text-xs text-doux">{a.nom}</div>}
                         </div>
                         </div>
+                        {p.afficherCourbes && <MiniCourbe valeurs={p.courbes[cle]} />}
                         <div className="flex items-center gap-1">
                           {p.uneLigne ? (
                             // Une ligne : prix et variation côte à côte, variation sur une largeur fixe pour aligner la colonne.
