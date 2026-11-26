@@ -13,3 +13,6 @@ suivi-marches-import*.json
 # Clés de signature des mises à jour
 *.key
 *.key.password
+
+# Brouillons de communication (hors dépôt)
+promo-x/
