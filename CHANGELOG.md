@@ -3,6 +3,15 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.8.0] - 2026-11-26
+
+### Ajouté
+- **Portefeuille en euros ou en dollars** : un sélecteur « € Euro | $ Dollar » convertit valeur totale, P&L, lignes et répartitions au taux du jour. Les pourcentages ne changent pas. Si le taux est introuvable, « — » est affiché plutôt qu'un faux total.
+- **Le choix de devise et le tri du tableau du portefeuille sont mémorisés** (et inclus dans la sauvegarde).
+
+### Modifié
+- Taux de change : si Yahoo ne répond pas, le dollar est déduit de la paire EUR/USDC de Binance.
+
 ## [0.7.1] - 2026-11-26
 
 ### Ajouté
