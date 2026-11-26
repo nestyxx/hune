@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GraphiquePortefeuille } from "./graphique-portefeuille";
+import type { EntreeHistorique, PeriodePortefeuille } from "./historique-portefeuille";
+import { IconeActif } from "./icone-actif";
 import { ImportTransactions } from "./import-transactions-panneau";
+import type { ThemeResolu } from "./theme";
 import { categorieDe } from "./categories";
 import { EnTete } from "./composants";
 import { fournisseur } from "./donnees";
 import { tauxVersEur } from "./donnees/change";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
-import { classePct, espaceOrdinaire, formaterPct, formaterPrix } from "./format";
-import { agreger, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
+import { classePct, formaterMontant, formaterPct, formaterPrix } from "./format";
+import { agreger, extremesPerformance, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
 
 interface Props {
   actifs: Actif[];
@@ -18,6 +22,10 @@ interface Props {
   /** Tri du tableau et sa mémorisation. */
   tri: TriPortefeuille;
   surTri: (t: TriPortefeuille) => void;
+  /** Période du graphique de valeur et sa mémorisation. */
+  periode: PeriodePortefeuille;
+  surPeriode: (p: PeriodePortefeuille) => void;
+  theme: ThemeResolu;
   positions: Position[];
   surPositions: (modifier: (l: Position[]) => Position[]) => void;
   /** Ajoute des actifs à la watchlist (ceux qui y sont déjà sont ignorés). */
@@ -31,9 +39,6 @@ interface Props {
 
 type Colonne = ColonnePortefeuille;
 
-/** Montant déjà exprimé dans `devise` (« 1 234 € », « 1 234 $ ») ; « — » s'il est inconnu. */
-const formaterMontant = (v: number | null, devise: DeviseAffichage, decimales = 0) =>
-  v == null ? "—" : espaceOrdinaire(v.toLocaleString("fr-FR", { style: "currency", currency: devise, currencyDisplay: "narrowSymbol", maximumFractionDigits: decimales, minimumFractionDigits: decimales }));
 /** Formateur de montants fourni aux sous-composants : prend un montant en euros, l'affiche dans la devise choisie. */
 type Montant = (valeurEur: number | null, decimales?: number) => string;
 const quantite = (q: number) => q.toLocaleString("fr-FR", { maximumFractionDigits: q >= 1000 ? 0 : q >= 1 ? 4 : 8 });
@@ -90,8 +95,13 @@ function ChampLot({ valeur, surChangement, placeholder, large = "w-28" }: { vale
   );
 }
 
-export function VuePortefeuille({ actifs, categories, cotations, devise, surDevise, tri, surTri, positions, surPositions, surAjouterActifs, surOuvrir, surAlertesObjectifs, alertesExistantes }: Props) {
+/** Portefeuille d'un seul coup d'œil ou d'une seule plateforme (positions sans plateforme : « Non précisée »). */
+const SANS_PLATEFORME = "Non précisée";
+
+export function VuePortefeuille({ actifs, categories, cotations, devise, surDevise, tri, surTri, periode, surPeriode, theme, positions: toutesPositions, surPositions, surAjouterActifs, surOuvrir, surAlertesObjectifs, alertesExistantes }: Props) {
   const choixCsv = useRef<HTMLInputElement>(null);
+  const [plateformeFiltre, setPlateformeFiltre] = useState<string | null>(null);
+  const [vue, setVue] = useState<"actifs" | "transactions">("actifs");
   const [fichierCsv, setFichierCsv] = useState<File | null>(null);
   const [devises, setDevises] = useState<Record<string, string>>({});
   const [taux, setTaux] = useState<Record<string, number>>({ EUR: 1 });
@@ -101,8 +111,14 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; plateforme: string } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // Plateformes présentes (pour le filtre) ; un filtre qui ne correspond plus à rien (plateforme supprimée) est ignoré.
+  const plateformes = useMemo(() => [...new Set(toutesPositions.map((p) => p.plateforme ?? SANS_PLATEFORME))].sort((a, b) => a.localeCompare(b, "fr")), [toutesPositions]);
+  const filtreActif = plateformeFiltre && plateformes.includes(plateformeFiltre) ? plateformeFiltre : null;
+  /** Positions affichées : toutes, ou celles de la plateforme choisie. */
+  const positions = useMemo(() => (filtreActif ? toutesPositions.filter((p) => (p.plateforme ?? SANS_PLATEFORME) === filtreActif) : toutesPositions), [toutesPositions, filtreActif]);
+
   const actifsParCle = useMemo(() => Object.fromEntries(actifs.map((a) => [cleActif(a), a])), [actifs]);
-  const clesDetenues = useMemo(() => [...new Set(positions.map((p) => p.cle))].filter((c) => actifsParCle[c]), [positions, actifsParCle]);
+  const clesDetenues = useMemo(() => [...new Set(toutesPositions.map((p) => p.cle))].filter((c) => actifsParCle[c]), [toutesPositions, actifsParCle]);
 
   // Devise de chaque actif détenu (une seule fois par actif ; mise en cache côté source).
   useEffect(() => {
@@ -138,7 +154,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
 
   // Lots importés avec un montant en euros mais sans quantité : on déduit la quantité du premier prix reçu (puis on la fige).
   useEffect(() => {
-    const aEstimer = positions.filter((p) => p.quantite == null && p.montantEur != null);
+    const aEstimer = toutesPositions.filter((p) => p.quantite == null && p.montantEur != null);
     if (!aEstimer.length) return;
     const calculs = new Map<string, number>();
     for (const p of aEstimer) {
@@ -147,7 +163,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       if (prix && t) calculs.set(p.id, p.montantEur! / (prix * t));
     }
     if (calculs.size) surPositions((l) => l.map((p) => (calculs.has(p.id) ? { ...p, quantite: calculs.get(p.id), estimee: true } : p)));
-  }, [positions, cotations, devises, taux, surPositions]);
+  }, [toutesPositions, cotations, devises, taux, surPositions]);
 
   const entrees = useMemo(() => ({ actifs: actifsParCle, cotations, devises, taux }), [actifsParCle, cotations, devises, taux]);
   const lignes = useMemo(() => agreger(positions, entrees), [positions, entrees]);
@@ -159,8 +175,22 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
 
   const parCategorie = useMemo(() => repartition(lignes.map((l) => ({ nom: categorieDe(l.actif, categories), valeurEur: l.valeurEur }))), [lignes, categories]);
   const parPlateforme = useMemo(
-    () => repartition(positions.filter((p) => actifsParCle[p.cle]).map((p) => ({ nom: p.plateforme ?? "Non précisée", valeurEur: valeurLotEur(p, entrees) }))),
-    [positions, actifsParCle, entrees],
+    () => repartition(toutesPositions.filter((p) => actifsParCle[p.cle]).map((p) => ({ nom: p.plateforme ?? SANS_PLATEFORME, valeurEur: valeurLotEur(p, entrees) }))),
+    [toutesPositions, actifsParCle, entrees],
+  );
+
+  // Cartes complémentaires et données du graphique de valeur.
+  const variationJour = useMemo(() => variationPortefeuille(lignes, cotations), [lignes, cotations]);
+  const extremes = useMemo(() => extremesPerformance(lignes), [lignes]);
+  const entreesGraphique = useMemo<EntreeHistorique[]>(() => lignes.map((l) => ({ cle: l.cle, source: l.actif.source, symbole: l.actif.symbole, devise: l.devise, lots: l.lots })), [lignes]);
+  /** Achats et ventes connus des positions affichées, du plus récent au plus ancien. */
+  const transactions = useMemo(
+    () =>
+      positions
+        .flatMap((p) => (p.mouvements ?? []).map((mv) => ({ ...mv, cle: p.cle, plateforme: p.plateforme })))
+        .filter((t) => actifsParCle[t.cle])
+        .sort((a, b) => b.date - a.date),
+    [positions, actifsParCle],
   );
 
   const affichees = useMemo(() => {
@@ -206,10 +236,28 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   return (
     <div className="apparait flex-1 space-y-5 overflow-auto p-6">
       <EnTete titre="Portefeuille" sousTitre={`Valeur en ${devise === "USD" ? "dollars" : "euros"}, plus-values latentes et répartition de vos positions. Lecture seule : rien n'est envoyé nulle part.`} />
+      {plateformes.length > 1 && (
+        <div className="segments flex-wrap" role="group" aria-label="Plateforme" title="Afficher l'ensemble du portefeuille ou une seule plateforme">
+          <button aria-pressed={!filtreActif} className="segment" onClick={() => setPlateformeFiltre(null)}>
+            Vue d'ensemble
+          </button>
+          {plateformes.map((pf) => (
+            <button key={pf} aria-pressed={filtreActif === pf} className="segment" onClick={() => setPlateformeFiltre(pf)}>
+              {pf}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="carte-info p-4">
           <div className="text-xs text-doux">Valeur totale</div>
           <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{m(tot.valeurEur)}</div>
+          {variationJour && (
+            <div className={`text-xs ${classePct(variationJour.pct)}`} title="Variation de la valeur selon la définition choisie dans Réglages (24 h glissantes ou depuis 00:00 UTC)">
+              {variationJour.pct >= 0 ? "+" : "−"}{m(Math.abs(variationJour.deltaEur))} · {formaterPct(variationJour.pct)}
+            </div>
+          )}
           {tauxManquant && <div className="text-xs text-alerte">Taux EUR/USD indisponible : montants non convertis.</div>}
           {tot.nonValorisees > 0 && <div className="text-xs text-alerte">{tot.nonValorisees} ligne{tot.nonValorisees > 1 ? "s" : ""} non valorisée{tot.nonValorisees > 1 ? "s" : ""} (prix ou change manquant)</div>}
         </div>
@@ -219,19 +267,37 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           <div className={`text-xs ${classePct(tot.pnlPct)}`}>{formaterPct(tot.pnlPct)}</div>
         </div>
         <div className="carte-info p-4">
-          <div className="text-xs text-doux">Lignes / lots</div>
-          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{lignes.length} / {positions.length}</div>
+          <div className="text-xs text-doux" title="Ce que vous avez payé pour les positions détenues (quantité × PAMP), sur les lots dont le PAMP est connu">Base de coût</div>
+          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{m(tot.coutEur > 0 ? tot.coutEur : null)}</div>
+          <div className="text-xs text-doux">{lignes.length} ligne{lignes.length > 1 ? "s" : ""} · {positions.length} lot{positions.length > 1 ? "s" : ""}</div>
         </div>
         <div className="carte-info p-4">
-          <div className="text-xs text-doux" title="Taux utilisés pour convertir les cotations en euros">Taux de change</div>
-          <div className="text-xs">{Object.entries(taux).filter(([d]) => d !== "EUR" && d !== "GBp").map(([d, t]) => `1 ${d} = ${t.toFixed(4).replace(".", ",")} €`).join(" · ") || "—"}</div>
+          <div className="text-xs text-doux" title="Classées par P&L en %, sur les lignes dont le PAMP est connu">Meilleure / moins bonne</div>
+          {extremes ? (
+            <div className="mt-1 space-y-1.5 text-sm">
+              {([["meilleure", extremes.meilleure], ["pire", extremes.pire]] as const).map(([cle, l]) => (
+                <button key={cle} className="flex w-full items-center gap-2 bg-transparent p-0 text-left text-texte hover:text-accent" title="Voir le graphique" onClick={() => surOuvrir(l.cle)}>
+                  <IconeActif actif={l.actif} taille={20} />
+                  <span className="min-w-0 flex-1 truncate font-semibold">{l.actif.symbole}</span>
+                  <span className={`font-mono text-xs ${classePct(l.pnlPct)}`}>{formaterPct(l.pnlPct)}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-doux">—</div>
+          )}
         </div>
       </div>
 
+      {lignes.length > 0 && <GraphiquePortefeuille entrees={entreesGraphique} taux={taux} devise={devise} periode={periode} surPeriode={surPeriode} theme={theme} />}
+
       <div className="grid gap-3 md:grid-cols-2">
         <BarreRepartition titre="Répartition par catégorie" parts={parCategorie} m={m} />
-        <BarreRepartition titre="Répartition par plateforme" parts={parPlateforme} m={m} />
+        {!filtreActif && <BarreRepartition titre="Répartition par plateforme" parts={parPlateforme} m={m} />}
       </div>
+      <p className="m-0 text-xs text-doux" title="Taux utilisés pour convertir les cotations en euros">
+        Taux de change : {Object.entries(taux).filter(([d]) => d !== "EUR" && d !== "GBp").map(([d, t]) => `1 ${d} = ${t.toFixed(4).replace(".", ",")} €`).join(" · ") || "—"}
+      </p>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="segments" role="group" aria-label="Devise d'affichage" title="Devise d'affichage du portefeuille (mémorisée)">
@@ -267,7 +333,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
         <ImportTransactions
           fichier={fichierCsv}
           actifs={actifs}
-          positions={positions}
+          positions={toutesPositions}
           surAjouterActifs={surAjouterActifs}
           surPositions={surPositions}
           surFermer={(message) => {
@@ -330,8 +396,62 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       )}
       {info && <p className="m-0 text-xs text-doux">{info}</p>}
 
+      {lignes.length > 0 && (
+        <div className="segments" role="group" aria-label="Contenu du tableau">
+          <button aria-pressed={vue === "actifs"} className="segment" onClick={() => setVue("actifs")}>
+            Actifs
+          </button>
+          <button aria-pressed={vue === "transactions"} className="segment" onClick={() => setVue("transactions")} title="Achats et ventes issus d'un import de transactions">
+            Transactions{transactions.length ? ` (${transactions.length})` : ""}
+          </button>
+        </div>
+      )}
+
       {lignes.length === 0 ? (
         <p className="text-doux">Aucune position. Ajoutez-en une ci-dessus, ou importez vos données (Réglages › Sauvegarde › Importer).</p>
+      ) : vue === "transactions" ? (
+        transactions.length === 0 ? (
+          <p className="text-doux">Aucune transaction enregistrée. Importez l'historique de vos achats et ventes avec « ⇪ Importer des transactions (CSV) » : ils apparaîtront ici et sur les graphiques.</p>
+        ) : (
+          <div className="max-h-[480px] overflow-auto rounded-2xl border border-ligne">
+            <table className="w-full border-collapse text-sm">
+              <thead className="sticky top-0 bg-carte">
+                <tr className="border-b border-ligne text-xs text-doux">
+                  <th className="px-2 py-2 text-left font-normal">Date</th>
+                  <th className="px-2 py-2 text-left font-normal">Actif</th>
+                  <th className="px-2 py-2 text-left font-normal">Type</th>
+                  <th className="px-2 py-2 text-right font-normal">Quantité</th>
+                  <th className="px-2 py-2 text-right font-normal">Prix</th>
+                  <th className="px-2 py-2 text-right font-normal">Montant</th>
+                  <th className="px-2 py-2 text-left font-normal">Plateforme</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.slice(0, 500).map((t, i) => {
+                  const actif = actifsParCle[t.cle];
+                  return (
+                    <tr key={`${t.cle}-${t.date}-${i}`} className="border-b border-ligne last:border-0">
+                      <td className="whitespace-nowrap px-2 py-1.5 text-doux">{new Date(t.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</td>
+                      <td className="px-2">
+                        <span className="flex items-center gap-1.5 font-semibold">
+                          <IconeActif actif={actif} taille={18} />
+                          {actif.symbole}
+                        </span>
+                      </td>
+                      <td className={`px-2 ${t.sens === "achat" ? "text-hausse" : "text-baisse"}`}>{t.sens === "achat" ? "Achat" : "Vente"}</td>
+                      <td className="whitespace-nowrap px-2 text-right font-mono">{quantite(t.quantite)}</td>
+                      <td className="whitespace-nowrap px-2 text-right font-mono">
+                        {formaterPrix(t.prix)} <span className="text-xs text-doux">{devises[t.cle] ?? ""}</span>
+                      </td>
+                      <td className="whitespace-nowrap px-2 text-right font-mono">{formaterPrix(t.prix * t.quantite)}</td>
+                      <td className="px-2 text-doux">{t.plateforme ?? "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-ligne">
           <table className="w-full border-collapse text-sm">
@@ -368,6 +488,9 @@ function LigneTableau({ l, m, ouverte, surBascule, surOuvrir, majLot, suppr, ajo
           <button className="mr-1 bg-transparent p-0 text-doux hover:text-texte" aria-label="Détail des lots" title="Lots" onClick={surBascule}>
             {ouverte ? "▾" : "▸"}
           </button>
+          <span className="mr-1.5 inline-block align-middle">
+            <IconeActif actif={l.actif} taille={22} />
+          </span>
           <button className="bg-transparent p-0 font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={surOuvrir}>
             {l.actif.symbole}
           </button>{" "}

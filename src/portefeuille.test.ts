@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
 import type { Actif, Cotation } from "./donnees/types";
-import { agreger, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, versDevise, type Position } from "./portefeuille";
+import { agreger, extremesPerformance, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, variationPortefeuille, versDevise, type LignePortefeuille, type Position } from "./portefeuille";
+
+describe("variation et extrêmes du portefeuille", () => {
+  const ligne = (cle: string, valeurEur: number | null, pnlPct: number | null, pnlEur: number | null) => ({ cle, valeurEur, pnlPct, pnlEur }) as unknown as LignePortefeuille;
+  const cotation = (v: number | null) => ({ symbole: "x", prix: 1, variationPct: v });
+
+  it("valeur d'hier = valeur / (1 + variation) : +10 % sur 110 et −10 % sur 90", () => {
+    const r = variationPortefeuille([ligne("a", 110, null, null), ligne("b", 90, null, null)], { a: cotation(10), b: cotation(-10) })!;
+    expect(r.deltaEur).toBeCloseTo(110 + 90 - (100 + 100), 6); // 200 - 200 = 0
+    const seul = variationPortefeuille([ligne("a", 110, null, null)], { a: cotation(10) })!;
+    expect(seul.deltaEur).toBeCloseTo(10, 6);
+    expect(seul.pct).toBeCloseTo(10, 6);
+  });
+  it("ignore les lignes sans valeur ou sans variation, et renvoie null s'il n'y en a aucune", () => {
+    expect(variationPortefeuille([ligne("a", null, null, null), ligne("b", 50, null, null)], { a: cotation(5), b: cotation(null) })).toBeNull();
+    expect(variationPortefeuille([], {})).toBeNull();
+  });
+  it("meilleure et moins bonne performance en %, parmi les lignes dont le PAMP est connu", () => {
+    const r = extremesPerformance([ligne("a", 1, 12, 1), ligne("b", 1, -30, -1), ligne("c", 1, 48, 5), ligne("d", 1, null, null)])!;
+    expect(r.meilleure.cle).toBe("c");
+    expect(r.pire.cle).toBe("b");
+    expect(extremesPerformance([ligne("a", 1, 12, 1)])).toBeNull();
+  });
+});
 
 describe("devise d'affichage", () => {
   it("l'euro est inchangé, le dollar divise par le taux (valeur en euros d'un dollar)", () => {

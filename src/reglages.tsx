@@ -3,6 +3,7 @@ import { notifier } from "./alertes/notifier";
 import { EnTete } from "./composants";
 import { dansTauri } from "./donnees/http";
 import type { ModeVariation } from "./donnees/types";
+import { PERIODE_PORTEFEUILLE_PAR_DEFAUT, type PeriodePortefeuille } from "./historique-portefeuille";
 import { TRI_PORTEFEUILLE_PAR_DEFAUT, type DeviseAffichage, type TriPortefeuille } from "./portefeuille";
 import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger, type Sauvegarde } from "./sauvegarde";
 import type { useMiseAJour } from "./miseajour";
@@ -19,8 +20,10 @@ export interface Reglages {
   devise: DeviseAffichage;
   /** Colonne et sens de tri du tableau du portefeuille. */
   triPortefeuille: TriPortefeuille;
+  /** Période du graphique de valeur du portefeuille. */
+  periodePortefeuille: PeriodePortefeuille;
 }
-export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h", devise: "EUR", triPortefeuille: TRI_PORTEFEUILLE_PAR_DEFAUT };
+export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h", devise: "EUR", triPortefeuille: TRI_PORTEFEUILLE_PAR_DEFAUT, periodePortefeuille: PERIODE_PORTEFEUILLE_PAR_DEFAUT };
 
 const RACCOURCIS: [string, string][] = [
   ["Ctrl + K", "Aller à la recherche"],

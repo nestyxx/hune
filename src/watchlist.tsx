@@ -4,6 +4,7 @@ import { LIBELLE_TRI, type Groupe, type Tri } from "./categories";
 import { rechercherTout } from "./donnees";
 import { cleActif, type Actif, type Cotation, type ResultatRecherche } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
+import { IconeActif } from "./icone-actif";
 
 interface Props {
   groupes: Groupe[];
@@ -234,6 +235,8 @@ export function Watchlist(p: Props) {
                         title={p.uneLigne ? `${a.nom} (${cle})` : undefined}
                         className={`group relative flex cursor-pointer items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""}`}
                       >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                        <IconeActif actif={a} taille={p.uneLigne ? 18 : 28} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 font-semibold">
                             {a.symbole}
@@ -243,7 +246,8 @@ export function Watchlist(p: Props) {
                               </span>
                             )}
                           </div>
-                          {!p.uneLigne && <div className="max-w-[130px] truncate text-xs text-doux">{a.nom}</div>}
+                          {!p.uneLigne && <div className="max-w-[110px] truncate text-xs text-doux">{a.nom}</div>}
+                        </div>
                         </div>
                         <div className="flex items-center gap-1">
                           {p.uneLigne ? (

@@ -167,6 +167,31 @@ export function agreger(positions: Position[], e: Entrees): LignePortefeuille[] 
   return ajouterPoids(lignes);
 }
 
+/**
+ * Variation de la valeur du portefeuille sur la période de la variation affichée (24 h glissantes ou jour, voir les réglages) :
+ * pour chaque ligne, valeur d'hier = valeur d'aujourd'hui / (1 + variation). Seules les lignes valorisées et dotées d'une
+ * variation comptent ; null s'il n'y en a aucune.
+ */
+export function variationPortefeuille(lignes: LignePortefeuille[], cotations: Record<string, Cotation>): { deltaEur: number; pct: number } | null {
+  let maintenant = 0;
+  let avant = 0;
+  for (const l of lignes) {
+    const v = cotations[l.cle]?.variationPct;
+    if (l.valeurEur == null || v == null || v <= -100) continue;
+    maintenant += l.valeurEur;
+    avant += l.valeurEur / (1 + v / 100);
+  }
+  return avant > 0 ? { deltaEur: maintenant - avant, pct: (maintenant / avant - 1) * 100 } : null;
+}
+
+/** Lignes ayant le meilleur et le moins bon P&L en % (seules celles dont le PAMP est connu comptent) ; null si moins de deux lignes comparables. */
+export function extremesPerformance(lignes: LignePortefeuille[]): { meilleure: LignePortefeuille; pire: LignePortefeuille } | null {
+  const comparables = lignes.filter((l) => l.pnlPct != null && l.pnlEur != null);
+  if (comparables.length < 2) return null;
+  const tri = [...comparables].sort((a, b) => b.pnlPct! - a.pnlPct!);
+  return { meilleure: tri[0], pire: tri[tri.length - 1] };
+}
+
 /** Calcule la part de chaque ligne dans la valeur totale (les lignes sans valeur n'en ont pas). */
 export function ajouterPoids(lignes: LignePortefeuille[]): LignePortefeuille[] {
   const total = lignes.reduce((s, l) => s + (l.valeurEur ?? 0), 0);

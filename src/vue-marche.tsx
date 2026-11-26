@@ -4,6 +4,7 @@ import { EnTete } from "./composants";
 import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donnees/sentiment";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
+import { IconeActif } from "./icone-actif";
 
 interface Props {
   groupes: Groupe[];
@@ -65,7 +66,10 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
     return (
       <li key={cleActif(a)}>
         <button className="flex w-full items-center justify-between bg-transparent px-1 py-1 text-left text-texte hover:bg-fond" onClick={() => surOuvrir(cleActif(a))}>
-          <span className="font-semibold">{a.symbole}</span>
+          <span className="flex items-center gap-2 font-semibold">
+            <IconeActif actif={a} taille={18} />
+            {a.symbole}
+          </span>
           <span className={`font-mono text-xs ${classePct(c?.variationPct)}`}>{formaterPct(c?.variationPct)}</span>
         </button>
       </li>

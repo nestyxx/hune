@@ -1,6 +1,7 @@
 import { fournisseur } from "./donnees";
 import type { Actif, Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
+import { IconeActif } from "./icone-actif";
 
 /** Bandeau au-dessus du graphique : actif, prix, variation et — surtout — nature des données (temps réel ou différées). */
 export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotation?: Cotation; prixLive: number | null }) {
@@ -9,8 +10,11 @@ export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotat
   return (
     <header className="flex items-end justify-between gap-4 px-6 pb-3 pt-5">
       <div className="min-w-0">
-        <h1 className="m-0 truncate text-[13px] font-medium text-doux">
-          <span className="text-texte">{actif.symbole}</span> · {actif.nom}
+        <h1 className="m-0 flex items-center gap-2 truncate text-[13px] font-medium text-doux">
+          <IconeActif actif={actif} taille={22} />
+          <span className="truncate">
+            <span className="text-texte">{actif.symbole}</span> · {actif.nom}
+          </span>
         </h1>
         <div className="mt-0.5 flex items-baseline gap-3">
           <span className="titre-serif text-[44px] leading-none">{formaterPrix(prix)}</span>
