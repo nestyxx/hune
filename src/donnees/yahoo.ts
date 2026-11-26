@@ -20,6 +20,27 @@ interface ReponseChart {
 }
 
 /** Actions : Yahoo Finance (non officiel). Données généralement différées d'environ 15 minutes selon la place. */
+/**
+ * Type affiché d'un résultat de recherche Yahoo, ou null s'il n'est pas géré.
+ * Matières premières et devises : seuls les symboles « continus » (GC=F, EURUSD=X) sont gardés, pas les contrats datés (GCZ26.CMX).
+ */
+export function libelleType(quoteType: string | undefined, symbole: string): string | null {
+  switch (quoteType) {
+    case "EQUITY":
+      return "Action";
+    case "ETF":
+      return "ETF";
+    case "INDEX":
+      return "Indice";
+    case "FUTURE":
+      return symbole.endsWith("=F") ? "Matière première" : null;
+    case "CURRENCY":
+      return symbole.endsWith("=X") ? "Devise" : null;
+    default:
+      return null;
+  }
+}
+
 export class Yahoo implements DataProvider {
   readonly id = "yahoo" as const;
   readonly nom = "Yahoo Finance";
@@ -36,14 +57,11 @@ export class Yahoo implements DataProvider {
       ),
     );
     return (rep.quotes ?? [])
-      // Les cryptos sont gérées par Binance ; on ne garde ici que actions, ETF et indices.
-      .filter((r) => ["EQUITY", "ETF", "INDEX"].includes(r.quoteType ?? ""))
-      .map((r) => ({
-        source: "yahoo" as const,
-        symbole: r.symbol,
-        nom: r.longname ?? r.shortname ?? r.symbol,
-        detail: `${r.quoteType === "EQUITY" ? "Action" : r.quoteType === "ETF" ? "ETF" : "Indice"} · ${r.exchDisp ?? "?"}`,
-      }));
+      // Les cryptos sont gérées par Binance ; on ne garde ici que actions, ETF, indices, matières premières et devises.
+      .flatMap((r) => {
+        const type = libelleType(r.quoteType, r.symbol);
+        return type ? [{ source: "yahoo" as const, symbole: r.symbol, nom: r.longname ?? r.shortname ?? r.symbol, detail: `${type} · ${r.exchDisp ?? "?"}` }] : [];
+      });
   }
 
   private async chart(symbole: string, interval: string, range: string) {

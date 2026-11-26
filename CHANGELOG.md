@@ -9,6 +9,8 @@ Le texte de chaque version sert de notes pour la release GitHub (`scripts/publie
 - **Actualités et fiche de l'actif** : deux boutons au-dessus du graphique ouvrent, dans votre navigateur, les actualités de l'actif (Yahoo Finance) et sa fiche (CoinMarketCap pour une cinquantaine de cryptos courantes, CoinGecko en recherche pour les autres, Yahoo Finance pour les actions). Rien n'est chargé par Hune : le lien ne s'ouvre qu'au clic, et seul le symbole figure dans l'adresse. Nouveau composant `tauri-plugin-opener`, limité à ces trois sites.
 - **Alerte automatique pour chaque objectif (TP)** : saisir ou modifier l'objectif d'un lot crée l'alerte « prix ≥ objectif » correspondante (visible sur le graphique, notification au franchissement). Elle suit l'objectif si vous le changez et disparaît si vous l'effacez ou supprimez le lot ; un objectif déjà atteint ou une alerte identique déjà armée n'en crée pas. Le bouton « Alertes aux objectifs » reste disponible pour les objectifs déjà saisis.
 
+- **Matières premières et devises dans la recherche** : l'or (`GC=F`), l'argent, le pétrole ou une paire comme `EURUSD=X` se trouvent désormais en tapant leur nom, avec leur type (« Matière première », « Devise »). Seuls les symboles continus sont proposés, pas les contrats datés. Les indices (CAC 40, S&P 500…) étaient déjà trouvables.
+
 ### Modifié
 - **Portefeuille** : le nom de l'actif s'affiche à côté du symbole en texte normal, grisé et tronqué, au lieu d'un petit indice ; il est omis pour les paires crypto où il répéterait le symbole (BTC/USDC).
 
