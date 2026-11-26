@@ -3,6 +3,12 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.6.1] - 2026-11-26
+
+### Corrigé
+- **Données lues « vides » au démarrage** : si le fichier de données était momentanément inaccessible, Hune démarrait sur une liste vide et la première modification aurait pu écraser les vraies données. Hune détecte maintenant ce cas (lecture vide alors que des données existent sur le disque), relit le fichier plusieurs fois, puis affiche un écran explicatif avec « Réessayer » et la restauration d'une copie automatique. Rien n'est écrit tant que la lecture n'a pas réussi.
+- Une ouverture ratée du fichier de données ne reste plus en mémoire : la tentative suivante repart de zéro.
+
 ## [0.6.0] - 2026-11-25
 
 ### Ajouté
