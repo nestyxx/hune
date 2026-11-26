@@ -3,6 +3,14 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.10.1] - 2026-11-26
+
+### Modifié
+- **Interface harmonisée** : les lignes survolées des cartes « Plus fortes hausses / baisses » et les entrées de tous les menus (graphique, liste, recherche) ont désormais des coins arrondis ; les rayons des bordures suivent trois niveaux cohérents (grands conteneurs, menus, entrées de menu).
+
+### Corrigé
+- Liste d'actifs avec mini-courbes : les symboles longs (PEPEUSDC, SHIBUSDC…) ne débordent plus sur la courbe et ne passent plus sur deux lignes (la liste est un peu plus large dans ce mode).
+
 ## [0.10.0] - 2026-11-26
 
 ### Ajouté

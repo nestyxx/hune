@@ -385,7 +385,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       )}
 
       {confirmationTp && (
-        <div className="rounded border border-alerte/60 p-3 text-sm">
+        <div className="rounded-xl border border-alerte/60 p-3 text-sm">
           Créer <b>{confirmationTp.length}</b> alerte{confirmationTp.length > 1 ? "s" : ""} « prix ≥ objectif » ({confirmationTp.slice(0, 6).map((o) => o.actif.symbole).join(", ")}{confirmationTp.length > 6 ? "…" : ""}) ?
           <div className="mt-2 flex gap-2">
             <button

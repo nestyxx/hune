@@ -65,7 +65,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
     const c = cotations[cleActif(a)];
     return (
       <li key={cleActif(a)}>
-        <button className="flex w-full items-center justify-between bg-transparent px-1 py-1 text-left text-texte hover:bg-fond" onClick={() => surOuvrir(cleActif(a))}>
+        <button className="flex w-full items-center justify-between rounded-lg bg-transparent px-2 py-1 text-left text-texte hover:bg-fond" onClick={() => surOuvrir(cleActif(a))}>
           <span className="flex items-center gap-2 font-semibold">
             <IconeActif actif={a} taille={18} />
             {a.symbole}
@@ -106,7 +106,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
                       key={cleActif(a)}
                       title={`${a.nom} — ${formaterPrix(c?.prix)}`}
                       onClick={() => surOuvrir(cleActif(a))}
-                      className="flex h-16 flex-col items-center justify-center rounded-xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
+                      className="flex h-16 flex-col items-center justify-center rounded-2xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
                       style={{ background: couleurTuile(c?.variationPct) }}
                     >
                       <span className="max-w-full truncate px-1 text-sm font-semibold">{a.symbole.replace(/(USDT|USDC|EUR|-USD)$/, "")}</span>

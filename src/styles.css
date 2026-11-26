@@ -220,6 +220,16 @@ th {
   border: 1px solid var(--color-ligne);
   border-radius: 12px;
   box-shadow: 0 12px 32px rgb(16 24 40 / 0.18);
+  padding: 4px;
+}
+/* Entrées de menu : détachées des bords et arrondies, y compris au survol. */
+.menu-contextuel button {
+  width: 100%;
+  border-radius: 8px;
+}
+.menu-contextuel hr,
+.menu-contextuel > div.border-t {
+  margin-inline: 4px;
 }
 
 /* Cartes d'information : bordure et ombre légères au survol, sans déplacement (le contenu ne doit pas bouger). */

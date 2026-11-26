@@ -123,7 +123,7 @@ export function ImportTransactions({ fichier, actifs, positions, surAjouterActif
             </label>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-ligne">
+          <div className="overflow-x-auto rounded-2xl border border-ligne">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-ligne text-xs text-doux">

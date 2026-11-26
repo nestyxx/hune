@@ -320,7 +320,7 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
         Vérification toutes les {periodeS} s
         {derniereVerification ? `, dernière à ${new Date(derniereVerification).toLocaleTimeString("fr-FR")}` : ""}. Une alerte se déclenche une seule fois, puis reste « déclenchée » jusqu'à ce que vous la réarmiez.
       </p>
-      {erreur && <p className="mb-3 rounded border border-alerte/50 px-3 py-2 text-xs text-alerte">Dernière vérification incomplète : {erreur}</p>}
+      {erreur && <p className="mb-3 rounded-xl border border-alerte/50 px-3 py-2 text-xs text-alerte">Dernière vérification incomplète : {erreur}</p>}
       {triees.length === 0 && <p className="text-doux">Aucune alerte pour l'instant.</p>}
       <ul className="m-0 list-none space-y-2 p-0">
         {triees.map((a) => (

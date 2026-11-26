@@ -196,7 +196,7 @@ export function PanneauReglages({ reglages, surChangement, maj }: Props) {
           <input ref={fichier} type="file" accept="application/json,.json" className="hidden" onChange={(e) => void choisirFichier(e.target.files?.[0])} />
         </div>
         {importEnAttente && (
-          <div className="mt-3 rounded border border-alerte/60 p-3 text-sm">
+          <div className="mt-3 rounded-xl border border-alerte/60 p-3 text-sm">
             Importer {importEnAttente.resume} ?
             <div className="mt-1 text-xs text-doux">
               <b>Fusionner</b> ajoute ou met à jour sans rien supprimer (vos alertes et réglages sont conservés). <b>Remplacer</b> écrase les données actuelles correspondantes.
@@ -234,7 +234,7 @@ export function PanneauReglages({ reglages, surChangement, maj }: Props) {
             <h3 className="m-0 mb-2 text-sm font-semibold">Copies automatiques</h3>
             <ul className="m-0 list-none space-y-1 p-0">
               {copies.map((c) => (
-                <li key={c.nom} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-ligne px-3 py-1.5 text-sm">
+                <li key={c.nom} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ligne px-3 py-1.5 text-sm">
                   <span>
                     {c.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                     <span className="ml-2 text-xs text-doux">

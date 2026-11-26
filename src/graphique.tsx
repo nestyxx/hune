@@ -925,7 +925,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         </div>
         </div>
         {chargement && <div className="absolute left-14 top-8 text-doux">Chargement…</div>}
-        {erreur && <div className="absolute left-14 top-8 rounded border border-baisse/50 bg-carte px-3 py-2 text-baisse">{erreur}</div>}
+        {erreur && <div className="absolute left-14 top-8 rounded-xl border border-baisse/50 bg-carte px-3 py-2 text-baisse">{erreur}</div>}
         {menu && (
           <div className="menu-contextuel absolute z-20 py-1 text-sm" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>
             {menu.alerteId && (

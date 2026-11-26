@@ -80,7 +80,7 @@ export function Watchlist(p: Props) {
   const locaux = requete ? tous.filter((a) => a.symbole.toLowerCase().includes(requete) || a.nom.toLowerCase().includes(requete)).slice(0, 6) : [];
 
   return (
-    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : `${p.afficherCourbes ? "w-80" : "w-72"} border-r border-ligne`}`}>
+    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : `${p.afficherCourbes ? "w-[22rem]" : "w-72"} border-r border-ligne`}`}>
       <div className="relative border-b border-ligne p-3">
         <Search size={15} className="pointer-events-none absolute left-[25px] top-[25px] text-doux" aria-hidden />
         <input
@@ -246,7 +246,7 @@ export function Watchlist(p: Props) {
                         <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-1">
                         <IconeActif actif={a} taille={p.uneLigne ? 18 : 28} />
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 font-semibold">
+                          <div className="flex items-center gap-1.5 whitespace-nowrap font-semibold">
                             {a.symbole}
                             {nbAlertes > 0 && (
                               <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} armée${nbAlertes > 1 ? "s" : ""}`} className="rounded-full bg-alerte/20 px-1.5 text-[10px] font-normal text-alerte">
