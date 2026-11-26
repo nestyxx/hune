@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import { EnTete } from "../composants";
 import { cleActif, INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Intervalle } from "../donnees/types";
@@ -28,6 +28,10 @@ interface Props {
   surSuppression: (id: string) => void;
   /** Ouvre le graphique de l'actif (clé `source:symbole`). */
   surOuvrirActif: (cle: string) => void;
+  /** Alerte à charger dans le formulaire dès l'ouverture (demandée depuis le graphique). */
+  editerId: string | null;
+  /** Appelé une fois l'alerte chargée, pour que la demande ne se rejoue pas. */
+  surEditionOuverte: () => void;
   derniereVerification: number | null;
   erreur: string | null;
   periodeS: number;
@@ -56,7 +60,7 @@ function texteValeur(a: Alerte): string {
 }
 
 /** Onglet « Alertes » : formulaire de création + liste (armées / déclenchées avec bouton Réarmer). */
-export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, surModification, surRearmement, surSuppression, surOuvrirActif, derniereVerification, erreur, periodeS }: Props) {
+export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, surModification, surRearmement, surSuppression, surOuvrirActif, editerId, surEditionOuverte, derniereVerification, erreur, periodeS }: Props) {
   const [cle, setCle] = useState<string>("");
   const [type, setType] = useState<TypeFormulaire>("prix");
   const [sensPrix, setSensPrix] = useState<"au-dessus" | "en-dessous">("au-dessus");
@@ -163,6 +167,15 @@ export function PanneauAlertes({ actifs, actifParDefaut, alertes, surCreation, s
     }
     formulaire.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  // Modification demandée depuis le graphique (double-clic sur une alerte, clic droit) : le formulaire s'ouvre sur cette alerte.
+  useEffect(() => {
+    const a = editerId ? alertes.find((x) => x.id === editerId) : null;
+    if (!a) return;
+    charger(a);
+    surEditionOuverte();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editerId]);
 
   const annulerEdition = () => {
     setEdition(null);

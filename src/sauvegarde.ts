@@ -1,7 +1,7 @@
 import { ecrire, lire } from "./stockage";
 
 /** Clés sauvegardées, avec leur valeur par défaut (une clé absente d'un fichier importé est simplement ignorée). */
-const CLES = ["actifs", "categories", "repliees", "alertes", "positions", "reglages", "indicateurs", "parametres", "typeGraphique", "intervalle", "tri", "echelleLog"] as const;
+const CLES = ["actifs", "categories", "repliees", "alertes", "positions", "reglages", "indicateurs", "parametres", "typeGraphique", "intervalle", "tri", "echelleLog", "dessins", "lignesPortefeuille"] as const;
 
 export interface Sauvegarde {
   application: "hune";
@@ -53,6 +53,11 @@ export function lireSauvegarde(texte: string): Sauvegarde["donnees"] {
     !(Array.isArray(d.positions) && d.positions.every((p) => estObjet(p) && typeof p.id === "string" && typeof p.cle === "string" && ["quantite", "montantEur", "pamp", "objectif"].every((k) => nombreOuAbsent(p[k]))))
   )
     throw new Error("Liste de positions invalide dans la sauvegarde.");
+
+  // Tracés : { clé d'actif: [ {id, type, a: {temps, prix}, b?} ] }.
+  const pointOk = (p: unknown) => estObjet(p) && typeof p.temps === "number" && Number.isFinite(p.temps) && typeof p.prix === "number" && Number.isFinite(p.prix);
+  const dessinOk = (x: unknown) => estObjet(x) && typeof x.id === "string" && ["horizontale", "tendance", "rayon", "fibonacci"].includes(String(x.type)) && pointOk(x.a) && (x.b === undefined || pointOk(x.b));
+  if (d.dessins !== undefined && !(estObjet(d.dessins) && Object.values(d.dessins).every((l) => Array.isArray(l) && l.every(dessinOk)))) throw new Error("Tracés invalides dans la sauvegarde.");
 
   const retenu: Sauvegarde["donnees"] = {};
   for (const c of CLES) if (d[c] !== undefined) retenu[c] = d[c];

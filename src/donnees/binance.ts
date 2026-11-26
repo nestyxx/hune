@@ -2,7 +2,7 @@ import type { DataProvider } from "./fournisseur";
 import { barresVisees, fusionnerPages, type Profondeur } from "./historique";
 import { getJson } from "./http";
 import { Requeteur } from "./requeteur";
-import type { Bougie, Cotation, Intervalle, ResultatRecherche } from "./types";
+import type { Bougie, Cotation, Intervalle, ModeVariation, ResultatRecherche } from "./types";
 
 const REST = "https://api.binance.com/api/v3";
 const WS = "wss://stream.binance.com:9443/ws";
@@ -74,15 +74,24 @@ export class Binance implements DataProvider {
     return fusionnerPages(pages);
   }
 
-  async cotations(symboles: string[]): Promise<Cotation[]> {
+  /**
+   * `24h` : fenêtre glissante des 24 dernières heures (`/ticker/24hr`). `jour` : depuis l'ouverture de la journée UTC
+   * (`/ticker/tradingDay`), la même mesure que TradingView. L'API accepte 100 symboles au plus par appel.
+   */
+  async cotations(symboles: string[], variation: ModeVariation = "24h"): Promise<Cotation[]> {
     if (!symboles.length) return [];
     const liste = [...symboles].sort();
-    const rep = await this.requeteur.obtenir(`t:${liste.join(",")}`, 10_000, () =>
-      getJson<{ symbol: string; lastPrice: string; priceChangePercent: string }[]>(
-        `${REST}/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(liste))}`,
+    const point = variation === "jour" ? "tradingDay" : "24hr";
+    const paquets: string[][] = [];
+    for (let i = 0; i < liste.length; i += 100) paquets.push(liste.slice(i, i + 100));
+    const reponses = await Promise.all(
+      paquets.map((p) =>
+        this.requeteur.obtenir(`t:${point}:${p.join(",")}`, 10_000, () =>
+          getJson<{ symbol: string; lastPrice: string; priceChangePercent: string }[]>(`${REST}/ticker/${point}?symbols=${encodeURIComponent(JSON.stringify(p))}`),
+        ),
       ),
     );
-    return rep.map((t) => ({ symbole: t.symbol, prix: +t.lastPrice, variationPct: +t.priceChangePercent }));
+    return reponses.flat().map((t) => ({ symbole: t.symbol, prix: +t.lastPrice, variationPct: +t.priceChangePercent }));
   }
 
   /** Devise déduite du symbole : paires en EUR, sinon dollar (USDT/USDC… sont indexés sur l'USD). */

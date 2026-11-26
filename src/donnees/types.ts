@@ -19,6 +19,13 @@ export interface Bougie {
 
 export type SourceId = "binance" | "yahoo";
 
+/**
+ * Définition de la variation affichée pour les cryptos : « 24h » = glissante sur les dernières 24 heures ;
+ * « jour » = depuis l'ouverture du jour à 00:00 UTC (comme TradingView). Les actions (Yahoo) sont toujours
+ * comparées à la clôture précédente.
+ */
+export type ModeVariation = "24h" | "jour";
+
 /** Un actif suivi. `symbole` est celui de la source (BTCUSDT, AAPL, MC.PA…). */
 export interface Actif {
   source: SourceId;

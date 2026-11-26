@@ -14,7 +14,8 @@ import { entrerModeCompact, sortirModeCompact, useFenetre } from "./fenetre";
 import { formaterPrix } from "./format";
 import { Graphique, INDICATEURS_PAR_DEFAUT, PARAMETRES_PAR_DEFAUT, type Indicateurs, type Parametres, type TypeGraphique } from "./graphique";
 import { useMiseAJour } from "./miseajour";
-import type { Position } from "./portefeuille";
+import type { Dessin } from "./dessins";
+import { niveauxPortefeuille, type Position } from "./portefeuille";
 import { Rail, type Onglet } from "./rail";
 import { PanneauReglages, REGLAGES_PAR_DEFAUT, type Reglages } from "./reglages";
 import { donneesPresentes, listerCopies, type CopieAuto } from "./restauration";
@@ -124,12 +125,18 @@ export default function App() {
   const [cotations, setCotations] = useState<Record<string, Cotation>>({});
   const [selection, setSelection] = useState<string | null>(null);
   const [onglet, setOnglet] = useState<Onglet>("graphique");
-  const [intervalle, setIntervalle] = useState<Intervalle>("1h");
+  // Vue par défaut du graphique : journalier, bougies, échelle logarithmique, volume + SMA + EMA + RSI (voir INDICATEURS_PAR_DEFAUT).
+  const [intervalle, setIntervalle] = useState<Intervalle>("1d");
   const [profondeur, setProfondeur] = useState<Profondeur>("standard");
   const [indicateurs, setIndicateurs] = useState<Indicateurs>(INDICATEURS_PAR_DEFAUT);
   const [parametres, setParametres] = useState<Parametres>(PARAMETRES_PAR_DEFAUT);
   const [typeGraphique, setTypeGraphique] = useState<TypeGraphique>("bougies");
-  const [echelleLog, setEchelleLog] = useState(false);
+  const [echelleLog, setEchelleLog] = useState(true);
+  /** Tracés de l'utilisateur, par actif (clé `source:symbole`). */
+  const [dessins, setDessins] = useState<Record<string, Dessin[]>>({});
+  const [lignesPortefeuille, setLignesPortefeuille] = useState(true);
+  /** Alerte à ouvrir dans le formulaire de l'onglet Alertes (demandée depuis le graphique). */
+  const [alerteAEditer, setAlerteAEditer] = useState<string | null>(null);
   const [prixLive, setPrixLive] = useState<number | null>(null);
   const [signalRecentrer, setSignalRecentrer] = useState(0);
   const [info, setInfo] = useState<string | null>(null);
@@ -153,9 +160,11 @@ export default function App() {
           categories: await lire<string[]>("categories", CATEGORIES_PAR_DEFAUT),
           repliees: await lire<string[]>("repliees", []),
           tri: await lire<Tri>("tri", "manuel"),
-          intervalle: await lire<Intervalle>("intervalle", "1h"),
+          intervalle: await lire<Intervalle>("intervalle", "1d"),
           profondeur: await lire<Profondeur>("profondeur", "standard"),
-          echelleLog: await lire<boolean>("echelleLog", false),
+          echelleLog: await lire<boolean>("echelleLog", true),
+          dessins: await lire<Record<string, Dessin[]>>("dessins", {}),
+          lignesPortefeuille: await lire<boolean>("lignesPortefeuille", true),
           typeGraphique: await lire<TypeGraphique>("typeGraphique", "bougies"),
           indicateurs: { ...INDICATEURS_PAR_DEFAUT, ...(await lire<Partial<Indicateurs>>("indicateurs", {})) },
           parametres: { ...PARAMETRES_PAR_DEFAUT, ...(await lire<Partial<Parametres>>("parametres", {})) },
@@ -193,6 +202,8 @@ export default function App() {
       setIntervalle(d.intervalle);
       setProfondeur(d.profondeur);
       setEchelleLog(d.echelleLog);
+      setDessins(d.dessins);
+      setLignesPortefeuille(d.lignesPortefeuille);
       setTypeGraphique(d.typeGraphique);
       setIndicateurs(d.indicateurs);
       setParametres(d.parametres);
@@ -223,6 +234,12 @@ export default function App() {
   usePersister("intervalle", intervalle, pret);
   usePersister("profondeur", profondeur, pret);
   usePersister("echelleLog", echelleLog, pret);
+  usePersister("dessins", dessins, pret);
+  usePersister("lignesPortefeuille", lignesPortefeuille, pret);
+
+  /** PAMP, objectif et achats des positions détenues sur l'actif affiché, à tracer sur son graphique. */
+  const niveaux = useMemo(() => niveauxPortefeuille(positions.filter((p) => p.cle === selection)), [positions, selection]);
+  const dessinsActif = useMemo(() => (selection ? (dessins[selection] ?? []) : []), [dessins, selection]);
 
   // Démarrage sans aucune donnée alors que des copies automatiques en contiennent : on propose de les restaurer.
   useEffect(() => {
@@ -260,7 +277,7 @@ export default function App() {
     if (!actifs.length) return;
     let annule = false;
     const tour = async () => {
-      const c = await cotationsActifs(actifs);
+      const c = await cotationsActifs(actifs, reglages.variation);
       if (!annule) setCotations((prec) => ({ ...prec, ...c }));
     };
     void tour();
@@ -269,7 +286,7 @@ export default function App() {
       annule = true;
       clearInterval(t);
     };
-  }, [actifs]);
+  }, [actifs, reglages.variation]);
 
   // Le prix « live » du graphique ne vaut que pour l'actif affiché : on l'efface au changement.
   useEffect(() => setPrixLive(null), [selection]);
@@ -493,6 +510,21 @@ export default function App() {
                         changerAlertes((l) => [...l, { id: crypto.randomUUID(), actif: actifSelectionne, condition: { type: "prix", sens, seuil: prix }, statut: "armee", creeeLe: Date.now() }]);
                         prevenir(`Alerte créée : ${actifSelectionne.symbole} ${sens === "au-dessus" ? "≥" : "≤"} ${formaterPrix(prix)}`);
                       }}
+                      surDeplacerAlerte={(id, seuil, sens) => {
+                        // Même effet qu'une modification dans le formulaire : nouvelle condition, alerte réarmée.
+                        changerAlertes((l) => l.map((a) => (a.id === id && a.condition.type === "prix" ? { id: a.id, actif: a.actif, condition: { ...a.condition, seuil, sens }, statut: "armee", creeeLe: Date.now() } : a)));
+                        prevenir(`Alerte déplacée et réarmée : ${actifSelectionne.symbole} ${sens === "au-dessus" ? "≥" : "≤"} ${formaterPrix(seuil)}`);
+                      }}
+                      surEditerAlerte={(id) => {
+                        setAlerteAEditer(id);
+                        setOnglet("alertes");
+                      }}
+                      surSupprimerAlerte={(id) => changerAlertes((l) => l.filter((a) => a.id !== id))}
+                      niveaux={niveaux}
+                      lignesPortefeuille={lignesPortefeuille}
+                      surLignesPortefeuille={setLignesPortefeuille}
+                      dessins={dessinsActif}
+                      surDessins={(liste) => setDessins((prec) => ({ ...prec, [actifSelectionne ? cleActif(actifSelectionne) : ""]: liste }))}
                     />
                   </>
                 ) : (
@@ -530,6 +562,8 @@ export default function App() {
                   surRearmement={(id) => changerAlertes((l) => l.map((a) => (a.id === id ? { ...a, statut: "armee", creeeLe: Date.now(), declencheeLe: undefined, valeur: undefined } : a)))}
                   surSuppression={(id) => changerAlertes((l) => l.filter((a) => a.id !== id))}
                   surOuvrirActif={ouvrirActif}
+                  editerId={alerteAEditer}
+                  surEditionOuverte={() => setAlerteAEditer(null)}
                   derniereVerification={verification.derniereVerification}
                   erreur={verification.erreur}
                   periodeS={reglages.periodeAlertesS}

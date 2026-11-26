@@ -1,5 +1,5 @@
 import type { Profondeur } from "./historique";
-import type { Bougie, Cotation, Intervalle, ResultatRecherche, SourceId } from "./types";
+import type { Bougie, Cotation, Intervalle, ModeVariation, ResultatRecherche, SourceId } from "./types";
 
 /**
  * Interface d'une source de données de marché. Pour remplacer Binance ou Yahoo par autre chose,
@@ -20,8 +20,8 @@ export interface DataProvider {
    * journalier et plus (voir `donnees/historique.ts`) ; sans elle, on obtient l'historique standard.
    */
   bougies(symbole: string, intervalle: Intervalle, profondeur?: Profondeur): Promise<Bougie[]>;
-  /** Derniers prix de plusieurs symboles à la fois. */
-  cotations(symboles: string[]): Promise<Cotation[]>;
+  /** Derniers prix de plusieurs symboles à la fois ; `variation` choisit la définition de la variation (cryptos). */
+  cotations(symboles: string[], variation?: ModeVariation): Promise<Cotation[]>;
   /** Devise de cotation d'un symbole (code ISO : EUR, USD… ; « GBp » pour les pence). Sert à valoriser le portefeuille en euros. */
   devise(symbole: string): Promise<string>;
   /**

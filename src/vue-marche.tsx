@@ -74,7 +74,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
 
   return (
     <div className="apparait flex-1 space-y-5 overflow-auto p-6">
-      <EnTete titre="Marché" sousTitre="Votre liste en un coup d'œil : couleur selon la variation du jour." />
+      <EnTete titre="Marché" sousTitre="Votre liste en un coup d'œil : couleur selon la variation affichée (24 h glissantes ou depuis 00:00 UTC, au choix dans Réglages)." />
       <div className="grid gap-3 md:grid-cols-3">
         <Sentiment />
         <div className="carte-info p-4">

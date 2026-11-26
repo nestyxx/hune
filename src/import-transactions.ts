@@ -226,6 +226,8 @@ export interface LigneImport {
   cout: number;
   achats: number;
   ventes: number;
+  /** Toutes les transactions du token (prix unitaire hors frais, devise du fichier), pour les repérer sur le graphique. */
+  mouvements: { date: number; sens: "achat" | "vente"; quantite: number; prix: number }[];
 }
 
 export interface SyntheseTokens {
@@ -241,12 +243,13 @@ export interface SyntheseTokens {
  * incomplet) est plafonnée et signalée.
  */
 export function synthetiser(transactions: Transaction[]): SyntheseTokens {
-  const etat = new Map<string, { quantite: number; cout: number; acheteTotal: number; achats: number; ventes: number }>();
+  const etat = new Map<string, { quantite: number; cout: number; acheteTotal: number; achats: number; ventes: number; mouvements: LigneImport["mouvements"] }>();
   const avertissements: string[] = [];
   const signales = new Set<string>();
   for (const t of transactions) {
-    const e = etat.get(t.token) ?? { quantite: 0, cout: 0, acheteTotal: 0, achats: 0, ventes: 0 };
+    const e = etat.get(t.token) ?? { quantite: 0, cout: 0, acheteTotal: 0, achats: 0, ventes: 0, mouvements: [] };
     etat.set(t.token, e);
+    e.mouvements.push({ date: t.date, sens: t.sens, quantite: t.quantite, prix: t.total / t.quantite });
     if (t.sens === "achat") {
       e.quantite += t.quantite;
       e.acheteTotal += t.quantite;
@@ -267,7 +270,7 @@ export function synthetiser(transactions: Transaction[]): SyntheseTokens {
   const soldes: string[] = [];
   for (const [token, e] of etat) {
     if (e.quantite <= e.acheteTotal * 1e-9) soldes.push(token);
-    else lignes.push({ token, quantite: e.quantite, cout: e.cout, pamp: e.cout / e.quantite, achats: e.achats, ventes: e.ventes });
+    else lignes.push({ token, quantite: e.quantite, cout: e.cout, pamp: e.cout / e.quantite, achats: e.achats, ventes: e.ventes, mouvements: e.mouvements });
   }
   lignes.sort((a, b) => b.cout - a.cout);
   return { lignes, soldes, avertissements };
@@ -356,7 +359,8 @@ export function planifierImport(synthese: SyntheseTokens, resolutions: Map<strin
     const tf = taux[deviseFichier];
     const ta = taux[r.devise];
     const pamp = tf != null && ta ? (l.pamp * tf) / ta : undefined;
-    positions.push({ id: idImport(plateforme, l.token), cle, quantite: l.quantite, ...(pamp != null ? { pamp } : {}), plateforme: plateforme || undefined });
+    const mouvements = pamp != null ? l.mouvements.map((m) => ({ ...m, prix: (m.prix * tf!) / ta })) : undefined; // sans taux de change, pas de prix fiable à tracer
+    positions.push({ id: idImport(plateforme, l.token), cle, quantite: l.quantite, ...(pamp != null ? { pamp } : {}), ...(mouvements ? { mouvements } : {}), plateforme: plateforme || undefined });
   }
   const prefixe = idImport(plateforme, "");
   const remplacees = existantes.filter((p) => p.id.startsWith(prefixe) || (memePlateforme(p.plateforme, plateforme) && cles.has(p.cle)));

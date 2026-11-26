@@ -222,20 +222,18 @@ th {
   box-shadow: 0 12px 32px rgb(16 24 40 / 0.18);
 }
 
-/* Cartes d'information : léger soulèvement au survol. */
+/* Cartes d'information : bordure et ombre légères au survol, sans déplacement (le contenu ne doit pas bouger). */
 .carte-info {
   background: var(--color-carte);
   border: 1px solid var(--color-ligne);
   border-radius: 16px;
   transition:
     box-shadow 0.2s,
-    transform 0.2s,
     border-color 0.2s;
 }
 .carte-info:hover {
   border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-ligne));
   box-shadow: 0 6px 20px rgb(16 24 40 / 0.07);
-  transform: translateY(-1px);
 }
 
 /* --- Navigation latérale --- */

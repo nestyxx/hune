@@ -19,6 +19,39 @@ export interface Position {
   plateforme?: string;
   /** La quantité a été déduite de `montantEur` (donc approximative). */
   estimee?: boolean;
+  /** Achats et ventes à l'origine du lot (import d'un historique de transactions), prix dans la devise de cotation. */
+  mouvements?: Mouvement[];
+}
+
+/** Un achat ou une vente passé, pour le repérer sur le graphique. */
+export interface Mouvement {
+  /** Horodatage en ms. */
+  date: number;
+  sens: "achat" | "vente";
+  quantite: number;
+  /** Prix unitaire hors frais, dans la devise de cotation de l'actif. */
+  prix: number;
+}
+
+/** Niveaux du portefeuille à tracer sur le graphique d'un actif. */
+export interface NiveauxPortefeuille {
+  pamp: number | null;
+  objectif: number | null;
+  /** Lots sans historique détaillé : un niveau d'achat par lot (leur PAMP). */
+  achats: { prix: number; quantite: number; plateforme?: string }[];
+  /** Achats et ventes connus, du plus ancien au plus récent. */
+  mouvements: Mouvement[];
+}
+
+/** Niveaux à afficher pour les lots d'un même actif ; null si rien n'est à tracer. */
+export function niveauxPortefeuille(lots: Position[]): NiveauxPortefeuille | null {
+  const avecPamp = lots.filter((l) => l.pamp != null && l.quantite);
+  const qPamp = avecPamp.reduce((s, l) => s + l.quantite!, 0);
+  const pamp = qPamp > 0 ? avecPamp.reduce((s, l) => s + l.quantite! * l.pamp!, 0) / qPamp : null;
+  const objectif = lots.find((l) => l.objectif != null)?.objectif ?? null;
+  const achats = lots.filter((l) => l.pamp != null && l.quantite && !l.mouvements?.length).map((l) => ({ prix: l.pamp!, quantite: l.quantite!, plateforme: l.plateforme }));
+  const mouvements = lots.flatMap((l) => l.mouvements ?? []).sort((a, b) => a.date - b.date);
+  return pamp == null && objectif == null && !achats.length && !mouvements.length ? null : { pamp, objectif, achats, mouvements };
 }
 
 export interface LignePortefeuille {

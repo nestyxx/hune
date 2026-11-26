@@ -7,20 +7,28 @@ import {
   LineStyle,
   PriceScaleMode,
   createChart,
+  createSeriesMarkers,
   type IChartApi,
   type IPriceLine,
   type ISeriesApi,
+  type ISeriesMarkersPluginApi,
+  type SeriesMarker,
   type SeriesType,
+  type Time,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { AlignJustify, ArrowUpRight, Eraser, MousePointer2, Minus, Trash2, TrendingUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PERIODES_VARIATION, type Alerte } from "./alertes/moteur";
 import { fournisseur } from "./donnees";
 import { LIBELLE_PROFONDEUR, PROFONDEUR_DISPONIBLE, PROFONDEURS, type Profondeur } from "./donnees/historique";
-import { INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Bougie, type Intervalle } from "./donnees/types";
+import { INTERVALLES, LIBELLE_INTERVALLE, SECONDES_INTERVALLE, type Actif, type Bougie, type Intervalle } from "./donnees/types";
+import { LIBELLE_DESSIN, POINTS_REQUIS, tempsDepuisIndice, type Dessin, type PointDessin, type TypeDessin } from "./dessins";
+import { CalqueDessins } from "./dessins-calque";
 import { arrondirPrix, formaterPrix } from "./format";
 import { heikinAshi } from "./indicateurs/heikinashi";
 import { bollinger, ema, macd, rsi, sma, stochastique, type Serie } from "./indicateurs/indicateurs";
+import type { NiveauxPortefeuille } from "./portefeuille";
 import { paletteGraphique, type ThemeResolu } from "./theme";
 
 /** Indicateurs activables. */
@@ -33,7 +41,11 @@ export interface Indicateurs {
   macd: boolean;
   stoch: boolean;
 }
-export const INDICATEURS_PAR_DEFAUT: Indicateurs = { volume: false, sma: false, ema: false, bollinger: false, rsi: false, macd: false, stoch: false };
+/** Vue par défaut : volume, SMA 20, EMA 50 et RSI 14 (le RSI s'affiche dans son propre panneau sous le prix). */
+export const INDICATEURS_PAR_DEFAUT: Indicateurs = { volume: true, sma: true, ema: true, bollinger: false, rsi: true, macd: false, stoch: false };
+
+/** Durée affichée à l'ouverture d'un graphique (et au recentrage), selon l'intervalle : 6 mois en journalier. */
+const JOURS_VISIBLES: Record<Intervalle, number> = { "15m": 3, "1h": 14, "4h": 60, "1d": 183, "1w": 730, "1M": 1825 };
 
 /** Périodes des indicateurs, modifiables (⚙). Les alertes RSI restent sur 14. */
 export interface Parametres {
@@ -117,7 +129,27 @@ interface Props {
   signalRecentrer: number;
   /** Clic droit › créer une alerte de prix à ce niveau. */
   surCreerAlerte: (prix: number, sens: "au-dessus" | "en-dessous") => void;
+  /** Alerte de prix déplacée à la souris : nouveau seuil (et sens, selon le côté du prix actuel) ; l'alerte est réarmée. */
+  surDeplacerAlerte: (id: string, seuil: number, sens: "au-dessus" | "en-dessous") => void;
+  /** Ouvre le formulaire de modification de l'alerte (onglet Alertes). */
+  surEditerAlerte: (id: string) => void;
+  surSupprimerAlerte: (id: string) => void;
+  /** Achats, PAMP et objectif des positions détenues sur cet actif (null si l'actif n'est pas en portefeuille). */
+  niveaux: NiveauxPortefeuille | null;
+  lignesPortefeuille: boolean;
+  surLignesPortefeuille: (v: boolean) => void;
+  /** Tracés de l'utilisateur sur cet actif. */
+  dessins: Dessin[];
+  surDessins: (d: Dessin[]) => void;
 }
+
+type Outil = "curseur" | TypeDessin | "gomme";
+const OUTILS: { id: TypeDessin; icone: typeof Minus; aide: string }[] = [
+  { id: "horizontale", icone: Minus, aide: LIBELLE_DESSIN.horizontale + " : un clic" },
+  { id: "tendance", icone: TrendingUp, aide: LIBELLE_DESSIN.tendance + " : deux clics (ou glisser)" },
+  { id: "rayon", icone: ArrowUpRight, aide: LIBELLE_DESSIN.rayon + " : deux clics, prolongée vers la droite" },
+  { id: "fibonacci", icone: AlignJustify, aide: LIBELLE_DESSIN.fibonacci + " : deux clics (départ, arrivée)" },
+];
 
 interface Legende {
   o: number;
@@ -127,8 +159,31 @@ interface Legende {
   v: number;
 }
 
-export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte }: Props) {
+export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte, surDeplacerAlerte, surEditerAlerte, surSupprimerAlerte, niveaux, lignesPortefeuille, surLignesPortefeuille, dessins, surDessins }: Props) {
+  const enveloppe = useRef<HTMLDivElement>(null);
   const conteneur = useRef<HTMLDivElement>(null);
+  const calque = useRef<CalqueDessins | null>(null);
+  const marqueurs = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const lignesPortefeuilleRef = useRef<IPriceLine[]>([]);
+  /** Lignes d'alerte de prix par identifiant (pour les déplacer pendant un glissement). */
+  const lignesAlertesParId = useRef(new Map<string, IPriceLine>());
+  /** Alerte en cours de déplacement à la souris. */
+  const glissement = useRef<{ id: string; prix: number; departY: number; bouge: boolean } | null>(null);
+  const [outil, setOutil] = useState<Outil>("curseur");
+  const [effacerTout, setEffacerTout] = useState(false);
+  const outilRef = useRef(outil);
+  outilRef.current = outil;
+  /** Premier point d'un tracé à deux points, en attente du second. */
+  const ancre = useRef<{ point: PointDessin; xDepart: number; yDepart: number; relache: boolean } | null>(null);
+  const dessinsRef = useRef(dessins);
+  dessinsRef.current = dessins;
+  const niveauxRef = useRef(niveaux);
+  niveauxRef.current = niveaux;
+  const lignesRef = useRef(lignesPortefeuille);
+  lignesRef.current = lignesPortefeuille;
+  /** Rappels du parent, lisibles depuis les écouteurs natifs (créés une seule fois). */
+  const rappels = useRef({ surDessins, surDeplacerAlerte, surEditerAlerte });
+  rappels.current = { surDessins, surDeplacerAlerte, surEditerAlerte };
   const graphique = useRef<IChartApi | null>(null);
   const principale = useRef<ISeriesApi<SeriesType> | null>(null);
   const typePrincipale = useRef<TypeGraphique | null>(null);
@@ -152,13 +207,30 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
   const approfondir = useRef({ intervalle, profondeur, surProfondeur, chargement: false });
   approfondir.current = { intervalle, profondeur, surProfondeur, chargement };
   const [legende, setLegende] = useState<Legende | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; prix: number } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; prix: number; dessinId: string | null; alerteId: string | null } | null>(null);
   const [panneauParametres, setPanneauParametres] = useState(false);
 
-  /** Remet l'échelle de temps et de prix en automatique (annule tout zoom ou déplacement manuel). */
+  /**
+   * Remet l'échelle de temps et de prix en automatique (annule tout zoom ou déplacement manuel) sur la durée par défaut
+   * de l'intervalle (6 mois en journalier) ; si l'historique chargé est plus court, tout est affiché.
+   */
   const recentrer = () => {
-    graphique.current?.timeScale().fitContent();
-    graphique.current?.priceScale("right").applyOptions({ autoScale: true });
+    const chart = graphique.current;
+    if (!chart) return;
+    const n = donnees.current.length;
+    const barres = Math.ceil((JOURS_VISIBLES[intervalleRef.current] * 86400) / SECONDES_INTERVALLE[intervalleRef.current]);
+    if (n <= barres) chart.timeScale().fitContent();
+    else chart.timeScale().setVisibleLogicalRange({ from: n - barres, to: n - 1 + 8 });
+    chart.priceScale("right").applyOptions({ autoScale: true });
+  };
+
+  /** Instants des bougies chargées, mis en cache tant que la liste ne change pas (appelé à chaque rendu du calque). */
+  const cacheTemps = useRef<{ cle: string; temps: number[] }>({ cle: "", temps: [] });
+  const tempsBougies = () => {
+    const d = donnees.current;
+    const cle = `${d.length}:${d[0]?.temps}:${d[d.length - 1]?.temps}`;
+    if (cacheTemps.current.cle !== cle) cacheTemps.current = { cle, temps: d.map((b) => b.temps) };
+    return cacheTemps.current.temps;
   };
 
   /** Dernière bougie réelle, pour la légende quand le curseur n'est pas sur le graphique. */
@@ -181,7 +253,24 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     if (!chart || typePrincipale.current === typeRef.current) return;
     if (principale.current) chart.removeSeries(principale.current);
     lignesAlertes.current = [];
+    lignesPortefeuilleRef.current = [];
+    lignesAlertesParId.current.clear();
     principale.current = creerSeriePrincipale(chart, typeRef.current);
+    // Calque des tracés et marqueurs d'achat/vente : attachés à la série, ils disparaissent et se recréent avec elle.
+    if (!calque.current) {
+      calque.current = new CalqueDessins({
+        temps: tempsBougies,
+        pas: () => SECONDES_INTERVALLE[intervalleRef.current],
+        couleurs: () => {
+          const c = paletteGraphique();
+          return { trait: c.accent, texte: c.texte, fond: c.fond };
+        },
+        formater: formaterPrix,
+      });
+    }
+    calque.current.dessins = dessinsRef.current;
+    principale.current.attachPrimitive(calque.current);
+    marqueurs.current = createSeriesMarkers(principale.current, []);
     typePrincipale.current = typeRef.current; // l'échelle de prix (normale/log) appartient au graphique : elle survit au changement de série
   };
 
@@ -232,6 +321,8 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       graphique.current = null;
       principale.current = null;
       typePrincipale.current = null;
+      calque.current = null;
+      marqueurs.current = null;
     };
   }, []);
 
@@ -284,6 +375,9 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     serieIndicateurs.current = [];
     for (const l of lignesAlertes.current) prin.removePriceLine(l);
     lignesAlertes.current = [];
+    lignesAlertesParId.current.clear();
+    for (const l of lignesPortefeuilleRef.current) prin.removePriceLine(l);
+    lignesPortefeuilleRef.current = [];
 
     const b = donnees.current;
     if (!b.length) return;
@@ -339,7 +433,11 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       const style = { color: armee ? p.alerte : p.texte, lineWidth: 1 as const, lineStyle: armee ? LineStyle.Dashed : LineStyle.Dotted, axisLabelVisible: true };
       const marque = armee ? "🔔" : "✓";
       if (c.type === "prix") {
-        lignesAlertes.current.push(prin.createPriceLine({ ...style, price: c.seuil, title: `${marque} ${c.sens === "au-dessus" ? "≥" : "≤"}` }));
+        // Pendant un glissement, la ligne reste là où la souris l'a posée même si un nouveau prix déclenche un redessin.
+        const prix = glissement.current?.id === a.id ? glissement.current.prix : c.seuil;
+        const ligneAlerte = prin.createPriceLine({ ...style, price: prix, title: `${marque} ${c.sens === "au-dessus" ? "≥" : "≤"}` });
+        lignesAlertes.current.push(ligneAlerte);
+        lignesAlertesParId.current.set(a.id, ligneAlerte);
       } else if (c.type === "variation" && armee) {
         // Niveau déclencheur ≈ ouverture de la bougie située à (maintenant − période) × (1 ± pct) ; il glisse avec le temps.
         const depart = maintenant - PERIODES_VARIATION[c.periode];
@@ -353,6 +451,31 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         serieRsi.createPriceLine({ ...style, price: c.seuil, title: `${marque} ${c.sens === "au-dessus" ? "≥" : "≤"}` });
       }
     }
+    // --- Portefeuille : PAMP, objectif, niveaux d'achat et repères d'achat/vente ---
+    const niv = niveauxRef.current;
+    const reperes: SeriesMarker<Time>[] = [];
+    if (niv && lignesRef.current) {
+      const niveau = (price: number, title: string, color: string, lineStyle: LineStyle) =>
+        lignesPortefeuilleRef.current.push(prin.createPriceLine({ price, title, color, lineWidth: 1, lineStyle, axisLabelVisible: true }));
+      if (niv.pamp != null) niveau(niv.pamp, "PAMP", p.accent, LineStyle.LargeDashed);
+      if (niv.objectif != null) niveau(niv.objectif, "TP", p.hausse, LineStyle.LargeDashed);
+      for (const a of niv.achats) niveau(a.prix, a.plateforme ? `Achat · ${a.plateforme}` : "Achat", p.texte, LineStyle.Dotted);
+      // Chaque transaction est posée sur la bougie qui la contient (la dernière bougie ouverte avant l'instant de l'ordre).
+      for (const m of niv.mouvements) {
+        const t = m.date / 1000;
+        if (t < b[0].temps) continue;
+        let bas = 0;
+        let haut = b.length - 1;
+        while (bas < haut) {
+          const milieu = (bas + haut + 1) >> 1;
+          if (b[milieu].temps <= t) bas = milieu;
+          else haut = milieu - 1;
+        }
+        const achat = m.sens === "achat";
+        reperes.push({ time: b[bas].temps as UTCTimestamp, position: achat ? "belowBar" : "aboveBar", shape: achat ? "arrowUp" : "arrowDown", color: achat ? p.hausse : p.baisse, text: `${achat ? "Achat" : "Vente"} ${formaterPrix(m.prix)}` });
+      }
+    }
+    marqueurs.current?.setMarkers(reperes);
     // Le prix garde la plus grande part de la hauteur.
     chart.panes().forEach((pn, i) => pn.setStretchFactor(i === 0 ? 3 : 1));
   };
@@ -415,17 +538,226 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
   }, [actif.source, actif.symbole, intervalle, profondeur]);
 
   // Indicateur activé/désactivé ou paramétré, alerte créée/déclenchée : on redessine sans recharger les données.
-  useEffect(dessinerIndicateurs, [indicateurs, parametres, alertes]);
+  useEffect(dessinerIndicateurs, [indicateurs, parametres, alertes, niveaux, lignesPortefeuille]);
 
-  // Menu du clic droit : niveau de prix sous le curseur.
+  // Tracés de l'utilisateur : le calque les redessine dès qu'ils changent.
+  useEffect(() => {
+    if (!calque.current) return;
+    calque.current.dessins = dessins;
+    calque.current.actualiser();
+  }, [dessins]);
+
+  /** Zone des prix en pixels (hors échelles de prix et de temps) et position du conteneur. */
+  const zonePrix = () => {
+    const ch = graphique.current;
+    const r = conteneur.current!.getBoundingClientRect();
+    return { r, largeur: r.width - (ch?.priceScale("right").width() ?? 0), hauteur: ch?.panes()[0]?.getHeight() ?? 0 };
+  };
+
+  /** Point (instant, prix) sous la souris ; l'instant est calé sur une bougie, y compris dans le vide à droite ou à gauche. */
+  const ancrage = (x: number, y: number): PointDessin | null => {
+    const logique = graphique.current?.timeScale().coordinateToLogical(x);
+    const prix = principale.current?.coordinateToPrice(y);
+    if (logique == null || prix == null) return null;
+    return { temps: tempsDepuisIndice(tempsBougies(), Math.round(logique), SECONDES_INTERVALLE[intervalleRef.current]), prix };
+  };
+
+  /** Alerte de prix dont la ligne passe à moins de 6 px de la hauteur y. */
+  const alerteSous = (y: number): Alerte | null => {
+    for (const a of alertesRef.current) {
+      if (a.condition.type !== "prix") continue;
+      const ligneY = principale.current?.priceToCoordinate(a.condition.seuil);
+      if (ligneY != null && Math.abs(ligneY - y) <= 6) return a;
+    }
+    return null;
+  };
+
+  // Interactions : tracés, glisser une alerte, double-clic pour la modifier. Écouteurs natifs en phase de capture : ils passent
+  // avant ceux du graphique, ce qui permet d'empêcher le défilement du graphique quand le clic est pour nous.
+  useEffect(() => {
+    const zone = enveloppe.current!;
+    const local = (e: MouseEvent) => {
+      const { r } = zonePrix();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    };
+    const dansPrix = (x: number, y: number) => {
+      const z = zonePrix();
+      return x >= 0 && x <= z.largeur && y >= 0 && y <= z.hauteur;
+    };
+    const surimpression = (e: Event) => (e.target as Element | null)?.closest("[data-surimpression]") != null;
+    let bloque = false; // le « pointerdown » a été pris en charge : la souris/le toucher qui suit ne doit pas non plus atteindre le graphique
+
+    const finir = () => {
+      ancre.current = null;
+      if (calque.current) {
+        calque.current.brouillon = null;
+        calque.current.actualiser();
+      }
+      setOutil("curseur");
+    };
+    const poser = (type: TypeDessin, a: PointDessin, b?: PointDessin) => {
+      rappels.current.surDessins([...dessinsRef.current, { id: crypto.randomUUID(), type, a, ...(b ? { b } : {}) }]);
+      finir();
+    };
+
+    const bas = (e: PointerEvent) => {
+      bloque = false;
+      if (e.button !== 0 || surimpression(e)) return;
+      const { x, y } = local(e);
+      if (!dansPrix(x, y)) return;
+      const o = outilRef.current;
+      if (o === "gomme") {
+        bloque = true;
+        e.stopPropagation();
+        const id = calque.current?.toucher(x, y, zonePrix().largeur);
+        if (id) rappels.current.surDessins(dessinsRef.current.filter((d) => d.id !== id));
+        return;
+      }
+      if (o !== "curseur") {
+        bloque = true;
+        e.stopPropagation();
+        const pt = ancrage(x, y);
+        if (!pt) return;
+        if (POINTS_REQUIS[o] === 1) return poser(o, pt);
+        if (!ancre.current) ancre.current = { point: pt, xDepart: x, yDepart: y, relache: false };
+        else poser(o, ancre.current.point, pt);
+        return;
+      }
+      const a = alerteSous(y);
+      if (a && a.condition.type === "prix") {
+        bloque = true;
+        e.stopPropagation();
+        glissement.current = { id: a.id, prix: a.condition.seuil, departY: y, bouge: false };
+      }
+    };
+
+    const bouge = (e: PointerEvent) => {
+      const { x, y } = local(e);
+      const g = glissement.current;
+      if (g) {
+        if (Math.abs(y - g.departY) > 3) g.bouge = true;
+        const prix = g.bouge ? principale.current?.coordinateToPrice(y) : null;
+        if (prix != null && prix > 0) {
+          g.prix = prix;
+          lignesAlertesParId.current.get(g.id)?.applyOptions({ price: prix });
+        }
+        return;
+      }
+      const o = outilRef.current;
+      const dans = dansPrix(x, y) && !surimpression(e);
+      if (ancre.current && dans && o !== "curseur" && o !== "gomme") {
+        const pt = ancrage(x, y);
+        if (pt && calque.current) {
+          calque.current.brouillon = { id: "brouillon", type: o, a: ancre.current.point, b: pt };
+          calque.current.actualiser();
+        }
+      }
+      if (o === "gomme") {
+        const id = dans ? (calque.current?.toucher(x, y, zonePrix().largeur) ?? null) : null;
+        if (calque.current && calque.current.survol !== id) {
+          calque.current.survol = id;
+          calque.current.actualiser();
+        }
+        zone.style.cursor = id ? "pointer" : "";
+      } else if (o !== "curseur") zone.style.cursor = dans ? "crosshair" : "";
+      else zone.style.cursor = dans && alerteSous(y) ? "ns-resize" : "";
+    };
+
+    const haut = (e: PointerEvent) => {
+      const g = glissement.current;
+      if (g) {
+        glissement.current = null;
+        if (g.bouge) {
+          const dernier = donnees.current[donnees.current.length - 1]?.cloture;
+          const prix = arrondirPrix(g.prix);
+          rappels.current.surDeplacerAlerte(g.id, prix, dernier != null && prix < dernier ? "en-dessous" : "au-dessus");
+        }
+      }
+      const an = ancre.current;
+      if (an && !an.relache) {
+        // Glisser-déposer : si la souris a bougé entre l'appui et le relâchement, le tracé est terminé ; sinon il attend le second clic.
+        an.relache = true;
+        const { x, y } = local(e);
+        const o = outilRef.current;
+        if (Math.hypot(x - an.xDepart, y - an.yDepart) > 8 && o !== "curseur" && o !== "gomme") {
+          const pt = ancrage(x, y);
+          if (pt) poser(o, an.point, pt);
+        }
+      }
+      setTimeout(() => (bloque = false), 0);
+    };
+
+    const arreter = (e: Event) => {
+      if (bloque) e.stopPropagation();
+    };
+    const doubleClic = (e: MouseEvent) => {
+      if (surimpression(e)) return;
+      const { x, y } = local(e);
+      if (!dansPrix(x, y)) return;
+      if (outilRef.current !== "curseur") return e.stopPropagation(); // pas de recentrage pendant un tracé
+      const a = alerteSous(y);
+      if (a) {
+        e.stopPropagation();
+        rappels.current.surEditerAlerte(a.id);
+      }
+    };
+    const touche = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (glissement.current) {
+        glissement.current = null;
+        dessinerIndicateurs(); // la ligne revient à son seuil d'origine
+      }
+      if (ancre.current || outilRef.current !== "curseur") finir();
+    };
+
+    zone.addEventListener("pointerdown", bas, true);
+    zone.addEventListener("mousedown", arreter, true);
+    zone.addEventListener("touchstart", arreter, { capture: true, passive: true });
+    zone.addEventListener("dblclick", doubleClic, true);
+    window.addEventListener("pointermove", bouge);
+    window.addEventListener("pointerup", haut);
+    window.addEventListener("keydown", touche);
+    return () => {
+      zone.removeEventListener("pointerdown", bas, true);
+      zone.removeEventListener("mousedown", arreter, true);
+      zone.removeEventListener("touchstart", arreter, true);
+      zone.removeEventListener("dblclick", doubleClic, true);
+      window.removeEventListener("pointermove", bouge);
+      window.removeEventListener("pointerup", haut);
+      window.removeEventListener("keydown", touche);
+    };
+    // Écouteurs posés une fois : ils ne lisent que des refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Changer d'actif ou d'intervalle abandonne un tracé commencé.
+  useEffect(() => {
+    ancre.current = null;
+    if (calque.current) {
+      calque.current.brouillon = null;
+      calque.current.survol = null;
+      calque.current.actualiser();
+    }
+    setOutil("curseur");
+  }, [actif.source, actif.symbole]);
+
+  // Confirmation d'« Effacer tout » : retombe seule au bout de 4 s.
+  useEffect(() => {
+    if (!effacerTout) return;
+    const t = setTimeout(() => setEffacerTout(false), 4000);
+    return () => clearTimeout(t);
+  }, [effacerTout]);
+
+  // Menu du clic droit : niveau de prix sous le curseur (et tracé ou alerte éventuellement sous la souris).
   const ouvrirMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const rect = conteneur.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const hauteurPrix = graphique.current?.panes()[0]?.getHeight() ?? 0;
     const brut = principale.current?.coordinateToPrice(y);
     if (brut == null || y > hauteurPrix) return setMenu(null); // pas sur le panneau des prix
-    setMenu({ x: e.clientX - rect.left, y, prix: arrondirPrix(brut) });
+    setMenu({ x, y, prix: arrondirPrix(brut), dessinId: calque.current?.toucher(x, y, zonePrix().largeur) ?? null, alerteId: alerteSous(y)?.id ?? null });
   };
 
   const dernierPrix = donnees.current[donnees.current.length - 1]?.cloture;
@@ -510,10 +842,50 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           </div>
         )}
       </div>
-      <div className="relative min-h-0 flex-1" onContextMenu={ouvrirMenu} onDoubleClick={recentrer} onClick={() => setMenu(null)}>
+      <div ref={enveloppe} className="relative min-h-0 flex-1" onContextMenu={ouvrirMenu} onDoubleClick={recentrer} onClick={() => setMenu(null)}>
         <div ref={conteneur} className="absolute inset-0" />
+        {/* Outils de tracé, à gauche (un tracé terminé rend la main au curseur). */}
+        <div data-surimpression className="absolute left-2 top-10 z-10 flex flex-col gap-1" onDoubleClick={(e) => e.stopPropagation()}>
+          <button className="puce !px-2" aria-pressed={outil === "curseur"} title="Curseur (Échap)" aria-label="Curseur" onClick={() => setOutil("curseur")}>
+            <MousePointer2 size={14} />
+          </button>
+          {OUTILS.map(({ id, icone: Icone, aide }) => (
+            <button key={id} className="puce !px-2" aria-pressed={outil === id} title={aide} aria-label={LIBELLE_DESSIN[id]} onClick={() => setOutil(outil === id ? "curseur" : id)}>
+              <Icone size={14} />
+            </button>
+          ))}
+          <button className="puce !px-2" aria-pressed={outil === "gomme"} title="Gomme : cliquez sur un tracé pour le supprimer" aria-label="Gomme" onClick={() => setOutil(outil === "gomme" ? "curseur" : "gomme")}>
+            <Eraser size={14} />
+          </button>
+          {dessins.length > 0 && (
+            <button
+              className={`puce !px-2 ${effacerTout ? "!border-baisse !text-baisse" : ""}`}
+              title={effacerTout ? "Cliquez encore pour tout effacer" : "Effacer tous les tracés de cet actif"}
+              aria-label="Effacer tous les tracés"
+              onClick={() => {
+                if (effacerTout) {
+                  surDessins([]);
+                  setEffacerTout(false);
+                } else setEffacerTout(true);
+              }}
+            >
+              <Trash2 size={14} />
+              {effacerTout && <span className="ml-1 text-xs">Tout effacer ?</span>}
+            </button>
+          )}
+        </div>
+        {outil !== "curseur" && (
+          <div className="pointer-events-none absolute left-1/2 top-10 z-10 -translate-x-1/2 rounded-full border border-ligne bg-carte px-3 py-1 text-xs text-doux shadow-sm">
+            {outil === "gomme" ? "Cliquez sur un tracé pour le supprimer" : OUTILS.find((o) => o.id === outil)?.aide} · Échap pour {outil === "gomme" ? "terminer" : "annuler"}
+          </div>
+        )}
         {/* Commandes du graphique en surimpression (hors de la barre d'outils, qui reste aérée). */}
-        <div className="absolute right-[76px] top-2 z-10 flex items-center gap-1.5" onDoubleClick={(e) => e.stopPropagation()}>
+        <div data-surimpression className="absolute right-[76px] top-2 z-10 flex items-center gap-1.5" onDoubleClick={(e) => e.stopPropagation()}>
+          {niveaux && (
+            <button aria-pressed={lignesPortefeuille} title="Afficher le PAMP, l'objectif (TP) et les achats/ventes de votre portefeuille" className="puce" onClick={() => surLignesPortefeuille(!lignesPortefeuille)}>
+              Portefeuille
+            </button>
+          )}
           <button aria-pressed={echelleLog} title="Échelle logarithmique" className="puce" onClick={() => surEchelleLog(!echelleLog)}>
             Log
           </button>
@@ -531,10 +903,44 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
             {legende.v > 0 && <span>Vol <b className="font-normal text-texte">{legende.v.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}</b></span>}
           </div>
         )}
-        {chargement && <div className="absolute left-4 top-8 text-doux">Chargement…</div>}
-        {erreur && <div className="absolute left-4 top-8 rounded border border-baisse/50 bg-carte px-3 py-2 text-baisse">{erreur}</div>}
+        {chargement && <div className="absolute left-14 top-8 text-doux">Chargement…</div>}
+        {erreur && <div className="absolute left-14 top-8 rounded border border-baisse/50 bg-carte px-3 py-2 text-baisse">{erreur}</div>}
         {menu && (
           <div className="menu-contextuel absolute z-20 py-1 text-sm" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>
+            {menu.alerteId && (
+              <>
+                <button
+                  className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                  onClick={() => {
+                    surEditerAlerte(menu.alerteId!);
+                    setMenu(null);
+                  }}
+                >
+                  ✎ Modifier cette alerte
+                </button>
+                <button
+                  className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                  onClick={() => {
+                    surSupprimerAlerte(menu.alerteId!);
+                    setMenu(null);
+                  }}
+                >
+                  🗑 Supprimer cette alerte
+                </button>
+              </>
+            )}
+            {menu.dessinId && (
+              <button
+                className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                onClick={() => {
+                  surDessins(dessins.filter((d) => d.id !== menu.dessinId));
+                  setMenu(null);
+                }}
+              >
+                🗑 Supprimer ce tracé
+              </button>
+            )}
+            {(menu.alerteId || menu.dessinId) && <div className="my-1 border-t border-ligne" />}
             <button
               className="block w-full whitespace-nowrap bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
               onClick={() => {

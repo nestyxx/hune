@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { notifier } from "./alertes/notifier";
 import { EnTete } from "./composants";
 import { dansTauri } from "./donnees/http";
+import type { ModeVariation } from "./donnees/types";
 import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger, type Sauvegarde } from "./sauvegarde";
 import type { useMiseAJour } from "./miseajour";
 import { listerCopies, type CopieAuto } from "./restauration";
@@ -11,8 +12,10 @@ export interface Reglages {
   /** Période de vérification des alertes, en secondes (30 à 60). */
   periodeAlertesS: number;
   theme: PreferenceTheme;
+  /** Variation affichée pour les cryptos : 24 h glissantes ou journée UTC (voir `ModeVariation`). */
+  variation: ModeVariation;
 }
-export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto" };
+export const REGLAGES_PAR_DEFAUT: Reglages = { periodeAlertesS: 45, theme: "auto", variation: "24h" };
 
 const RACCOURCIS: [string, string][] = [
   ["Ctrl + K", "Aller à la recherche"],
@@ -98,6 +101,25 @@ export function PanneauReglages({ reglages, surChangement, maj }: Props) {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-ligne bg-carte p-5">
+        <h2 className="m-0 mb-3 text-base font-semibold">Variation des cryptos</h2>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Définition de la variation">
+          {(
+            [
+              ["24h", "24 h glissantes"],
+              ["jour", "Depuis 00:00 UTC (jour)"],
+            ] as const
+          ).map(([v, libelle]) => (
+            <button key={v} role="radio" aria-checked={reglages.variation === v} className={`bouton ${reglages.variation === v ? "bouton-actif" : ""}`} onClick={() => surChangement({ ...reglages, variation: v })}>
+              {libelle}
+            </button>
+          ))}
+        </div>
+        <p className="m-0 mt-2 text-xs text-doux">
+          <b>24 h glissantes</b> : le prix actuel comparé à celui d'il y a 24 heures (valeur de Binance). <b>Depuis 00:00 UTC</b> : comparé à l'ouverture du jour (01:00 en France l'hiver, 02:00 l'été), comme sur TradingView, donc la variation repart de zéro chaque nuit. S'applique à la liste, à la carte Marché et à l'en-tête. Les actions sont toujours comparées à la clôture précédente.
+        </p>
       </section>
 
       <section className="rounded-2xl border border-ligne bg-carte p-5">

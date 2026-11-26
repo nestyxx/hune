@@ -2,7 +2,7 @@ import { Binance } from "./binance";
 import type { DataProvider } from "./fournisseur";
 import { isinValide, ressembleAIsin } from "./isin";
 import { Yahoo } from "./yahoo";
-import type { Actif, Cotation, ResultatRecherche, SourceId } from "./types";
+import type { Actif, Cotation, ModeVariation, ResultatRecherche, SourceId } from "./types";
 
 /** Registre des sources. Pour en ajouter ou en remplacer une, c'est ici (et uniquement ici). */
 const fournisseurs: Record<SourceId, DataProvider> = {
@@ -36,14 +36,14 @@ export async function rechercherTout(requete: string): Promise<{ resultats: Resu
 }
 
 /** Cotations d'une liste d'actifs, regroupées par source. Renvoie une table `source:symbole` → cotation. */
-export async function cotationsActifs(actifs: Actif[]): Promise<Record<string, Cotation>> {
+export async function cotationsActifs(actifs: Actif[], variation: ModeVariation = "24h"): Promise<Record<string, Cotation>> {
   const sortie: Record<string, Cotation> = {};
   await Promise.all(
     (Object.keys(fournisseurs) as SourceId[]).map(async (source) => {
       const symboles = actifs.filter((a) => a.source === source).map((a) => a.symbole);
       if (!symboles.length) return;
       try {
-        for (const c of await fournisseurs[source].cotations(symboles)) sortie[`${source}:${c.symbole}`] = c;
+        for (const c of await fournisseurs[source].cotations(symboles, variation)) sortie[`${source}:${c.symbole}`] = c;
       } catch {
         /* Source en erreur ou en pause : on garde simplement les prix précédents côté interface. */
       }
