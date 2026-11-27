@@ -171,6 +171,7 @@ export function Watchlist(p: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [ouvert, setOuvert] = useState(false);
   const [menu, setMenu] = useState<string | null>(null); // clé de l'actif dont le menu « Déplacer » est ouvert
+  const [menuHaut, setMenuHaut] = useState(false); // le menu s'ouvre vers le haut quand la ligne est près du bas de la fenêtre
   const [renomme, setRenomme] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState<string | null>(null); // saisie d'une nouvelle catégorie (null = fermé)
   const numero = useRef(0);
@@ -279,7 +280,7 @@ export function Watchlist(p: Props) {
                   <span className="font-semibold">{symboleAffiche(r)}</span>
                   <span className="block max-w-[160px] truncate text-xs text-doux">{r.nom}</span>
                 </span>
-                <span className="shrink-0 text-xs text-doux">{dejaSuivi(r) ? "déjà suivi" : r.detail}</span>
+                <span className="max-w-[45%] shrink-0 truncate text-xs text-doux" title={dejaSuivi(r) ? undefined : r.detail}>{dejaSuivi(r) ? "déjà suivi" : r.detail}</span>
               </button>
             ))}
             {message && <div className="px-3 py-2 text-xs text-doux">{message}</div>}
@@ -413,6 +414,7 @@ export function Watchlist(p: Props) {
                             aria-label={`Options de ${symboleAffiche(a)}`}
                             onClick={(e) => {
                               e.stopPropagation();
+                              setMenuHaut(e.clientY > window.innerHeight - 300);
                               setMenu(menu === cle ? null : cle);
                             }}
                           >
@@ -420,7 +422,7 @@ export function Watchlist(p: Props) {
                           </button>
                         </div>
                         {menu === cle && (
-                          <div className="menu-contextuel absolute right-2 top-full z-20 min-w-44 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+                          <div className={`menu-contextuel absolute right-2 z-20 min-w-44 py-1 text-sm ${menuHaut ? "bottom-full" : "top-full"}`} onClick={(e) => e.stopPropagation()}>
                             <div className="px-3 py-1 text-xs text-doux">Déplacer vers</div>
                             {p.categories.map((nom) => (
                               <button

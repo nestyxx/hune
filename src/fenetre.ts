@@ -71,21 +71,22 @@ export function useFenetre() {
 }
 
 /** Passe en mode compact : petite fenêtre étroite qui ne montre que la liste. Renvoie la taille à restaurer. */
-export async function entrerModeCompact(): Promise<{ largeur: number; hauteur: number } | null> {
+export async function entrerModeCompact(): Promise<{ largeur: number; hauteur: number; maximisee?: boolean } | null> {
   if (!dansTauri()) return null;
   const { getCurrentWindow, LogicalSize } = await import("@tauri-apps/api/window");
   const w = getCurrentWindow();
   modeCompact = true;
-  if (await w.isMaximized()) await w.unmaximize();
+  const maximisee = await w.isMaximized();
+  if (maximisee) await w.unmaximize();
   const echelle = await w.scaleFactor();
   const taille = (await w.innerSize()).toLogical(echelle);
   await w.setMinSize(new LogicalSize(MIN_COMPACT.largeur, MIN_COMPACT.hauteur));
   await w.setSize(new LogicalSize(TAILLE_COMPACTE.largeur, TAILLE_COMPACTE.hauteur));
-  return { largeur: taille.width, hauteur: taille.height };
+  return { largeur: taille.width, hauteur: taille.height, maximisee };
 }
 
 /** Quitte le mode compact et rend à la fenêtre sa taille d'avant. */
-export async function sortirModeCompact(precedente: { largeur: number; hauteur: number } | null): Promise<void> {
+export async function sortirModeCompact(precedente: { largeur: number; hauteur: number; maximisee?: boolean } | null): Promise<void> {
   if (!dansTauri()) return;
   const { getCurrentWindow, LogicalSize } = await import("@tauri-apps/api/window");
   const w = getCurrentWindow();
@@ -93,4 +94,5 @@ export async function sortirModeCompact(precedente: { largeur: number; hauteur: 
   await w.setMinSize(new LogicalSize(MIN_NORMAL.largeur, MIN_NORMAL.hauteur));
   const t = precedente ?? { largeur: 1180, hauteur: 760 };
   await w.setSize(new LogicalSize(Math.max(t.largeur, MIN_NORMAL.largeur), Math.max(t.hauteur, MIN_NORMAL.hauteur)));
+  if (precedente?.maximisee) await w.maximize(); // la fenêtre qui était agrandie l'est de nouveau
 }

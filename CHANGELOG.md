@@ -3,6 +3,13 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.16.2] - 2026-11-28
+
+### Corrigé
+- Recherche de symbole : le type et la place de cotation d'un résultat (« Matière première · Chicago Mercantile Exchange ») ne débordent plus sur le nom du résultat suivant.
+- Le menu ⋯ d'un symbole proche du bas de la fenêtre s'ouvre vers le haut au lieu d'être coupé.
+- Mode compact : en le quittant, une fenêtre qui était agrandie l'est de nouveau (et son état agrandi n'est plus perdu).
+
 ## [0.16.1] - 2026-11-28
 
 ### Corrigé

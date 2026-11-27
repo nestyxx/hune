@@ -154,7 +154,7 @@ export default function App() {
   const [signalRecentrer, setSignalRecentrer] = useState(0);
   const [info, setInfo] = useState<string | null>(null);
   const [compact, setCompact] = useState(false);
-  const tailleAvantCompact = useRef<{ largeur: number; hauteur: number } | null>(null);
+  const tailleAvantCompact = useRef<{ largeur: number; hauteur: number; maximisee?: boolean } | null>(null);
   const [copieProposee, setCopieProposee] = useState<CopieAuto | null>(null);
 
   const theme = useTheme(reglages.theme);
