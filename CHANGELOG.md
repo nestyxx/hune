@@ -3,6 +3,23 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.16.0] - 2026-11-28
+
+### Ajouté
+- **Sauvegarde automatique avant chaque mise à jour** : au clic sur « Installer et redémarrer », Hune copie d'abord `hune.json` dans `sauvegardes/avant-maj/` (les cinq dernières sont gardées). Si cette copie échoue, rien n'est installé.
+- **La fenêtre garde sa taille** : taille (et état agrandi) mémorisées, y compris d'une mise à jour à l'autre.
+- **Stop loss** dans le portefeuille, à côté de l'objectif (TP) : champ par lot, colonne « Stop loss » avec la distance au prix, ligne « Stop » sur le graphique et **alerte « prix ≤ stop » créée toute seule**, qui suit le stop comme celle du TP (supprimez-la, elle ne revient pas ; un stop déjà franchi ne crée rien). Les stops déjà saisis sont aussi rattrapés au lancement.
+- **Valorisation aux niveaux** : sous chaque objectif et chaque stop, ce que vaudrait la position si le cours l'atteignait (avec l'écart en %) ; sur la carte « Valeur totale », la valeur du portefeuille « aux objectifs » et « aux stops » (les lignes sans niveau restent à leur valeur actuelle).
+- **Logos** des actions et ETF (Financial Modeling Prep, image publique, seulement pour les titres suivis ; désactivable dans Réglages › Apparence), et pictogrammes pour les indices, matières premières et devises. Les icônes de cryptos restent embarquées.
+- **Catégories** : on les **déplace par glisser-déposer** (par leur en-tête), on les renomme d'un **double-clic** sur le nom (le crayon est désormais toujours visible, atténué), et un symbole ajouté sans choix arrive dans **« Non classé »** au lieu de « Actions ». « Non classé » se renomme comme les autres.
+- **Alertes** refondues : formulaire replié (bouton « Nouvelle alerte »), alertes **regroupées par actif** (ou par catégorie, par état, ou à plat) avec les déclenchées en premier, filtres Toutes / Armées / Déclenchées, recherche, tri, lignes compactes avec l'origine (TP, Stop) et actions en icônes, « Tout réarmer » et « Supprimer les déclenchées ».
+- **Tracés déplaçables** : une ligne, un rayon ou un Fibonacci se déplace en le saisissant par le corps, ou se redimensionne par une extrémité ; Échap annule, l'aimant s'applique.
+
+### Corrigé
+- Noms lisibles pour les indices, matières premières et devises : « CAC 40 », « Or », « EUR/USD » au lieu de « ^FCHI », « GC=F », « EURUSD=X » (le « ^ » et les suffixes techniques ne s'affichent plus).
+- Le bouton ⋯ d'un symbole ne recouvre plus la variation au survol : sa place est réservée.
+- Les très petits prix (jetons à 0,00001234 et moins) s'affichent correctement sur l'échelle du graphique, dans les prix et dans les seuils d'alerte.
+
 ## [0.15.0] - 2026-11-27
 
 ### Ajouté

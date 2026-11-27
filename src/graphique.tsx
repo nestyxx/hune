@@ -26,7 +26,7 @@ import { INTERVALLES, LIBELLE_INTERVALLE, SECONDES_INTERVALLE, type Actif, type 
 import { aimanter } from "./aimant";
 import { LIBELLE_DESSIN, POINTS_REQUIS, tempsDepuisIndice, type Dessin, type PointDessin, type TypeDessin } from "./dessins";
 import { CalqueDessins } from "./dessins-calque";
-import { arrondirPrix, formaterPrix } from "./format";
+import { arrondirPrix, formaterPrix, precisionGraphique } from "./format";
 import { heikinAshi } from "./indicateurs/heikinashi";
 import { bollinger, ema, macd, rsi, sma, stochastique, type Serie } from "./indicateurs/indicateurs";
 import type { NiveauxPortefeuille } from "./portefeuille";
@@ -254,6 +254,10 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     const type = typeRef.current;
     const source = type === "heikin" ? heikinAshi(donnees.current) : donnees.current;
     // Les données sont de la forme attendue par le type de série courant (garanti par `typePrincipale`).
+    // Échelle des prix adaptée à l'ordre de grandeur du cours : sans cela, un jeton à 0,00001234 s'affiche « 0,00 ».
+    const dernier = donnees.current[donnees.current.length - 1]?.cloture;
+    const precision = precisionGraphique(dernier ?? 0);
+    principale.current?.applyOptions({ priceFormat: { type: "price", precision, minMove: Number(Math.pow(10, -precision).toFixed(precision)) } });
     (principale.current as ISeriesApi<"Line">)?.setData(source.map((b) => pointPrincipal(type, b)) as never);
   };
 
@@ -471,6 +475,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         lignesPortefeuilleRef.current.push(prin.createPriceLine({ price, title, color, lineWidth: 1, lineStyle, axisLabelVisible: true }));
       if (niv.pamp != null) niveau(niv.pamp, "PAMP", p.accent, LineStyle.LargeDashed);
       if (niv.objectif != null) niveau(niv.objectif, "TP", p.hausse, LineStyle.LargeDashed);
+      if (niv.stop != null) niveau(niv.stop, "Stop", p.baisse, LineStyle.LargeDashed);
       for (const a of niv.achats) niveau(a.prix, a.plateforme ? `Achat · ${a.plateforme}` : "Achat", p.texte, LineStyle.Dotted);
       // Chaque transaction est posée sur la bougie qui la contient (la dernière bougie ouverte avant l'instant de l'ordre).
       for (const m of niv.mouvements) {
@@ -613,6 +618,26 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
       return x >= 0 && x <= z.largeur && y >= 0 && y <= z.hauteur;
     };
     const surimpression = (e: Event) => (e.target as Element | null)?.closest("[data-surimpression]") != null;
+    /** Tracé en cours de déplacement (curseur) : extrémité ou corps, point saisi et tracé d'origine. */
+    let deplace: { original: Dessin; partie: "a" | "b" | "corps"; depart: PointDessin; actuel: Dessin; bouge: boolean; pxDepart?: { x: number; y: number } } | null = null;
+    const appliquerDeplacement = (x: number, y: number) => {
+      if (!deplace) return;
+      const pt = ancrage(x, y);
+      if (!pt) return;
+      const o = deplace.original;
+      const dt = pt.temps - deplace.depart.temps;
+      const dp = pt.prix - deplace.depart.prix;
+      const bouger = (p: PointDessin): PointDessin => ({ temps: o.type === "horizontale" ? p.temps : p.temps + dt, prix: p.prix + dp });
+      let suivant: Dessin;
+      if (deplace.partie === "a") suivant = { ...o, a: pt };
+      else if (deplace.partie === "b") suivant = { ...o, b: pt };
+      else suivant = { ...o, a: bouger(o.a), ...(o.b ? { b: bouger(o.b) } : {}) };
+      deplace.actuel = suivant;
+      if (calque.current) {
+        calque.current.dessins = dessinsRef.current.map((d) => (d.id === o.id ? suivant : d));
+        calque.current.actualiser();
+      }
+    };
     let bloque = false; // le « pointerdown » a été pris en charge : la souris/le toucher qui suit ne doit pas non plus atteindre le graphique
 
     const finir = () => {
@@ -656,11 +681,29 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         bloque = true;
         e.stopPropagation();
         glissement.current = { id: a.id, prix: a.condition.seuil, departY: y, bouge: false };
+        return;
+      }
+      // Un tracé existant se déplace à la souris : par une extrémité (pour le redimensionner) ou par le corps (pour le translater).
+      const prise = calque.current?.partie(x, y, zonePrix().largeur);
+      const original = prise ? dessinsRef.current.find((d) => d.id === prise.id) : undefined;
+      const depart = ancrage(x, y);
+      if (prise && original && depart) {
+        bloque = true;
+        e.stopPropagation();
+        deplace = { original, partie: prise.partie, depart, actuel: original, bouge: false };
+        deplace.pxDepart = { x, y };
       }
     };
 
     const bouge = (e: PointerEvent) => {
       const { x, y } = local(e);
+      if (deplace) {
+        if (!deplace.bouge && Math.hypot(x - (deplace.pxDepart?.x ?? x), y - (deplace.pxDepart?.y ?? y)) < 4) return;
+        deplace.bouge = true;
+        zone.style.cursor = "grabbing";
+        appliquerDeplacement(x, y);
+        return;
+      }
       const g = glissement.current;
       if (g) {
         if (Math.abs(y - g.departY) > 3) g.bouge = true;
@@ -689,10 +732,20 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         }
         zone.style.cursor = id ? "pointer" : "";
       } else if (o !== "curseur") zone.style.cursor = dans ? "crosshair" : "";
-      else zone.style.cursor = dans && alerteSous(y) ? "ns-resize" : "";
+      else zone.style.cursor = dans && alerteSous(y) ? "ns-resize" : dans && calque.current?.toucher(x, y, zonePrix().largeur) ? "grab" : "";
     };
 
     const haut = (e: PointerEvent) => {
+      if (deplace) {
+        const d = deplace;
+        deplace = null;
+        zone.style.cursor = "";
+        if (d.bouge) rappels.current.surDessins(dessinsRef.current.map((x) => (x.id === d.original.id ? d.actuel : x)));
+        else if (calque.current) {
+          calque.current.dessins = dessinsRef.current;
+          calque.current.actualiser();
+        }
+      }
       const g = glissement.current;
       if (g) {
         glissement.current = null;
@@ -732,6 +785,13 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     };
     const touche = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (deplace) {
+        deplace = null; // le tracé revient où il était
+        if (calque.current) {
+          calque.current.dessins = dessinsRef.current;
+          calque.current.actualiser();
+        }
+      }
       if (glissement.current) {
         glissement.current = null;
         dessinerIndicateurs(); // la ligne revient à son seuil d'origine

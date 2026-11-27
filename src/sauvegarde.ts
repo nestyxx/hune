@@ -50,7 +50,7 @@ export function lireSauvegarde(texte: string): Sauvegarde["donnees"] {
   const nombreOuAbsent = (v: unknown) => v === undefined || (typeof v === "number" && Number.isFinite(v) && v >= 0);
   if (
     d.positions !== undefined &&
-    !(Array.isArray(d.positions) && d.positions.every((p) => estObjet(p) && typeof p.id === "string" && typeof p.cle === "string" && ["quantite", "montantEur", "pamp", "objectif", "pampSaisi", "objectifSaisi"].every((k) => nombreOuAbsent(p[k]))))
+    !(Array.isArray(d.positions) && d.positions.every((p) => estObjet(p) && typeof p.id === "string" && typeof p.cle === "string" && ["quantite", "montantEur", "pamp", "objectif", "stop", "pampSaisi", "objectifSaisi", "stopSaisi"].every((k) => nombreOuAbsent(p[k]))))
   )
     throw new Error("Liste de positions invalide dans la sauvegarde.");
 

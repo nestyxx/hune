@@ -8,13 +8,24 @@ export const formaterMontant = (v: number | null, devise: "EUR" | "USD", decimal
 /** Prix avec un nombre de décimales adapté à l'ordre de grandeur (0,00001234 comme 64 250,12). */
 export function formaterPrix(p: number | undefined | null): string {
   if (p == null || !Number.isFinite(p)) return "—";
-  const decimales = p >= 1000 ? 2 : p >= 1 ? 3 : p >= 0.01 ? 4 : 8;
+  const decimales = p >= 1000 ? 2 : p >= 1 ? 3 : p >= 0.01 ? 4 : decimalesPetitPrix(p);
   return espaceOrdinaire(p.toLocaleString("fr-FR", { minimumFractionDigits: Math.min(decimales, 2), maximumFractionDigits: decimales }));
+}
+
+/** Décimales d'un prix inférieur à 0,01 : trois chiffres significatifs après les zéros (0,0000001234 reste lisible), 8 au minimum. */
+export function decimalesPetitPrix(p: number): number {
+  return p > 0 ? Math.min(12, Math.max(8, Math.ceil(-Math.log10(p)) + 3)) : 8;
+}
+
+/** Précision de l'échelle des prix du graphique pour un cours de cet ordre de grandeur. */
+export function precisionGraphique(p: number): number {
+  if (!(p > 0) || !Number.isFinite(p)) return 2;
+  return p >= 1 ? 2 : p >= 0.01 ? 4 : decimalesPetitPrix(p);
 }
 
 /** Arrondit un prix lu sur le graphique (ex. 59123,4567…) à une précision lisible pour un seuil d'alerte. */
 export function arrondirPrix(p: number): number {
-  const decimales = p >= 1000 ? 2 : p >= 1 ? 3 : p >= 0.01 ? 5 : 8;
+  const decimales = p >= 1000 ? 2 : p >= 1 ? 3 : p >= 0.01 ? 5 : decimalesPetitPrix(p);
   return Number(p.toFixed(decimales));
 }
 

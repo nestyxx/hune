@@ -71,6 +71,50 @@ fn sauvegarde_quotidienne(app: &tauri::App) {
     }
 }
 
+/// Copie de sécurité faite JUSTE AVANT l'installation d'une mise à jour : `sauvegardes/avant-maj/hune-avant-maj-<version>-<AAAAMMJJ>.json`
+/// (les cinq plus récentes sont gardées, hors de la rotation quotidienne). Échoue si la copie échoue : l'interface n'installe alors rien.
+#[tauri::command]
+fn sauvegarde_avant_maj(app: AppHandle, version: String) -> Result<String, String> {
+    let dossier = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let fichier = dossier.join("hune.json");
+    if !fichier.exists() {
+        return Ok("aucune donnée à sauvegarder".into());
+    }
+    let destination = dossier.join("sauvegardes").join("avant-maj");
+    std::fs::create_dir_all(&destination).map_err(|e| e.to_string())?;
+    let propre: String = version.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '-').take(24).collect();
+    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let nom = format!("hune-avant-maj-{}-{}-{}.json", propre, jour_depuis_epoch(maintenant), maintenant % 86_400);
+    let cible = destination.join(&nom);
+    std::fs::copy(&fichier, &cible).map_err(|e| e.to_string())?;
+    if let Ok(entrees) = std::fs::read_dir(&destination) {
+        let mut copies: Vec<_> = entrees.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "json")).collect();
+        copies.sort_by_key(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok());
+        while copies.len() > 5 {
+            let _ = std::fs::remove_file(copies.remove(0));
+        }
+    }
+    Ok(cible.to_string_lossy().to_string())
+}
+
+/// Rend à la fenêtre la taille qu'elle avait à la fermeture (clé `fenetre` du fichier de données : largeur, hauteur, maximisée).
+/// Sans cela, chaque mise à jour la ramenait à la taille d'usine.
+fn restaurer_taille_fenetre(app: &tauri::App) {
+    let Ok(dossier) = app.path().app_data_dir() else { return };
+    let Ok(contenu) = std::fs::read_to_string(dossier.join("hune.json")) else { return };
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&contenu) else { return };
+    let Some(f) = json.get("fenetre") else { return };
+    let Some(fenetre) = app.get_webview_window("main") else { return };
+    let (Some(l), Some(h)) = (f.get("largeur").and_then(|v| v.as_f64()), f.get("hauteur").and_then(|v| v.as_f64())) else { return };
+    if (860.0..=10_000.0).contains(&l) && (560.0..=10_000.0).contains(&h) {
+        let _ = fenetre.set_size(tauri::LogicalSize::new(l, h));
+        let _ = fenetre.center();
+    }
+    if f.get("maximisee").and_then(|v| v.as_bool()) == Some(true) {
+        let _ = fenetre.maximize();
+    }
+}
+
 /// Un nom de sauvegarde valide est exactement « hune-AAAAMMJJ.json » : aucun séparateur de chemin n'est possible,
 /// l'interface ne peut donc lire que les copies automatiques et rien d'autre sur le disque.
 fn nom_sauvegarde_valide(nom: &str) -> bool {
@@ -195,7 +239,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![lister_sauvegardes, lire_sauvegarde, donnees_presentes, sync_lire, sync_ecrire])
+        .invoke_handler(tauri::generate_handler![sauvegarde_avant_maj, lister_sauvegardes, lire_sauvegarde, donnees_presentes, sync_lire, sync_ecrire])
         .on_window_event(|fenetre, evenement| {
             // Croix de la fenêtre : on la masque, l'application reste dans la zone de notification.
             if let WindowEvent::CloseRequested { api, .. } = evenement {
@@ -205,6 +249,7 @@ pub fn run() {
         })
         .setup(|app| {
             sauvegarde_quotidienne(app);
+            restaurer_taille_fenetre(app);
 
             let ouvrir = MenuItem::with_id(app, "ouvrir", "Ouvrir", true, None::<&str>)?;
             let quitter = MenuItem::with_id(app, "quitter", "Quitter", true, None::<&str>)?;

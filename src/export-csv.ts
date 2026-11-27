@@ -33,7 +33,7 @@ export function csvPositions(lignes: LignePortefeuille[], devise: DeviseAffichag
     return t != null && avec.length ? m(avec.reduce((s, x) => s + x.quantite! * x.pamp!, 0) * t) : null;
   };
   return construireCsv(
-    ["Symbole", "Nom", "Source", "Catégorie", "Plateforme(s)", "Quantité", "PAMP", "Devise de cotation", "Prix", `Valeur (${devise})`, `Coût d'achat (${devise})`, `P&L (${devise})`, "P&L (%)", "Poids (%)", "Objectif (TP)"],
+    ["Symbole", "Nom", "Source", "Catégorie", "Plateforme(s)", "Quantité", "PAMP", "Devise de cotation", "Prix", `Valeur (${devise})`, `Coût d'achat (${devise})`, `P&L (${devise})`, "P&L (%)", "Poids (%)", "Objectif (TP)", "Stop loss"],
     lignes.map((l) => [
       l.actif.symbole,
       l.actif.nom,
@@ -50,6 +50,7 @@ export function csvPositions(lignes: LignePortefeuille[], devise: DeviseAffichag
       arrondi(l.pnlPct, 2),
       l.poids == null ? null : arrondi(l.poids * 100, 2),
       l.objectif,
+      l.stop,
     ]),
   );
 }

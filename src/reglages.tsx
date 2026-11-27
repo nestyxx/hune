@@ -10,6 +10,7 @@ import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger
 import type { useMiseAJour } from "./miseajour";
 import { SectionSynchro } from "./sync/section-synchro";
 import type { useSynchro } from "./sync/use-synchro";
+import { definirLogosActions, useLogosActions } from "./icone-actif";
 import { listerCopies, type CopieAuto } from "./restauration";
 import type { PreferenceTheme } from "./theme";
 
@@ -103,6 +104,7 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
     if (fichier.current) fichier.current.value = "";
   };
 
+  const logos = useLogosActions();
   return (
     <div className="apparait flex-1 space-y-5 overflow-auto p-6">
       <EnTete titre="Réglages" sousTitre="Apparence, alertes, mises à jour et sauvegardes." />
@@ -115,6 +117,13 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
             </button>
           ))}
         </div>
+        <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={logos} onChange={(e) => definirLogosActions(e.target.checked)} />
+          <span>
+            Logos des actions et ETF
+            <span className="block text-xs text-doux">Chargés depuis Financial Modeling Prep (image publique) pour les seuls titres que vous suivez ; le symbole est alors envoyé à ce site. Décochez pour des initiales, sans aucune requête. Les cryptos ont leurs icônes dans l'application.</span>
+          </span>
+        </label>
       </section>
 
       <section className="rounded-2xl border border-ligne bg-carte p-5">
@@ -288,7 +297,7 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
       </section>
 
       <section className="rounded-2xl border border-ligne bg-carte p-5 text-xs text-doux">
-        Lecture seule : aucune fonction de trading, aucun compte, aucune clé API. Crypto : API publique Binance (temps réel). Actions : Yahoo Finance, endpoint non officiel, données différées.
+        Lecture seule : aucune fonction de trading, aucun compte, aucune clé API. Crypto : API publique Binance (temps réel). Actions : Yahoo Finance, endpoint non officiel, données différées. Logos d'actions : Financial Modeling Prep (désactivable).
       </section>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { getJson } from "./donnees/http";
 import type { Actif } from "./donnees/types";
 import { baseCrypto } from "./icones";
+import { nomConnu } from "./noms-affiches";
 
 /**
  * Vrais noms des cryptos (BTC → Bitcoin). Binance ne les fournit pas : on les lit une fois par jeton dans la recherche
@@ -41,7 +42,7 @@ export function nomCrypto(base: string): string | null {
  */
 export function nomAffiche(actif: Pick<Actif, "source" | "symbole" | "nom">): string {
   const base = baseCrypto(actif);
-  return (base && noms[base]) || actif.nom;
+  return (base && noms[base]) || nomConnu(actif) || actif.nom;
 }
 
 /** Vrai quand le libellé de la source n'est que la paire (BTC/USDC) et n'apporte rien en plus du symbole. */

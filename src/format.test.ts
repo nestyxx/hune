@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { espaceOrdinaire, formaterPrix } from "./format";
+import { arrondirPrix, espaceOrdinaire, formaterPrix, precisionGraphique } from "./format";
 
 describe("espaceOrdinaire", () => {
   it("remplace les espaces insécables, fines ou non, par une espace ordinaire", () => {
@@ -19,5 +19,19 @@ describe("formaterPrix", () => {
   it("adapte les décimales à l'ordre de grandeur", () => {
     expect(formaterPrix(0.00001234)).toContain("0,00001234");
     expect(formaterPrix(null)).toBe("—");
+  });
+});
+
+describe("très petits prix", () => {
+  it("garde trois chiffres significatifs derrière les zéros", () => {
+    expect(formaterPrix(0.0000000123)).toContain("0,0000000123");
+    expect(arrondirPrix(0.0000000123456)).toBe(0.00000001235);
+  });
+  it("règle la précision de l'échelle du graphique", () => {
+    expect(precisionGraphique(59000)).toBe(2);
+    expect(precisionGraphique(0.5)).toBe(4);
+    expect(precisionGraphique(0.00001234)).toBe(8);
+    expect(precisionGraphique(0.0000000123)).toBe(11);
+    expect(precisionGraphique(0)).toBe(2);
   });
 });

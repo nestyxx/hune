@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Actif } from "../donnees/types";
 import type { Position } from "../portefeuille";
 import type { Alerte } from "./moteur";
-import { alertesTpManquantes, synchroniserAlertesTp } from "./tp-auto";
+import { alertesNiveauxManquantes, alertesTpManquantes, synchroniserAlertesNiveaux, synchroniserAlertesTp } from "./tp-auto";
 
 const actif: Actif = { source: "yahoo", symbole: "TTWO", nom: "Take-Two" };
 const cle = "yahoo:TTWO";
@@ -67,5 +67,39 @@ describe("alertesTpManquantes", () => {
   });
   it("ne double pas deux lots au même objectif", () => {
     expect(manquantes([p(250), p(250, "l2")])).toHaveLength(1);
+  });
+});
+
+describe("stop loss automatique", () => {
+  const avecStop = (stop?: number, id = "l1"): Position => ({ id, cle, quantite: 1, stop });
+  const syncN = (avant: Position[], apres: Position[], alertes: Alerte[] = [], p: (c: string) => number | undefined = prix) => synchroniserAlertesNiveaux(avant, apres, alertes, [actif], p, 1000);
+
+  it("crée une alerte « prix ≤ stop » quand le stop est sous le prix", () => {
+    const r = syncN([avecStop()], [avecStop(200)]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ statut: "armee", slLot: "l1", condition: { type: "prix", sens: "en-dessous", seuil: 200 } });
+    expect(r[0].tpLot).toBeUndefined();
+  });
+
+  it("ne crée rien pour un stop déjà franchi", () => {
+    expect(syncN([avecStop()], [avecStop(230)])).toHaveLength(0);
+  });
+
+  it("suit le stop : remplacé quand il change, retiré quand il est effacé", () => {
+    const premiere = syncN([avecStop()], [avecStop(200)]);
+    const seconde = syncN([avecStop(200)], [avecStop(190)], premiere);
+    expect(seconde.map((a) => (a.condition as { seuil: number }).seuil)).toEqual([190]);
+    expect(syncN([avecStop(190)], [avecStop(undefined)], seconde)).toHaveLength(0);
+  });
+
+  it("TP et stop d'un même lot créent deux alertes indépendantes", () => {
+    const lotComplet: Position = { id: "l1", cle, quantite: 1, objectif: 250, stop: 200 };
+    const r = syncN([{ id: "l1", cle, quantite: 1 }], [lotComplet]);
+    expect(r.map((a) => a.condition.type === "prix" && a.condition.sens).sort()).toEqual(["au-dessus", "en-dessous"]);
+  });
+
+  it("rattrape les stops déjà saisis, sauf ceux que l'utilisateur a supprimés", () => {
+    const positions: Position[] = [{ id: "l1", cle, quantite: 1, stop: 200 }, { id: "l2", cle, quantite: 1, stop: 190 }];
+    expect(alertesNiveauxManquantes(positions, [], [actif], prix, new Set(["sl:l2"]), 1000).map((a) => a.slLot)).toEqual(["l1"]);
   });
 });

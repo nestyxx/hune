@@ -31,6 +31,8 @@ export interface Alerte {
   valeur?: number;
   /** Alerte créée automatiquement pour l'objectif (TP) de ce lot du portefeuille : elle suit l'objectif. */
   tpLot?: string;
+  /** Idem pour le stop loss de ce lot (alerte « prix ≤ stop »). */
+  slLot?: string;
 }
 
 /** Données dont l'évaluation a besoin ; seules celles de la condition sont lues. */

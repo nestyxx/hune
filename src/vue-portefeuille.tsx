@@ -4,6 +4,7 @@ import { GraphiquePortefeuille } from "./graphique-portefeuille";
 import type { EntreeHistorique, PeriodePortefeuille } from "./historique-portefeuille";
 import { IconeActif } from "./icone-actif";
 import { nomAffiche, nomEstUnePaire, useNomsCryptos } from "./noms-cryptos";
+import { symboleAffiche } from "./noms-affiches";
 import { ImportTransactions } from "./import-transactions-panneau";
 import type { ThemeResolu } from "./theme";
 import { categorieDe } from "./categories";
@@ -15,7 +16,7 @@ import { classePct, formaterMontant, formaterPct, formaterPrix } from "./format"
 import { segmentsDonut } from "./donut";
 import { csvPositions, csvTransactions } from "./export-csv";
 import { telecharger } from "./sauvegarde";
-import { agreger, convertirSaisie, devisesDeSaisie, extremesPerformance, gainsRealises as gainsRealisesDe, gainsRealisesTotal, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
+import { agreger, convertirSaisie, devisesDeSaisie, extremesPerformance, gainsRealises as gainsRealisesDe, gainsRealisesTotal, repartition, SYMBOLE_DEVISE, totaux, valeurLotEur, valeursAuxNiveaux, variationPortefeuille, versDevise, type ColonnePortefeuille, type DeviseAffichage, type LignePortefeuille, type PartRepartition, type Position, type TriPortefeuille } from "./portefeuille";
 
 interface Props {
   actifs: Actif[];
@@ -118,21 +119,23 @@ function PrixLot({ lot, devise, taux, majLot }: { lot: Position; devise: string 
   const options = devisesDeSaisie(devise, taux);
   const courante = (lot.devisePrix && options.includes(lot.devisePrix) ? lot.devisePrix : devise) ?? undefined;
   const horsCotation = courante !== devise;
-  const modifier = (champ: "pamp" | "objectif", v: number | undefined) => {
+  const SAISI = { pamp: "pampSaisi", objectif: "objectifSaisi", stop: "stopSaisi" } as const;
+  const modifier = (champ: "pamp" | "objectif" | "stop", v: number | undefined) => {
     if (!horsCotation) return majLot(lot.id, { [champ]: v });
-    majLot(lot.id, { [champ === "pamp" ? "pampSaisi" : "objectifSaisi"]: v, [champ]: v === undefined ? undefined : convertirSaisie(v, courante, devise, taux) });
+    majLot(lot.id, { [SAISI[champ]]: v, [champ]: v === undefined ? undefined : convertirSaisie(v, courante, devise, taux) });
   };
   const changerDevise = (nouvelle: string) => {
-    if (nouvelle === devise) return majLot(lot.id, { devisePrix: undefined, pampSaisi: undefined, objectifSaisi: undefined });
+    if (nouvelle === devise) return majLot(lot.id, { devisePrix: undefined, pampSaisi: undefined, objectifSaisi: undefined, stopSaisi: undefined });
     const conv = (v: number | undefined) => (v === undefined ? undefined : Number(convertirSaisie(v, devise ?? undefined, nouvelle, taux).toPrecision(6)));
-    majLot(lot.id, { devisePrix: nouvelle, pampSaisi: conv(lot.pamp), objectifSaisi: conv(lot.objectif) });
+    majLot(lot.id, { devisePrix: nouvelle, pampSaisi: conv(lot.pamp), objectifSaisi: conv(lot.objectif), stopSaisi: conv(lot.stop) });
   };
   return (
     <>
       <ChampLot valeur={horsCotation ? lot.pampSaisi : lot.pamp} placeholder="PAMP" surChangement={(v) => modifier("pamp", v)} />
-      <ChampLot valeur={horsCotation ? lot.objectifSaisi : lot.objectif} placeholder="Objectif" surChangement={(v) => modifier("objectif", v)} />
+      <ChampLot valeur={horsCotation ? lot.objectifSaisi : lot.objectif} placeholder="Objectif (TP)" surChangement={(v) => modifier("objectif", v)} />
+      <ChampLot valeur={horsCotation ? lot.stopSaisi : lot.stop} placeholder="Stop loss" surChangement={(v) => modifier("stop", v)} />
       {options.length > 1 ? (
-        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise dans laquelle le PAMP et l'objectif de ce lot sont notés. Changer de devise les convertit ; ils restent dans cette devise ensuite (convertis au taux du jour pour les calculs, en ${devise}).`} onChange={(e) => changerDevise(e.target.value)}>
+        <select className="champ !w-auto !py-1 !pl-1 !pr-0 text-xs" value={courante} title={`Devise dans laquelle le PAMP, l'objectif et le stop de ce lot sont notés. Changer de devise les convertit ; ils restent dans cette devise ensuite (convertis au taux du jour pour les calculs, en ${devise}).`} onChange={(e) => changerDevise(e.target.value)}>
           {options.map((d) => (
             <option key={d} value={d}>
               {d}
@@ -159,7 +162,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [filtre, setFiltre] = useState("");
   const [confirmationTp, setConfirmationTp] = useState<{ actif: Actif; prix: number }[] | null>(null);
-  const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; plateforme: string; saisie: string } | null>(null);
+  const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; stop: string; plateforme: string; saisie: string } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
   // Plateformes présentes (pour le filtre) ; un filtre qui ne correspond plus à rien (plateforme supprimée) est ignoré.
@@ -213,7 +216,8 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       if (!p.devisePrix || !d || p.devisePrix === d || !taux[p.devisePrix] || !taux[d]) continue;
       const pamp = p.pampSaisi === undefined ? p.pamp : convertirSaisie(p.pampSaisi, p.devisePrix, d, taux);
       const objectif = p.objectifSaisi === undefined ? p.objectif : convertirSaisie(p.objectifSaisi, p.devisePrix, d, taux);
-      if (ecart(pamp, p.pamp) || ecart(objectif, p.objectif)) patches.set(p.id, { pamp, objectif });
+      const stop = p.stopSaisi === undefined ? p.stop : convertirSaisie(p.stopSaisi, p.devisePrix, d, taux);
+      if (ecart(pamp, p.pamp) || ecart(objectif, p.objectif) || ecart(stop, p.stop)) patches.set(p.id, { pamp, objectif, stop });
     }
     if (patches.size) surPositions((l) => l.map((p) => (patches.has(p.id) ? { ...p, ...patches.get(p.id) } : p)));
   }, [toutesPositions, devises, taux, surPositions]);
@@ -238,6 +242,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   const m: Montant = (valeurEur, decimales = 0) => formaterMontant(versDevise(valeurEur, devise, taux), devise, decimales);
   const symbole = SYMBOLE_DEVISE[devise];
   const tauxManquant = devise === "USD" && !taux.USD;
+  const niveaux = useMemo(() => valeursAuxNiveaux(lignes), [lignes]);
 
   const parCategorie = useMemo(() => repartition(lignes.map((l) => ({ nom: categorieDe(l.actif, categories), valeurEur: l.valeurEur }))), [lignes, categories]);
   const parPlateforme = useMemo(
@@ -295,11 +300,12 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
     const q = lireNombre(formulaire.quantite);
     const pamp = lireNombre(formulaire.pamp);
     const objectif = lireNombre(formulaire.objectif);
-    if (!formulaire.cle || q == null || q <= 0 || pamp === null || objectif === null) return setInfo("Choisissez un actif et saisissez une quantité positive (PAMP et objectif doivent être des nombres).");
+    const stop = lireNombre(formulaire.stop);
+    if (!formulaire.cle || q == null || q <= 0 || pamp === null || objectif === null || stop === null) return setInfo("Choisissez un actif et saisissez une quantité positive (PAMP, objectif et stop doivent être des nombres).");
     const dCot = devises[formulaire.cle];
     const conv = (v: number | undefined) => (v == null ? v : convertirSaisie(v, formulaire.saisie || dCot, dCot, taux));
     const horsCot = !!formulaire.saisie && !!dCot && formulaire.saisie !== dCot;
-    surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp: conv(pamp), objectif: conv(objectif), ...(horsCot ? { devisePrix: formulaire.saisie, pampSaisi: pamp, objectifSaisi: objectif } : {}), plateforme: formulaire.plateforme.trim() || undefined }]);
+    surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp: conv(pamp), objectif: conv(objectif), stop: conv(stop), ...(horsCot ? { devisePrix: formulaire.saisie, pampSaisi: pamp, objectifSaisi: objectif, stopSaisi: stop } : {}), plateforme: formulaire.plateforme.trim() || undefined }]);
     setFormulaire(null);
     setInfo(null);
   };
@@ -343,6 +349,16 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
               {variationJour.pct >= 0 ? "+" : "−"}{m(Math.abs(variationJour.deltaEur))} · {formaterPct(variationJour.pct)}
             </div>
           )}
+          {niveaux.tpEur != null && tot.valeurEur > 0 && (
+            <div className="mt-1 text-xs text-doux" title={`Valeur du portefeuille si chacune des ${niveaux.nbTp} position${niveaux.nbTp > 1 ? "s" : ""} qui ont un objectif l'atteignait ; les autres restent à leur valeur actuelle.`}>
+              Aux objectifs : <span className="font-mono text-texte">{m(niveaux.tpEur)}</span> <span className={classePct(niveaux.tpEur - tot.valeurEur)}>({formaterPct((niveaux.tpEur / tot.valeurEur - 1) * 100)})</span>
+            </div>
+          )}
+          {niveaux.stopEur != null && tot.valeurEur > 0 && (
+            <div className="text-xs text-doux" title={`Valeur du portefeuille si chacune des ${niveaux.nbStop} position${niveaux.nbStop > 1 ? "s" : ""} qui ont un stop loss le touchait ; les autres restent à leur valeur actuelle.`}>
+              Aux stops : <span className="font-mono text-texte">{m(niveaux.stopEur)}</span> <span className={classePct(niveaux.stopEur - tot.valeurEur)}>({formaterPct((niveaux.stopEur / tot.valeurEur - 1) * 100)})</span>
+            </div>
+          )}
           {tauxManquant && <div className="text-xs text-alerte">Taux EUR/USD indisponible : montants non convertis.</div>}
           {tot.nonValorisees > 0 && <div className="text-xs text-alerte">{tot.nonValorisees} ligne{tot.nonValorisees > 1 ? "s" : ""} non valorisée{tot.nonValorisees > 1 ? "s" : ""} (prix ou change manquant)</div>}
         </div>
@@ -368,7 +384,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
               {([["meilleure", extremes.meilleure], ["pire", extremes.pire]] as const).map(([cle, l]) => (
                 <button key={cle} className="flex w-full items-center gap-2 bg-transparent p-0 text-left text-texte hover:text-accent" title="Voir le graphique" onClick={() => surOuvrir(l.cle)}>
                   <IconeActif actif={l.actif} taille={20} />
-                  <span className="min-w-0 flex-1 truncate font-semibold">{l.actif.symbole}</span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{symboleAffiche(l.actif)}</span>
                   <span className={`font-mono text-xs ${classePct(l.pnlPct)}`}>{formaterPct(l.pnlPct)}</span>
                 </button>
               ))}
@@ -398,7 +414,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           ))}
         </div>
         <input className="champ" placeholder="Filtrer…" value={filtre} onChange={(e) => setFiltre(e.target.value)} />
-        <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", plateforme: "", saisie: "" })}>
+        <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", stop: "", plateforme: "", saisie: "" })}>
           <Plus size={14} /> Ajouter une position
         </button>
         <button className="bouton" title="Crée une alerte « prix ≥ objectif » pour chaque objectif saisi" onClick={preparerAlertesTp}>
@@ -469,7 +485,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
             <select className="champ max-w-52" value={formulaire.cle} onChange={(e) => setFormulaire({ ...formulaire, cle: e.target.value })}>
               {actifs.map((a) => (
                 <option key={cleActif(a)} value={cleActif(a)}>
-                  {a.symbole} — {a.nom.slice(0, 22)}
+                  {symboleAffiche(a)} — {nomAffiche(a).slice(0, 22)}
                 </option>
               ))}
             </select>
@@ -479,6 +495,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
               ["quantite", "Quantité", "w-28"],
               ["pamp", "PAMP", "w-28"],
               ["objectif", "Objectif (TP)", "w-28"],
+              ["stop", "Stop loss", "w-28"],
               ["plateforme", "Plateforme", "w-28"],
             ] as const
           ).map(([k, titre, large]) => (
@@ -488,7 +505,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
             </label>
           ))}
           {devisesDeSaisie(devises[formulaire.cle], taux).length > 1 && (
-            <label className="flex flex-col gap-1 text-xs text-doux" title="Devise dans laquelle vous saisissez le PAMP et l'objectif ; ils sont convertis au taux du jour et enregistrés dans la devise de cotation de l'actif.">
+            <label className="flex flex-col gap-1 text-xs text-doux" title="Devise dans laquelle vous saisissez le PAMP, l'objectif et le stop ; ils sont convertis au taux du jour et enregistrés dans la devise de cotation de l'actif.">
               Prix saisis en
               <select className="champ" value={formulaire.saisie || devises[formulaire.cle]} onChange={(e) => setFormulaire({ ...formulaire, saisie: e.target.value })}>
                 {devisesDeSaisie(devises[formulaire.cle], taux).map((d) => (
@@ -547,7 +564,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
                       <td className="px-2">
                         <span className="flex items-center gap-1.5 font-semibold">
                           <IconeActif actif={actif} taille={18} />
-                          {actif.symbole}
+                          {symboleAffiche(actif)}
                         </span>
                       </td>
                       <td className={`px-2 ${t.sens === "achat" ? "text-hausse" : "text-baisse"}`}>{t.sens === "achat" ? "Achat" : "Vente"}</td>
@@ -579,6 +596,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
                 {entete("pnlEur", `P&L ${symbole}`)}
                 {entete("poids", "Poids")}
                 {entete("versObjectifPct", "Objectif (TP)")}
+                <th className="whitespace-nowrap px-2 py-2 text-right font-normal text-doux" title="Prix de sortie en cas de baisse ; une alerte « prix ≤ stop » est créée automatiquement">Stop loss</th>
               </tr>
             </thead>
             <tbody>
@@ -606,7 +624,7 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
             <IconeActif actif={l.actif} taille={22} />
           </span>
           <button className="bg-transparent p-0 font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={surOuvrir}>
-            {l.actif.symbole}
+            {symboleAffiche(l.actif)}
           </button>
           {!nomEstUnePaire(nomAffiche(l.actif)) && (
             <span className="max-w-[210px] truncate text-doux" title={nomAffiche(l.actif)}>
@@ -635,6 +653,27 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
           {l.objectif != null ? (
             <>
               {formaterPrix(l.objectif)} <span className={`text-xs ${l.versObjectifPct != null && l.versObjectifPct <= 0 ? "text-hausse" : "text-doux"}`}>{l.versObjectifPct != null ? (l.versObjectifPct <= 0 ? "atteint" : `+${l.versObjectifPct.toFixed(0)} %`) : ""}</span>
+              {l.valeurAuTpEur != null && (
+                <div className="text-xs text-doux" title="Valeur de cette position si le cours atteignait l'objectif">
+                  vaudrait {m(l.valeurAuTpEur)}
+                  {l.valeurEur ? <span className="text-hausse"> ({formaterPct((l.valeurAuTpEur / l.valeurEur - 1) * 100)})</span> : null}
+                </div>
+              )}
+            </>
+          ) : (
+            "—"
+          )}
+        </td>
+        <td className="whitespace-nowrap px-2 text-right font-mono">
+          {l.stop != null ? (
+            <>
+              {formaterPrix(l.stop)} <span className={`text-xs ${l.versStopPct != null && l.versStopPct >= 0 ? "text-baisse" : "text-doux"}`}>{l.versStopPct != null ? (l.versStopPct >= 0 ? "franchi" : `${l.versStopPct.toFixed(0).replace("-", "−")} %`) : ""}</span>
+              {l.valeurAuStopEur != null && (
+                <div className="text-xs text-doux" title="Valeur de cette position si le cours touchait le stop">
+                  vaudrait {m(l.valeurAuStopEur)}
+                  {l.valeurEur ? <span className="text-baisse"> ({formaterPct((l.valeurAuStopEur / l.valeurEur - 1) * 100)})</span> : null}
+                </div>
+              )}
             </>
           ) : (
             "—"
@@ -643,7 +682,7 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
       </tr>
       {ouverte && (
         <tr className="border-b border-ligne bg-fond">
-          <td colSpan={9} className="px-4 py-2">
+          <td colSpan={10} className="px-4 py-2">
             <div className="space-y-1">
               {l.lots.map((lot) => (
                 <div key={lot.id} className="flex flex-wrap items-center gap-2 text-xs">

@@ -7,6 +7,7 @@ import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donne
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
 import { IconeActif } from "./icone-actif";
+import { symboleAffiche } from "./noms-affiches";
 
 interface Props {
   groupes: Groupe[];
@@ -71,7 +72,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
         <button className="flex w-full items-center justify-between rounded-lg bg-transparent px-2 py-1 text-left text-texte hover:bg-fond" onClick={() => surOuvrir(cleActif(a))}>
           <span className="flex items-center gap-2 font-semibold">
             <IconeActif actif={a} taille={18} />
-            {a.symbole}
+            {symboleAffiche(a)}
           </span>
           <span className={`font-mono text-xs ${classePct(c?.variationPct)}`}>{formaterPct(c?.variationPct)}</span>
         </button>
@@ -115,7 +116,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
                       className="relative flex h-16 flex-col items-center justify-center rounded-2xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
                       style={{ background: couleurTuile(c?.variationPct) }}
                     >
-                      <span className="max-w-full truncate px-1 text-sm font-semibold">{a.symbole.replace(/(USDT|USDC|EUR|-USD)$/, "")}</span>
+                      <span className="max-w-full truncate px-1 text-sm font-semibold">{symboleAffiche({ ...a, symbole: a.symbole.replace(/(USDT|USDC|EUR|-USD)$/, "") })}</span>
                       <span className="font-mono text-xs">{formaterPct(c?.variationPct)}</span>
                       {n > 0 && (
                         <span aria-label={`${n} nouvelle${n > 1 ? "s" : ""} actualité${n > 1 ? "s" : ""}`} className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-alerte px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-2 ring-fond">

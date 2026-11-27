@@ -364,10 +364,12 @@ export function planifierImport(synthese: SyntheseTokens, resolutions: Map<strin
   }
   const prefixe = idImport(plateforme, "");
   const remplacees = existantes.filter((p) => p.id.startsWith(prefixe) || (memePlateforme(p.plateforme, plateforme) && cles.has(p.cle)));
-  // Un objectif déjà saisi sur l'actif n'est pas perdu.
+  // Un objectif ou un stop déjà saisi sur l'actif n'est pas perdu.
   for (const p of positions) {
     const objectif = remplacees.find((x) => x.cle === p.cle && x.objectif != null)?.objectif;
     if (objectif != null) p.objectif = objectif;
+    const stop = remplacees.find((x) => x.cle === p.cle && x.stop != null)?.stop;
+    if (stop != null) p.stop = stop;
   }
   return { actifs, positions, remplacees };
 }

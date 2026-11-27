@@ -114,6 +114,23 @@ export class CalqueDessins implements ISeriesPrimitive<Time> {
     return (meilleur as { id: string } | null)?.id ?? null;
   }
 
+  /** Tracé sous (px, py) et partie saisie : une extrémité (« a », « b ») à moins de 9 px, sinon le corps du tracé. */
+  partie(px: number, py: number, largeur: number): { id: string; partie: "a" | "b" | "corps" } | null {
+    const id = this.toucher(px, py, largeur);
+    const d = id ? this.dessins.find((x) => x.id === id) : null;
+    if (!id || !d) return null;
+    const pres = (t: number, p: number) => {
+      const x = this.x(t);
+      const y = this.y(p);
+      return x != null && y != null && Math.hypot(px - x, py - y) <= 9;
+    };
+    if (d.type !== "horizontale") {
+      if (pres(d.a.temps, d.a.prix)) return { id, partie: "a" };
+      if (d.b && pres(d.b.temps, d.b.prix)) return { id, partie: "b" };
+    }
+    return { id, partie: "corps" };
+  }
+
   private dessiner(cible: CanvasRenderingTarget2D) {
     cible.useMediaCoordinateSpace(({ context: c, mediaSize }) => {
       const coul = this.src.couleurs();

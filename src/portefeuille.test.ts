@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Actif, Cotation } from "./donnees/types";
-import { agreger, convertirSaisie, devisesDeSaisie, extremesPerformance, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, variationPortefeuille, versDevise, type LignePortefeuille, type Position } from "./portefeuille";
+import { agreger, convertirSaisie, devisesDeSaisie, extremesPerformance, repartition, totaux, TRI_PORTEFEUILLE_PAR_DEFAUT, triPortefeuilleValide, valeurLotEur, valeursAuxNiveaux, variationPortefeuille, versDevise, type LignePortefeuille, type Position } from "./portefeuille";
 
 describe("variation et extrêmes du portefeuille", () => {
   const ligne = (cle: string, valeurEur: number | null, pnlPct: number | null, pnlEur: number | null) => ({ cle, valeurEur, pnlPct, pnlEur }) as unknown as LignePortefeuille;
@@ -151,5 +151,32 @@ describe("saisie des prix dans une autre devise", () => {
     expect(devisesDeSaisie("EUR", taux)).toEqual(["EUR", "USD"]);
     expect(devisesDeSaisie("CHF", taux)).toEqual(["CHF"]);
     expect(devisesDeSaisie(undefined, taux)).toEqual([]);
+  });
+});
+
+describe("valorisation aux niveaux (TP et stop)", () => {
+  const actif: Actif = { source: "yahoo", symbole: "AAA", nom: "Aaa" };
+  const entrees = { actifs: { "yahoo:AAA": actif }, cotations: { "yahoo:AAA": { symbole: "AAA", prix: 100, variationPct: 0 } as Cotation }, devises: { "yahoo:AAA": "EUR" }, taux: { EUR: 1 } };
+
+  it("valorise la position à son objectif et à son stop, les lots sans niveau restant au prix actuel", () => {
+    const lots: Position[] = [
+      { id: "a", cle: "yahoo:AAA", quantite: 10, pamp: 80, objectif: 150, stop: 90 },
+      { id: "b", cle: "yahoo:AAA", quantite: 5 },
+    ];
+    const [l] = agreger(lots, entrees);
+    expect(l.valeurEur).toBe(1500);
+    expect(l.valeurAuTpEur).toBe(10 * 150 + 5 * 100);
+    expect(l.valeurAuStopEur).toBe(10 * 90 + 5 * 100);
+    expect(l.stop).toBe(90);
+    expect(l.versStopPct).toBeCloseTo(-10);
+  });
+
+  it("n'invente rien sans niveau, et additionne les lignes (les autres restent à leur valeur)", () => {
+    const sans = agreger([{ id: "a", cle: "yahoo:AAA", quantite: 1 }], entrees);
+    expect(sans[0].valeurAuTpEur).toBeNull();
+    expect(valeursAuxNiveaux(sans)).toEqual({ tpEur: null, stopEur: null, nbTp: 0, nbStop: 0 });
+    const avec = { ...entrees, actifs: { ...entrees.actifs, "yahoo:BBB": { source: "yahoo", symbole: "BBB", nom: "Bbb" } as Actif }, cotations: { ...entrees.cotations, "yahoo:BBB": { symbole: "BBB", prix: 10, variationPct: 0 } as Cotation }, devises: { ...entrees.devises, "yahoo:BBB": "EUR" } };
+    const lignes = agreger([{ id: "a", cle: "yahoo:AAA", quantite: 1, objectif: 200 }, { id: "b", cle: "yahoo:BBB", quantite: 10 }], avec);
+    expect(valeursAuxNiveaux(lignes)).toEqual({ tpEur: 200 + 100, stopEur: null, nbTp: 1, nbStop: 0 });
   });
 });

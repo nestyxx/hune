@@ -7,6 +7,7 @@ import { classePct, formaterPct, formaterPrix } from "./format";
 import { IconeActif } from "./icone-actif";
 import { liensExternes } from "./liens";
 import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
+import { symboleAffiche } from "./noms-affiches";
 import { ecrireVu, lireVus } from "./actualites-vues";
 import { ouvrirLien } from "./ouvrir-lien";
 
@@ -58,7 +59,7 @@ export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotat
         <h1 className="m-0 flex items-center gap-2 truncate text-[13px] font-medium text-doux">
           <IconeActif actif={actif} taille={22} />
           <span className="truncate">
-            <span className="text-texte">{actif.symbole}</span> · {nomAffiche(actif)}
+            <span className="text-texte">{symboleAffiche(actif)}</span> · {nomAffiche(actif)}
           </span>
         </h1>
         <div className="mt-0.5 flex items-baseline gap-3">

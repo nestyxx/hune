@@ -1,7 +1,7 @@
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { decrire, type Alerte } from "./alertes/moteur";
-import { alertesTpManquantes, lireAnciensIgnoresTp, synchroniserAlertesTp } from "./alertes/tp-auto";
+import { alertesNiveauxManquantes, cleIgnoreStop, lireAnciensIgnoresTp, synchroniserAlertesNiveaux } from "./alertes/tp-auto";
 import { useSynchro } from "./sync/use-synchro";
 import type { EtatSync } from "./sync/moteur";
 import { notifier } from "./alertes/notifier";
@@ -11,7 +11,7 @@ import { BarreTitre } from "./barre-titre";
 import { InfoBulles } from "./info-bulles";
 import { ZONE_ICONE } from "./plateforme";
 import { deplacerActif } from "./ordre-liste";
-import { CATEGORIES_PAR_DEFAUT, grouper, type Tri } from "./categories";
+import { CATEGORIES_PAR_DEFAUT, categorieDe, deplacerCategorie, grouper, type Tri } from "./categories";
 import { cotationsActifs, miniCourbesActifs } from "./donnees";
 import type { Profondeur } from "./donnees/historique";
 import { INTERVALLES, cleActif, type Actif, type Cotation, type Intervalle } from "./donnees/types";
@@ -286,9 +286,13 @@ export default function App() {
       positionsRef.current = apres;
       setPositions(apres);
       const parId = new Map(avant.map((p) => [p.id, p]));
-      const changes = new Set(apres.filter((p) => parId.get(p.id)?.objectif !== p.objectif).map((p) => p.id));
+      // Un niveau modifié redonne droit à son alerte automatique, même si l'ancienne avait été supprimée à la main.
+      const changes = new Set([
+        ...apres.filter((p) => parId.get(p.id)?.objectif !== p.objectif).map((p) => p.id),
+        ...apres.filter((p) => parId.get(p.id)?.stop !== p.stop).map((p) => cleIgnoreStop(p.id)),
+      ]);
       if (changes.size) setTpIgnores((l) => (l.some((id) => changes.has(id)) ? l.filter((id) => !changes.has(id)) : l));
-      changerAlertes((l) => synchroniserAlertesTp(avant, apres, l, actifsRef.current, (cle) => cotationsRef.current[cle]?.prix, Date.now()));
+      changerAlertes((l) => synchroniserAlertesNiveaux(avant, apres, l, actifsRef.current, (cle) => cotationsRef.current[cle]?.prix, Date.now()));
     },
     [changerAlertes],
   );
@@ -380,7 +384,7 @@ export default function App() {
   // sauf si l'utilisateur a supprimé cette alerte). Attend les cours pour ne rien créer pour un objectif déjà atteint.
   useEffect(() => {
     if (!pret) return;
-    const nouvelles = alertesTpManquantes(positions, alertes, actifs, (cle) => cotations[cle]?.prix, new Set(tpIgnores), Date.now());
+    const nouvelles = alertesNiveauxManquantes(positions, alertes, actifs, (cle) => cotations[cle]?.prix, new Set(tpIgnores), Date.now());
     if (nouvelles.length) changerAlertes((l) => [...l, ...nouvelles]);
   }, [pret, positions, alertes, actifs, cotations, tpIgnores, changerAlertes]);
 
@@ -389,7 +393,7 @@ export default function App() {
     (id: string) =>
       changerAlertes((l) => {
         const a = l.find((x) => x.id === id);
-        const lot = a?.tpLot;
+        const lot = a?.tpLot ? a.tpLot : a?.slLot ? cleIgnoreStop(a.slLot) : undefined;
         if (lot) setTpIgnores((ig) => (ig.includes(lot) ? ig : [...ig, lot]));
         return l.filter((x) => x.id !== id);
       }),
@@ -463,14 +467,20 @@ export default function App() {
     const nouveau = brut.trim();
     if (!nouveau || nouveau === ancien) return;
     if (categories.some((c) => c !== ancien && c.toLowerCase() === nouveau.toLowerCase())) return prevenir(`La catégorie « ${nouveau} » existe déjà.`);
-    setCategories(categories.map((c) => (c === ancien ? nouveau : c)));
-    setActifs(actifs.map((a) => (a.categorie === ancien ? { ...a, categorie: nouveau } : a)));
+    // Une catégorie « virtuelle » (Non classé, jamais enregistrée) est d'abord matérialisée dans la liste.
+    setCategories((categories.includes(ancien) ? categories : [...categories, ancien]).map((c) => (c === ancien ? nouveau : c)));
+    setActifs(actifs.map((a) => (categorieDe(a, categories) === ancien ? { ...a, categorie: nouveau } : a)));
     setRepliees(repliees.map((c) => (c === ancien ? nouveau : c)));
   };
+  const reordonnerCategorie = (nom: string, avant: string | null) => {
+    const suite = deplacerCategorie(groupes.map((g) => g.nom), nom, avant);
+    if (suite) setCategories(suite);
+  };
   const supprimerCategorie = (nom: string) => {
-    setCategories(categories.filter((c) => c !== nom));
+    const suivantes = categories.filter((c) => c !== nom);
     // Les actifs retombent dans la catégorie par défaut de leur source : rien n'est supprimé.
     setActifs(actifs.map((a) => (a.categorie === nom ? { ...a, categorie: undefined } : a)));
+    setCategories(suivantes);
     prevenir(`Catégorie « ${nom} » supprimée : ses actifs ont été reclassés.`);
   };
 
@@ -518,6 +528,7 @@ export default function App() {
       surBasculeGroupe={(nom) => setRepliees(repliees.includes(nom) ? repliees.filter((n) => n !== nom) : [...repliees, nom])}
       surCreationCategorie={creerCategorie}
       surRenommageCategorie={renommerCategorie}
+      surReordonnerCategorie={reordonnerCategorie}
       surSuppressionCategorie={supprimerCategorie}
     />
   );
@@ -671,6 +682,7 @@ export default function App() {
                 <PanneauAlertes
                   actifs={actifs}
                   actifParDefaut={selection}
+                  categorieDe={(x) => categorieDe(x, categories)}
                   alertes={alertes}
                   surCreation={(a) => changerAlertes((l) => [...l, a])}
                   surModification={(m) => {

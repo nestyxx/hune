@@ -16,3 +16,6 @@ suivi-marches-import*.json
 
 # Brouillons de communication (hors dépôt)
 promo-x/
+
+.claude/
+promo-x/

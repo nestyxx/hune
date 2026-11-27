@@ -16,6 +16,8 @@ export interface Position {
   pamp?: number;
   /** Prix objectif (« take profit »), dans la devise de cotation. */
   objectif?: number;
+  /** Stop loss : prix en dessous duquel on sort, dans la devise de cotation. */
+  stop?: number;
   /**
    * Devise dans laquelle l'utilisateur a saisi PAMP et objectif, quand ce n'est pas la devise de cotation (ex. « EUR » pour une action cotée en dollars).
    * Les valeurs saisies sont gardées telles quelles (`pampSaisi`, `objectifSaisi`) ; `pamp` et `objectif` en sont la conversion en devise de cotation,
@@ -24,6 +26,7 @@ export interface Position {
   devisePrix?: string;
   pampSaisi?: number;
   objectifSaisi?: number;
+  stopSaisi?: number;
   plateforme?: string;
   /** La quantité a été déduite de `montantEur` (donc approximative). */
   estimee?: boolean;
@@ -72,6 +75,7 @@ export function versDevise(montantEur: number | null, devise: DeviseAffichage, t
 export interface NiveauxPortefeuille {
   pamp: number | null;
   objectif: number | null;
+  stop: number | null;
   /** Lots sans historique détaillé : un niveau d'achat par lot (leur PAMP). */
   achats: { prix: number; quantite: number; plateforme?: string }[];
   /** Achats et ventes connus, du plus ancien au plus récent. */
@@ -84,11 +88,12 @@ export function niveauxPortefeuille(lots: Position[]): NiveauxPortefeuille | nul
   const qPamp = avecPamp.reduce((s, l) => s + l.quantite!, 0);
   const pamp = qPamp > 0 ? avecPamp.reduce((s, l) => s + l.quantite! * l.pamp!, 0) / qPamp : null;
   const objectif = lots.find((l) => l.objectif != null)?.objectif ?? null;
+  const stop = lots.find((l) => l.stop != null)?.stop ?? null;
   // Un seul lot : son niveau d'achat serait confondu avec le PAMP, on ne le trace pas deux fois.
   const lotsAchat = lots.filter((l) => l.pamp != null && l.quantite && !l.mouvements?.length);
   const achats = lotsAchat.length > 1 || (lotsAchat.length === 1 && lots.length > 1) ? lotsAchat.map((l) => ({ prix: l.pamp!, quantite: l.quantite!, plateforme: l.plateforme })) : [];
   const mouvements = lots.flatMap((l) => l.mouvements ?? []).sort((a, b) => a.date - b.date);
-  return pamp == null && objectif == null && !achats.length && !mouvements.length ? null : { pamp, objectif, achats, mouvements };
+  return pamp == null && objectif == null && stop == null && !achats.length && !mouvements.length ? null : { pamp, objectif, stop, achats, mouvements };
 }
 
 export interface LignePortefeuille {
@@ -110,6 +115,13 @@ export interface LignePortefeuille {
   objectif: number | null;
   /** Distance du prix à l'objectif, en % du prix (positif = objectif au-dessus). */
   versObjectifPct: number | null;
+  /** Stop loss (premier lot qui en a un) et distance du prix à ce stop, en % du prix (négatif = stop en dessous). */
+  stop: number | null;
+  versStopPct: number | null;
+  /** Valeur de la ligne si chaque lot valait son objectif (les lots sans objectif restent au prix actuel), en euros ; null sans objectif ni prix. */
+  valeurAuTpEur: number | null;
+  /** Idem au stop loss (les lots sans stop restent au prix actuel). */
+  valeurAuStopEur: number | null;
   plateformes: string[];
   lots: Position[];
 }
@@ -152,6 +164,12 @@ export function agreger(positions: Position[], e: Entrees): LignePortefeuille[] 
     const pnlDevise = prix != null && pamp != null ? qPamp * prix - cout : null;
     const pnlEur = pnlDevise != null ? enEuros(pnlDevise, devise ?? undefined, e.taux) : null;
     const objectif = lots.find((l) => l.objectif != null)?.objectif ?? null;
+    const stop = lots.find((l) => l.stop != null)?.stop ?? null;
+    /** Valeur de tous les lots si chacun atteignait son niveau (sinon il reste au prix actuel). */
+    const auNiveau = (champ: "objectif" | "stop") => {
+      if (prix == null || !lots.some((l) => l[champ] != null && l.quantite)) return null;
+      return enEuros(lots.reduce((s, l) => s + (l.quantite ?? 0) * (l[champ] ?? prix), 0), devise ?? undefined, e.taux);
+    };
 
     lignes.push({
       cle,
@@ -168,6 +186,10 @@ export function agreger(positions: Position[], e: Entrees): LignePortefeuille[] 
       poids: null,
       objectif,
       versObjectifPct: objectif != null && prix ? ((objectif - prix) / prix) * 100 : null,
+      stop,
+      versStopPct: stop != null && prix ? ((stop - prix) / prix) * 100 : null,
+      valeurAuTpEur: auNiveau("objectif"),
+      valeurAuStopEur: auNiveau("stop"),
       plateformes: [...new Set(lots.map((l) => l.plateforme).filter((x): x is string => !!x))],
       lots,
     });
@@ -280,6 +302,21 @@ export function totaux(lignes: LignePortefeuille[]): Totaux {
     }
   }
   return { valeurEur, coutEur, pnlEur, pnlPct: coutEur > 0 ? (pnlEur / coutEur) * 100 : null, nonValorisees };
+}
+
+/**
+ * Valeur du portefeuille si chaque position atteignait son objectif (TP), et si elle touchait son stop loss : les lignes sans
+ * niveau restent à leur valeur actuelle. `nbTp` / `nbStop` : nombre de lignes concernées (null si aucune : rien à montrer).
+ */
+export function valeursAuxNiveaux(lignes: LignePortefeuille[]): { tpEur: number | null; stopEur: number | null; nbTp: number; nbStop: number } {
+  const somme = (cle: "valeurAuTpEur" | "valeurAuStopEur") => {
+    const concernees = lignes.filter((l) => l[cle] != null);
+    if (!concernees.length) return { total: null, nb: 0 };
+    return { total: lignes.reduce((s, l) => s + (l[cle] ?? l.valeurEur ?? 0), 0), nb: concernees.length };
+  };
+  const tp = somme("valeurAuTpEur");
+  const stop = somme("valeurAuStopEur");
+  return { tpEur: tp.total, stopEur: stop.total, nbTp: tp.nb, nbStop: stop.nb };
 }
 
 export interface PartRepartition {

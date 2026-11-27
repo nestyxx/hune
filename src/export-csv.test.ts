@@ -41,7 +41,7 @@ describe("CSV", () => {
     const l = { actif: { source: "binance", symbole: "BTCUSDC", nom: "BTC/USDC" }, quantite: 2, pamp: 100, devise: "USD", prix: 150, valeurEur: 150, pnlEur: 50, pnlPct: 50, poids: 0.5, objectif: null, plateformes: ["A", "B"], lots: [{ id: "1", cle: "k", quantite: 2, pamp: 100 }] } as unknown as LignePortefeuille;
     const lignes = csvPositions([l], "USD", { EUR: 1, USD: 0.5 }, () => "Cryptos").split("\r\n");
     expect(lignes[0]).toContain("Valeur (USD)");
-    expect(lignes[1]).toBe("BTCUSDC;BTC/USDC;Binance;Cryptos;A, B;2;100;USD;150;300;200;100;50;50;"); // 150 € = 300 $ ; coût 200 $ natif
+    expect(lignes[1]).toBe("BTCUSDC;BTC/USDC;Binance;Cryptos;A, B;2;100;USD;150;300;200;100;50;50;;"); // 150 € = 300 $ ; coût 200 $ natif
     expect(csvPositions([l], "USD", { EUR: 1 }, () => "C").split("\r\n")[1]).toContain(";;;;50;50;"); // sans taux USD : montants vides
   });
   it("transactions : gain réalisé sur chaque vente, plus récentes d'abord", () => {

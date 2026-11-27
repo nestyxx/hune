@@ -1,4 +1,5 @@
 import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
+import { symboleAffiche } from "./noms-affiches";
 import { TOUCHE_RACCOURCI } from "./plateforme";
 import { Activity, Bell, Check, ChevronDown, ChevronRight, Ellipsis, Pencil, Plus, Rows3, Search, StretchHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -29,6 +30,8 @@ interface Props {
   surBasculeGroupe: (nom: string) => void;
   surCreationCategorie: (nom: string) => void;
   surRenommageCategorie: (ancien: string, nouveau: string) => void;
+  /** Glisser-déposer d'une catégorie : la place devant `avant` (ou en dernier si null). */
+  surReordonnerCategorie: (nom: string, avant: string | null) => void;
   surSuppressionCategorie: (nom: string) => void;
   /** Mode compact : la liste occupe toute la largeur de la fenêtre. */
   pleineLargeur?: boolean;
@@ -96,6 +99,59 @@ export function Watchlist(p: Props) {
       const i = g.actifs.findIndex((a) => cleActif(a) === c.cle);
       const avant = c.apres ? (g.actifs[i + 1] ? cleActif(g.actifs[i + 1]) : null) : c.cle;
       reordonnerRef.current(cle, avant, c.groupe);
+    };
+    const echap = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") {
+        cible = null;
+        actif = false;
+        fin();
+      }
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", relacher);
+    window.addEventListener("keydown", echap);
+  };
+
+  /** Glisser-déposer d'une catégorie (par son en-tête). */
+  const [glisseCat, setGlisseCat] = useState<{ nom: string; cible: { nom: string; apres: boolean } | null } | null>(null);
+  const reordonnerCatRef = useRef(p.surReordonnerCategorie);
+  reordonnerCatRef.current = p.surReordonnerCategorie;
+  const demarrerGlisseCategorie = (e: React.PointerEvent, nom: string) => {
+    if (e.button !== 0 || (e.target as Element).closest("input, select, [data-sans-glisse]")) return;
+    const depart = { x: e.clientX, y: e.clientY };
+    let actif = false;
+    let cible: { nom: string; apres: boolean } | null = null;
+    const trouver = (ev: PointerEvent) => {
+      const section = (document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-section]") ?? null) as HTMLElement | null;
+      if (!section?.dataset.section) return null;
+      const r = section.getBoundingClientRect();
+      return { nom: section.dataset.section, apres: ev.clientY > r.top + Math.min(r.height / 2, 40) };
+    };
+    const bouger = (ev: PointerEvent) => {
+      if (!actif) {
+        if (Math.hypot(ev.clientX - depart.x, ev.clientY - depart.y) < 6) return;
+        actif = true;
+      }
+      cible = trouver(ev);
+      setGlisseCat({ nom, cible });
+    };
+    const fin = () => {
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", relacher);
+      window.removeEventListener("keydown", echap);
+      setGlisseCat(null);
+    };
+    const relacher = () => {
+      const c = cible;
+      const etait = actif;
+      fin();
+      if (!etait) return;
+      apresGlisse.current = true;
+      setTimeout(() => (apresGlisse.current = false), 0);
+      if (!c || c.nom === nom) return;
+      const noms = groupesRef.current.map((g) => g.nom);
+      const i = noms.indexOf(c.nom);
+      reordonnerCatRef.current(nom, c.apres ? (noms[i + 1] ?? null) : c.nom);
     };
     const echap = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
@@ -201,8 +257,8 @@ export function Watchlist(p: Props) {
                 }}
               >
                 <span className="min-w-0">
-                  <span className="font-semibold">{a.symbole}</span>
-                  <span className="block max-w-[160px] truncate text-xs text-doux">{a.nom}</span>
+                  <span className="font-semibold">{symboleAffiche(a)}</span>
+                  <span className="block max-w-[160px] truncate text-xs text-doux">{nomAffiche(a)}</span>
                 </span>
                 <span className="shrink-0 text-xs text-doux">ouvrir</span>
               </button>
@@ -220,7 +276,7 @@ export function Watchlist(p: Props) {
                 }}
               >
                 <span className="min-w-0">
-                  <span className="font-semibold">{r.symbole}</span>
+                  <span className="font-semibold">{symboleAffiche(r)}</span>
                   <span className="block max-w-[160px] truncate text-xs text-doux">{r.nom}</span>
                 </span>
                 <span className="shrink-0 text-xs text-doux">{dejaSuivi(r) ? "déjà suivi" : r.detail}</span>
@@ -263,8 +319,12 @@ export function Watchlist(p: Props) {
         {p.groupes.map((g) => {
           const replie = p.repliees.includes(g.nom);
           return (
-            <section key={g.nom}>
-              <header data-groupe={g.nom} className={`group sticky top-0 z-10 flex items-center justify-between border-b border-ligne bg-carte px-3 py-1.5 text-xs uppercase tracking-wide text-doux ${glisse?.cible?.cle === null && glisse.cible.groupe === g.nom ? "!bg-accent-doux" : ""}`}>
+            <section key={g.nom} data-section={g.nom} className={glisseCat?.nom === g.nom ? "opacity-40" : ""}>
+              <header
+                data-groupe={g.nom}
+                onPointerDown={(e) => demarrerGlisseCategorie(e, g.nom)}
+                className={`group sticky top-0 z-10 flex select-none items-center justify-between border-b border-ligne bg-carte px-3 py-1.5 text-xs uppercase tracking-wide text-doux ${glisse?.cible?.cle === null && glisse.cible.groupe === g.nom ? "!bg-accent-doux" : ""} ${glisseCat?.cible?.nom === g.nom && glisseCat.nom !== g.nom ? (glisseCat.cible.apres ? "!border-b-2 !border-b-accent" : "shadow-[inset_0_2px_0_var(--color-accent)]") : ""}`}
+              >
                 {renomme === g.nom ? (
                   <input
                     autoFocus
@@ -281,22 +341,24 @@ export function Watchlist(p: Props) {
                   />
                 ) : (
                   <>
-                    <button className="flex flex-1 items-center gap-1 bg-transparent p-0 text-left uppercase tracking-wide text-doux hover:text-texte" onClick={() => p.surBasculeGroupe(g.nom)}>
+                    <button
+                      className="flex flex-1 cursor-grab items-center gap-1 bg-transparent p-0 text-left uppercase tracking-wide text-doux hover:text-texte"
+                      title="Cliquer pour replier · glisser pour déplacer la catégorie · double-clic pour la renommer"
+                      onClick={() => !apresGlisse.current && p.surBasculeGroupe(g.nom)}
+                      onDoubleClick={() => setRenomme(g.nom)}
+                    >
                       {replie ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
                       {g.nom} <span className="normal-case opacity-70">({g.actifs.length})</span>
                     </button>
-                    <span className="invisible flex gap-0.5 group-hover:visible">
+                    <span className="flex gap-0.5 opacity-40 transition-opacity group-hover:opacity-100" data-sans-glisse>
                       <button className="bouton-icone" title="Renommer la catégorie" aria-label={`Renommer ${g.nom}`} onClick={() => setRenomme(g.nom)}>
                         <Pencil size={13} />
                       </button>
-                      <button
-                        className="bouton-icone"
-                        title="Supprimer la catégorie (les actifs sont reclassés)"
-                        aria-label={`Supprimer ${g.nom}`}
-                        onClick={() => p.surSuppressionCategorie(g.nom)}
-                      >
-                        <X size={13} />
-                      </button>
+                      {p.categories.includes(g.nom) && (
+                        <button className="bouton-icone" title="Supprimer la catégorie (les actifs sont reclassés)" aria-label={`Supprimer ${g.nom}`} onClick={() => p.surSuppressionCategorie(g.nom)}>
+                          <X size={13} />
+                        </button>
+                      )}
                     </span>
                   </>
                 )}
@@ -313,14 +375,14 @@ export function Watchlist(p: Props) {
                         data-actif={cle}
                         onClick={() => !apresGlisse.current && p.surSelection(cle)}
                         onPointerDown={(e) => demarrerGlisse(e, cle)}
-                        title={p.uneLigne ? `${nomAffiche(a)} (${cle})` : undefined}
+                        title={p.uneLigne ? `${nomAffiche(a)} (${symboleAffiche(a)})` : undefined}
                         className={`group relative flex cursor-pointer select-none items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""} ${glisse?.cle === cle ? "opacity-40" : ""} ${glisse?.cible?.cle === cle && glisse.cle !== cle ? (glisse.cible.apres ? "!border-b-2 !border-b-accent" : "shadow-[inset_0_2px_0_var(--color-accent)]") : ""}`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-1">
                         <IconeActif actif={a} taille={p.uneLigne ? 18 : 28} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 whitespace-nowrap font-semibold">
-                            {a.symbole}
+                            {symboleAffiche(a)}
                             {nbAlertes > 0 && (
                               <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} déclenchée${nbAlertes > 1 ? "s" : ""}`} className="inline-flex items-center gap-0.5 rounded-full bg-alerte px-1.5 text-[10px] font-semibold text-white">
                                 <Bell size={10} /> {nbAlertes}
@@ -345,10 +407,10 @@ export function Watchlist(p: Props) {
                             </div>
                           )}
                           <button
-                            // Une ligne : le bouton flotte au survol par-dessus la variation au lieu de réserver de la largeur.
-                            className={`bouton-icone invisible group-hover:visible ${p.uneLigne ? "absolute right-0.5 top-1/2 -translate-y-1/2 bg-carte shadow-sm" : ""}`}
+                            // Colonne réservée à droite : le bouton n'apparaît qu'au survol mais ne recouvre plus jamais le pourcentage.
+                            className="bouton-icone invisible -mr-1 shrink-0 group-hover:visible"
                             title="Déplacer / retirer"
-                            aria-label={`Options de ${a.symbole}`}
+                            aria-label={`Options de ${symboleAffiche(a)}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setMenu(menu === cle ? null : cle);
@@ -388,7 +450,7 @@ export function Watchlist(p: Props) {
                       </li>
                     );
                   })}
-                  {g.actifs.length === 0 && <li className="px-3 py-2 text-xs text-doux">Vide : déplacez-y un actif avec ⋯</li>}
+                  {g.actifs.length === 0 && <li className="px-3 py-2 text-xs text-doux">Vide : glissez-y un actif, ou utilisez ⋯</li>}
                 </ul>
               )}
             </section>

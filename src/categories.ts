@@ -1,10 +1,13 @@
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 
+/** Catégorie des actifs ajoutés sans choix : à ranger ensuite (par glisser-déposer ou par le menu ⋯). */
+export const NON_CLASSE = "Non classé";
+
 /** Catégories créées au premier lancement ; l'utilisateur peut en ajouter, renommer, supprimer. */
-export const CATEGORIES_PAR_DEFAUT = ["Cryptos", "Actions"];
+export const CATEGORIES_PAR_DEFAUT = ["Cryptos", NON_CLASSE];
 
 /** Catégorie par défaut d'un actif ajouté sans choix explicite : selon sa source. */
-export const categorieParDefaut = (a: Pick<Actif, "source">) => (a.source === "binance" ? "Cryptos" : "Actions");
+export const categorieParDefaut = (a: Pick<Actif, "source">) => (a.source === "binance" ? "Cryptos" : NON_CLASSE);
 
 /** Catégorie effective : celle choisie si elle existe encore, sinon la catégorie par défaut. */
 export function categorieDe(a: Actif, categories: string[]): string {
@@ -22,7 +25,7 @@ export interface Groupe {
 /**
  * Regroupe les actifs par catégorie (dans l'ordre des catégories) et applique le tri à l'intérieur.
  * Une catégorie vide est conservée (pour pouvoir y déplacer des actifs), sauf la catégorie par défaut
- * qui n'existerait que par accident (ex. « Actions » supprimée mais encore utilisée).
+ * qui n'existerait que par accident (ex. « Non classé » supprimée mais encore utilisée).
  */
 export function grouper(actifs: Actif[], categories: string[], tri: Tri, cotations: Record<string, Cotation>): Groupe[] {
   const noms = [...categories];
@@ -37,4 +40,14 @@ export function grouper(actifs: Actif[], categories: string[], tri: Tri, cotatio
     if (tri === "variation") liste.sort((a, b) => variation(b) - variation(a));
     return { nom, actifs: liste };
   });
+}
+
+/** Déplace une catégorie devant `avant` (ou à la fin si null). `ordre` : noms dans l'ordre affiché. Null si rien ne change. */
+export function deplacerCategorie(ordre: string[], nom: string, avant: string | null): string[] | null {
+  if (!ordre.includes(nom) || nom === avant) return null;
+  const sans = ordre.filter((n) => n !== nom);
+  const i = avant === null ? sans.length : sans.indexOf(avant);
+  if (i < 0) return null;
+  const suite = [...sans.slice(0, i), nom, ...sans.slice(i)];
+  return suite.every((n, k) => n === ordre[k]) ? null : suite;
 }
