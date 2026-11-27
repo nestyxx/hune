@@ -157,7 +157,7 @@ export function decrire(c: Condition): string {
   const nomMoyenne = (m: Moyenne) => m.toUpperCase();
   switch (c.type) {
     case "prix":
-      return `Prix ${c.sens === "au-dessus" ? "≥" : "≤"} ${n(c.seuil)}`;
+      return `Prix ${c.sens === "au-dessus" ? "≥" : "≤"} ${n(Number(c.seuil.toPrecision(6)))}`; // 6 chiffres : un objectif converti d'une autre devise n'affiche pas 59,982862
     case "variation":
       return `${c.sens === "hausse" ? "Hausse" : "Baisse"} d'au moins ${n(c.pct)} % sur ${c.periode}`;
     case "rsi":

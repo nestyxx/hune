@@ -208,7 +208,7 @@ export function Watchlist(p: Props) {
   const locaux = requete ? tous.filter((a) => a.symbole.toLowerCase().includes(requete) || a.nom.toLowerCase().includes(requete)).slice(0, 6) : [];
 
   return (
-    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : `${p.afficherCourbes ? "w-[22rem]" : "w-72"} border-r border-ligne`}`}>
+    <aside className={`flex shrink-0 flex-col bg-carte ${p.pleineLargeur ? "min-h-0 flex-1" : `${p.afficherCourbes ? "w-[22rem]" : "w-80"} border-r border-ligne`}`}>
       <div className="relative border-b border-ligne p-3">
         <Search size={15} className="pointer-events-none absolute left-[25px] top-[25px] text-doux" aria-hidden />
         <input
@@ -378,11 +378,11 @@ export function Watchlist(p: Props) {
                         title={p.uneLigne ? `${nomAffiche(a)} (${symboleAffiche(a)})` : undefined}
                         className={`group relative flex cursor-pointer select-none items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""} ${glisse?.cle === cle ? "opacity-40" : ""} ${glisse?.cible?.cle === cle && glisse.cle !== cle ? (glisse.cible.apres ? "!border-b-2 !border-b-accent" : "shadow-[inset_0_2px_0_var(--color-accent)]") : ""}`}
                       >
-                        <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-1">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden pr-2">
                         <IconeActif actif={a} taille={p.uneLigne ? 18 : 28} />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 whitespace-nowrap font-semibold">
-                            {symboleAffiche(a)}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-semibold">
+                            <span className="truncate">{symboleAffiche(a)}</span>
                             {nbAlertes > 0 && (
                               <span title={`${nbAlertes} alerte${nbAlertes > 1 ? "s" : ""} déclenchée${nbAlertes > 1 ? "s" : ""}`} className="inline-flex items-center gap-0.5 rounded-full bg-alerte px-1.5 text-[10px] font-semibold text-white">
                                 <Bell size={10} /> {nbAlertes}

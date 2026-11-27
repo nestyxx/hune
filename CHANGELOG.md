@@ -3,6 +3,13 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.16.1] - 2026-11-28
+
+### Corrigé
+- Liste d'actifs : le prix d'un jeton à très petit cours (0,00000353) ne chevauche plus le symbole ; la liste est un peu plus large et le symbole se tronque au lieu de déborder.
+- Les indices s'affichent par leur nom courant (« CAC 40 », « S&P 500 », « Nikkei 225 ») et « EUR=X » devient « USD/EUR ».
+- Alertes : un objectif converti d'une autre devise n'affiche plus des décimales parasites (« Prix ≥ 59,9829 » au lieu de « 59,982862 ») ; un actif qui n'a qu'une alerte tient sur une seule ligne, ce qui raccourcit nettement la liste.
+
 ## [0.16.0] - 2026-11-28
 
 ### Ajouté

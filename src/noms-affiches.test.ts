@@ -5,7 +5,9 @@ const y = (symbole: string) => ({ source: "yahoo" as const, symbole });
 
 describe("noms affichés", () => {
   it("retire les codes techniques des symboles", () => {
-    expect(symboleAffiche(y("^FCHI"))).toBe("FCHI");
+    expect(symboleAffiche(y("^FCHI"))).toBe("CAC 40");
+    expect(symboleAffiche(y("^INCONNU"))).toBe("INCONNU");
+    expect(symboleAffiche(y("EUR=X"))).toBe("USD/EUR");
     expect(symboleAffiche(y("GC=F"))).toBe("GC");
     expect(symboleAffiche(y("EURUSD=X"))).toBe("EUR/USD");
     expect(symboleAffiche(y("MC.PA"))).toBe("MC.PA");

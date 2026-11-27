@@ -427,7 +427,7 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
           const nbDecl = g.alertes.filter((a) => a.statut === "declenchee").length;
           return (
             <section key={g.cle || "tout"} className="overflow-hidden rounded-2xl border border-ligne bg-carte">
-              {g.cle && (
+              {g.cle && g.alertes.length > 1 && (
                 <button className="flex w-full items-center gap-2 bg-transparent px-3 py-2 text-left text-texte hover:bg-fond" onClick={() => setRepliees(replie ? repliees.filter((c) => c !== g.cle) : [...repliees, g.cle])}>
                   {replie ? <ChevronRight size={14} className="text-doux" /> : <ChevronDown size={14} className="text-doux" />}
                   {g.actif && <IconeActif actif={g.actif} taille={20} />}
@@ -439,17 +439,18 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
                   </span>
                 </button>
               )}
-              {!replie && (
+              {(!replie || g.alertes.length === 1) && (
                 <ul className="m-0 list-none p-0">
                   {g.alertes.map((a) => {
                     const o = origine(a);
                     const declenchee = a.statut === "declenchee";
                     return (
                       <li key={a.id} className={`group flex items-center gap-3 border-t border-ligne px-3 py-1.5 first:border-t-0 hover:bg-fond/60 ${g.cle ? "" : "first:border-t-0"}`}>
-                        {groupement !== "actif" && (
-                          <button className="flex w-28 shrink-0 items-center gap-1.5 bg-transparent p-0 text-left font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={() => surOuvrirActif(cleActif(a.actif))}>
+                        {(groupement !== "actif" || g.alertes.length === 1) && (
+                          <button className="flex w-44 shrink-0 items-center gap-1.5 bg-transparent p-0 text-left font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={() => surOuvrirActif(cleActif(a.actif))}>
                             <IconeActif actif={a.actif} taille={18} />
                             <span className="truncate">{symboleAffiche(a.actif)}</span>
+                            {groupement === "actif" && <span className="truncate text-xs font-normal text-doux">{nomAffiche(a.actif)}</span>}
                           </button>
                         )}
                         <span className={`h-2 w-2 shrink-0 rounded-full ${declenchee ? "bg-alerte" : "bg-hausse"}`} title={declenchee ? "Déclenchée" : "Armée"} />

@@ -35,12 +35,13 @@ const NOMS: Record<string, string> = {
   "KC=F": "Café",
 };
 
-/** Symbole affiché : sans le « ^ » des indices, sans le « =F » des matières premières, « EUR/USD » pour « EURUSD=X ». */
+/** Symbole affiché : le nom courant d'un indice (« CAC 40 »), sinon sans le « ^ », sans le « =F » des matières premières, « EUR/USD » pour « EURUSD=X ». */
 export function symboleAffiche(a: Pick<Actif, "source" | "symbole">): string {
   if (a.source !== "yahoo") return a.symbole;
   const s = a.symbole;
-  if (s.startsWith("^")) return s.slice(1);
+  if (s.startsWith("^")) return NOMS[s] ?? s.slice(1);
   if (/^[A-Z]{6}=X$/.test(s)) return `${s.slice(0, 3)}/${s.slice(3, 6)}`;
+  if (/^[A-Z]{3}=X$/.test(s)) return `USD/${s.slice(0, 3)}`; // « EUR=X » : combien d'euros pour un dollar
   if (s.endsWith("=F")) return s.slice(0, -2);
   return s;
 }

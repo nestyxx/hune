@@ -59,7 +59,8 @@ export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotat
         <h1 className="m-0 flex items-center gap-2 truncate text-[13px] font-medium text-doux">
           <IconeActif actif={actif} taille={22} />
           <span className="truncate">
-            <span className="text-texte">{symboleAffiche(actif)}</span> · {nomAffiche(actif)}
+            <span className="text-texte">{symboleAffiche(actif)}</span>
+            {nomAffiche(actif) !== symboleAffiche(actif) && <> · {nomAffiche(actif)}</>}
           </span>
         </h1>
         <div className="mt-0.5 flex items-baseline gap-3">
