@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Groupe } from "./categories";
 import { useNouvellesActualites } from "./actualites-vues";
+import { CapitalisationMarche } from "./capitalisation-marche";
 import { EnTete } from "./composants";
 import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donnees/sentiment";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
@@ -92,6 +93,8 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
           <ul className="m-0 list-none p-0">{variations.baisses.map(ligne)}</ul>
         </div>
       </div>
+
+      <CapitalisationMarche />
 
       {groupes
         .filter((g) => g.actifs.length)

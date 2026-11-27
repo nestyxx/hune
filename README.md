@@ -67,7 +67,7 @@ Un **graphique de l'évolution de la valeur** (24 h à tout l'historique, recons
 
 ### Vue d'ensemble du marché
 
-Une carte thermique de votre watchlist par catégorie, les plus fortes hausses et baisses du moment, et l'indice crypto *Fear & Greed*.
+Une carte thermique de votre watchlist par catégorie, les plus fortes hausses et baisses du moment, et l'indice crypto *Fear & Greed*. Sous les cartes, la **capitalisation du marché crypto** : dominance du Bitcoin, capitalisation totale, total sans Bitcoin (TOTAL2) et sans Bitcoin ni Ethereum (TOTAL3), avec variation sur 24 h (les valeurs diffèrent de quelques pour cent de celles de TradingView, qui s'arrête aux 125 premiers jetons).
 
 <p align="center">
   <picture>
@@ -125,7 +125,7 @@ Vous avez déjà vos positions dans un tableur ? Voir [`scripts/importer-excel.p
 
 ## Confidentialité et réseau
 
-Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Un bouton « Actualités » rouge, avec le nombre d'articles, signale ceux de moins de 24 h que vous n'avez pas ouverts : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Les vrais noms des cryptos (Bitcoin, Ethereum…) sont lus une fois par jeton via la même recherche. Si vous activez la synchronisation, le fichier `hune-sync.json` est écrit dans le dossier que vous avez choisi et transporté par votre propre Drive ; Hune ne l'envoie nulle part. Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
+Hune ne contacte que des services publics de données, **sans jamais leur envoyer d'information vous concernant** : Binance (prix crypto), Yahoo Finance (actions et devises), alternative.me (indice Fear & Greed), CoinGecko (capitalisation du marché crypto) et GitHub (recherche de mises à jour). Les boutons **Actualités** et **CoinMarketCap / Fiche** au-dessus du graphique n'envoient rien d'eux-mêmes : ils ouvrent la page de l'actif (Yahoo Finance, CoinMarketCap, CoinGecko) dans votre navigateur, seulement quand vous cliquez, avec le symbole pour seule information. Un bouton « Actualités » rouge, avec le nombre d'articles, signale ceux de moins de 24 h que vous n'avez pas ouverts : Hune lit pour cela les titres via la recherche Yahoo Finance (actif affiché seulement). Les vrais noms des cryptos (Bitcoin, Ethereum…) sont lus une fois par jeton via la même recherche. Si vous activez la synchronisation, le fichier `hune-sync.json` est écrit dans le dossier que vous avez choisi et transporté par votre propre Drive ; Hune ne l'envoie nulle part. Vos données sont dans `%APPDATA%\io.github.nestyxx.hune\hune.json`. Détails dans [SECURITY.md](SECURITY.md).
 
 ## Limites à connaître
 

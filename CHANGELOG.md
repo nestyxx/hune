@@ -3,6 +3,12 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.15.0] - 2026-11-27
+
+### Ajouté
+- **Capitalisation du marché crypto** sur l'écran Marché : dominance du Bitcoin, capitalisation totale, total sans Bitcoin (« TOTAL2 ») et total sans Bitcoin ni Ethereum (« TOTAL3 »), avec leur variation sur 24 h et une mini-courbe. Source : l'API publique CoinGecko (une requête toutes les 5 minutes, sans clé ni compte). CoinGecko compte plus de 20 000 jetons là où TradingView s'arrête aux 125 premiers : les valeurs diffèrent de 2 à 6 %, la tendance est la même (info-bulle sur le titre).
+  - L'API gratuite ne fournit que la valeur du moment : Hune construit l'historique localement, un point tous les 15 minutes (30 jours gardés). Les courbes et les variations de 24 h apparaissent donc après une journée d'utilisation ; en attendant, seule la variation de la capitalisation totale, donnée par CoinGecko, est affichée.
+
 ## [0.14.1] - 2026-11-26
 
 ### Ajouté
