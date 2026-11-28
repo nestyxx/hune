@@ -113,12 +113,14 @@ th {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
+/* Boutons : une seule famille. Secondaire = contour bleu ; principal (.bouton-actif) = plein bleu. */
 .bouton {
   background: var(--color-carte);
-  border: 1px solid var(--color-ligne);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-ligne));
   border-radius: 10px;
   padding: 5px 12px;
-  color: var(--color-texte);
+  font-weight: 500;
+  color: var(--color-accent);
   transition:
     background 0.15s,
     border-color 0.15s,
@@ -127,7 +129,7 @@ th {
 }
 .bouton:hover:not(:disabled) {
   background: var(--color-accent-doux);
-  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-ligne));
+  border-color: var(--color-accent);
 }
 .bouton:active:not(:disabled) {
   transform: translateY(1px);

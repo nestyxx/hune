@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.18.0] - 2026-11-28
+
+### Modifié
+- **Boutons unifiés** dans toute l'interface, sur le modèle du bouton bleu des alertes : une action principale est un bouton plein bleu (« Ajouter une position », « Nouvelle alerte », « Installer et redémarrer »…), toutes les autres actions sont des boutons à contour bleu, avec le même rayon, la même épaisseur de texte et le même survol.
+
 ## [0.17.0] - 2026-11-28
 
 ### Ajouté

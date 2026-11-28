@@ -422,7 +422,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           ))}
         </div>
         <input className="champ" placeholder="Filtrer…" value={filtre} onChange={(e) => setFiltre(e.target.value)} />
-        <button className="bouton" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", stop: "", plateforme: "", saisie: "" })}>
+        <button className="bouton bouton-actif" onClick={() => setFormulaire(formulaire ? null : { cle: actifs[0] ? cleActif(actifs[0]) : "", quantite: "", pamp: "", objectif: "", stop: "", plateforme: "", saisie: "" })}>
           <Plus size={14} /> Ajouter une position
         </button>
         <button className="bouton" title="Crée une alerte « prix ≥ objectif » pour chaque objectif saisi" onClick={preparerAlertesTp}>
