@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Plus, RotateCcw, Search, X } from "lucide-react";
 import { IconeActif } from "../icone-actif";
-import { nomAffiche } from "../noms-cryptos";
+import { libelleSecondaire, nomAffiche } from "../noms-cryptos";
 import { symboleAffiche } from "../noms-affiches";
 import { EnTete } from "../composants";
 import { cleActif, INTERVALLES, LIBELLE_INTERVALLE, type Actif, type Intervalle } from "../donnees/types";
@@ -25,6 +25,8 @@ interface Props {
   actifParDefaut: string | null;
   /** Catégorie de la liste d'un actif (pour regrouper les alertes par catégorie). */
   categorieDe: (a: Actif) => string;
+  /** Dernier prix connu d'un actif (clé `source:symbole`) : sert au tri par distance et à l'écart affiché. */
+  prixDe: (cle: string) => number | undefined;
   alertes: Alerte[];
   surCreation: (a: Alerte) => void;
   /** Remplace l'alerte de même `id` (réarmée). */
@@ -57,7 +59,7 @@ function Liste({ titre, children }: { titre: string; children: React.ReactNode }
 
 type FiltreEtat = "toutes" | "armees" | "declenchees";
 type Groupement = "actif" | "categorie" | "etat" | "aucun";
-type TriAlertes = "recentes" | "actif";
+type TriAlertes = "recentes" | "actif" | "distance";
 const LIBELLE_GROUPEMENT: Record<Groupement, string> = { actif: "Par actif", categorie: "Par catégorie", etat: "Par état", aucun: "Sans groupe" };
 
 /** D'où vient l'alerte : saisie à la main, ou créée automatiquement par l'objectif (TP) ou le stop loss d'un lot du portefeuille. */
@@ -73,7 +75,7 @@ function texteValeur(a: Alerte): string {
 }
 
 /** Onglet « Alertes » : formulaire de création + liste (armées / déclenchées avec bouton Réarmer). */
-export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, surCreation, surModification, surRearmement, surSuppression, surOuvrirActif, editerId, surEditionOuverte, derniereVerification, erreur, periodeS }: Props) {
+export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, prixDe, alertes, surCreation, surModification, surRearmement, surSuppression, surOuvrirActif, editerId, surEditionOuverte, derniereVerification, erreur, periodeS }: Props) {
   const [cle, setCle] = useState<string>("");
   const [type, setType] = useState<TypeFormulaire>("prix");
   const [sensPrix, setSensPrix] = useState<"au-dessus" | "en-dessous">("au-dessus");
@@ -214,6 +216,11 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
     setMessage(null);
   };
 
+  /** Écart relatif entre le seuil d'une alerte de prix et le prix actuel (null pour les autres alertes ou sans prix). */
+  const ecart = (a: Alerte): number | null => {
+    const prix = prixDe(cleActif(a.actif));
+    return a.condition.type === "prix" && prix ? (a.condition.seuil - prix) / prix : null;
+  };
   const nbArmees = alertes.filter((x) => x.statut === "armee").length;
   const nbDeclenchees = alertes.length - nbArmees;
   /** Alertes affichées (filtre d'état et recherche), les déclenchées d'abord puis selon le tri choisi. */
@@ -221,7 +228,11 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
     const q = recherche.trim().toLowerCase();
     const liste = alertes.filter((a) => (filtre === "toutes" || (filtre === "armees") === (a.statut === "armee")) && (!q || `${a.actif.symbole} ${nomAffiche(a.actif)} ${decrire(a.condition)}`.toLowerCase().includes(q)));
     return liste.sort(
-      (a, b) => Number(b.statut === "declenchee") - Number(a.statut === "declenchee") || (tri === "actif" ? symboleAffiche(a.actif).localeCompare(symboleAffiche(b.actif), "fr") || b.creeeLe - a.creeeLe : (b.declencheeLe ?? b.creeeLe) - (a.declencheeLe ?? a.creeeLe)),
+      (a, b) => Number(b.statut === "declenchee") - Number(a.statut === "declenchee") || (tri === "actif"
+        ? symboleAffiche(a.actif).localeCompare(symboleAffiche(b.actif), "fr") || b.creeeLe - a.creeeLe
+        : tri === "distance"
+          ? Math.abs(ecart(a) ?? Infinity) - Math.abs(ecart(b) ?? Infinity) || b.creeeLe - a.creeeLe
+          : (b.declencheeLe ?? b.creeeLe) - (a.declencheeLe ?? a.creeeLe)),
     );
   })();
   /** Groupes affichés ; ceux qui contiennent une alerte déclenchée passent en premier. */
@@ -397,7 +408,17 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
           <select className="champ" aria-label="Trier" value={tri} onChange={(e) => setTri(e.target.value as TriAlertes)}>
             <option value="recentes">Plus récentes d'abord</option>
             <option value="actif">Actif A → Z</option>
+            <option value="distance">Plus proches du prix</option>
           </select>
+          {groupement !== "aucun" && groupes.some((g) => g.alertes.length > 1) && (
+            <button
+              className="bouton"
+              title={repliees.length ? "Déplier tous les groupes" : "Replier tous les groupes (ceux d'une seule alerte restent visibles)"}
+              onClick={() => setRepliees(repliees.length ? [] : groupes.filter((g) => g.cle && g.alertes.length > 1).map((g) => g.cle))}
+            >
+              {repliees.length ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {repliees.length ? "Tout déplier" : "Tout replier"}
+            </button>
+          )}
           {nbDeclenchees > 0 && (
             <span className="ml-auto flex items-center gap-2">
               <button className="bouton" title="Réarme toutes les alertes déclenchées" onClick={() => alertes.filter((a) => a.statut === "declenchee").forEach((a) => surRearmement(a.id))}>
@@ -432,7 +453,7 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
                   {replie ? <ChevronRight size={14} className="text-doux" /> : <ChevronDown size={14} className="text-doux" />}
                   {g.actif && <IconeActif actif={g.actif} taille={20} />}
                   <span className="font-semibold">{g.titre}</span>
-                  {g.actif && <span className="min-w-0 truncate text-xs text-doux">{nomAffiche(g.actif)}</span>}
+                  {g.actif && <span className="min-w-0 truncate text-xs text-doux">{libelleSecondaire(g.actif)}</span>}
                   <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-doux">
                     {nbDecl > 0 && <span className="rounded-full bg-alerte px-1.5 text-[10px] font-semibold text-white">{nbDecl} déclenchée{nbDecl > 1 ? "s" : ""}</span>}
                     {g.alertes.length} alerte{g.alertes.length > 1 ? "s" : ""}
@@ -450,13 +471,13 @@ export function PanneauAlertes({ actifs, actifParDefaut, categorieDe, alertes, s
                           <button className="flex w-44 shrink-0 items-center gap-1.5 bg-transparent p-0 text-left font-semibold text-texte hover:text-accent" title="Voir le graphique" onClick={() => surOuvrirActif(cleActif(a.actif))}>
                             <IconeActif actif={a.actif} taille={18} />
                             <span className="truncate">{symboleAffiche(a.actif)}</span>
-                            {groupement === "actif" && <span className="truncate text-xs font-normal text-doux">{nomAffiche(a.actif)}</span>}
+                            {groupement === "actif" && <span className="truncate text-xs font-normal text-doux">{libelleSecondaire(a.actif)}</span>}
                           </button>
                         )}
                         <span className={`h-2 w-2 shrink-0 rounded-full ${declenchee ? "bg-alerte" : "bg-hausse"}`} title={declenchee ? "Déclenchée" : "Armée"} />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm">{decrire(a.condition)}</div>
-                          <div className="truncate text-xs text-doux">{declenchee ? `Déclenchée le ${new Date(a.declencheeLe!).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · valeur ${texteValeur(a)}` : `Armée depuis le ${new Date(a.creeeLe).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>
+                          <div className="truncate text-xs text-doux">{declenchee ? `Déclenchée le ${new Date(a.declencheeLe!).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · valeur ${texteValeur(a)}` : `Armée depuis le ${new Date(a.creeeLe).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}${ecart(a) != null ? ` · à ${Math.abs(ecart(a)! * 100).toFixed(Math.abs(ecart(a)!) < 0.1 ? 1 : 0).replace(".", ",")} % du prix actuel` : ""}`}</div>
                         </div>
                         {o && (
                           <span className="shrink-0 rounded-full border border-ligne px-2 text-[11px] text-doux" title={o.aide}>

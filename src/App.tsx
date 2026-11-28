@@ -272,6 +272,8 @@ export default function App() {
   }, []);
 
   const changerAlertes = useCallback((modifier: (liste: Alerte[]) => Alerte[]) => setAlertes((prec) => modifier(prec)), []);
+  const selectionRef = useRef<string | null>(null);
+  selectionRef.current = selection;
   const positionsRef = useRef<Position[]>([]);
   positionsRef.current = positions;
   const cotationsRef = useRef<Record<string, Cotation>>({});
@@ -398,6 +400,24 @@ export default function App() {
         return l.filter((x) => x.id !== id);
       }),
     [changerAlertes],
+  );
+  /** Objectif ou stop tiré à la souris sur le graphique : les lots de l'actif affiché qui portaient ce niveau le prennent (leur alerte suit). */
+  const deplacerNiveau = useCallback(
+    (champ: "objectif" | "stop", ancien: number, nouveau: number) => {
+      const cle = selectionRef.current;
+      if (!cle) return;
+      const saisi = champ === "objectif" ? "objectifSaisi" : "stopSaisi";
+      changerPositions((l) =>
+        l.map((p) => {
+          if (p.cle !== cle || p[champ] !== ancien) return p;
+          // Un niveau noté dans une autre devise garde sa proportion avec la valeur convertie.
+          const s = p[saisi];
+          return { ...p, [champ]: nouveau, ...(s != null ? { [saisi]: Number((s * (nouveau / ancien)).toPrecision(8)) } : {}) };
+        }),
+      );
+      prevenir(`${champ === "objectif" ? "Objectif (TP)" : "Stop loss"} déplacé à ${formaterPrix(nouveau)} ; son alerte suit.`);
+    },
+    [changerPositions, prevenir],
   );
   const alertesPrixHaut = useMemo(() => alertes.filter((a) => a.statut === "armee" && a.condition.type === "prix" && a.condition.sens === "au-dessus").map((a) => ({ cle: cleActif(a.actif), seuil: (a.condition as { seuil: number }).seuil })), [alertes]);
 
@@ -646,7 +666,8 @@ export default function App() {
                       sommets={reglages.sommets !== false}
                       surSommets={(sommets) => setReglages((r) => ({ ...r, sommets }))}
                       dessins={dessinsActif}
-                      surDessins={(liste) => setDessins((prec) => ({ ...prec, [actifSelectionne ? cleActif(actifSelectionne) : ""]: liste }))}
+                      surDeplacerNiveau={deplacerNiveau}
+                  surDessins={(liste) => setDessins((prec) => ({ ...prec, [actifSelectionne ? cleActif(actifSelectionne) : ""]: liste }))}
                     />
                   </>
                 ) : (
@@ -683,6 +704,7 @@ export default function App() {
                   actifs={actifs}
                   actifParDefaut={selection}
                   categorieDe={(x) => categorieDe(x, categories)}
+                  prixDe={(cle) => cotations[cle]?.prix}
                   alertes={alertes}
                   surCreation={(a) => changerAlertes((l) => [...l, a])}
                   surModification={(m) => {

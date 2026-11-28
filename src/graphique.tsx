@@ -142,6 +142,8 @@ interface Props {
   /** Tracés de l'utilisateur sur cet actif. */
   dessins: Dessin[];
   surDessins: (d: Dessin[]) => void;
+  /** Niveau du portefeuille (objectif ou stop) tiré à la souris : le lot qui le porte prend la nouvelle valeur. */
+  surDeplacerNiveau: (champ: "objectif" | "stop", ancien: number, nouveau: number) => void;
   /** Valeurs écrites aux plus hauts et plus bas dominants (comme sur ProRealTime). */
   sommets: boolean;
   surSommets: (v: boolean) => void;
@@ -163,7 +165,7 @@ interface Legende {
   v: number;
 }
 
-export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte, surDeplacerAlerte, surEditerAlerte, surSupprimerAlerte, niveaux, lignesPortefeuille, surLignesPortefeuille, dessins, surDessins, sommets, surSommets }: Props) {
+export function Graphique({ actif, intervalle, surIntervalle, profondeur, surProfondeur, indicateurs, surIndicateurs, parametres, surParametres, typeGraphique, surTypeGraphique, surPrix, theme, alertes, echelleLog, surEchelleLog, signalRecentrer, surCreerAlerte, surDeplacerAlerte, surEditerAlerte, surSupprimerAlerte, niveaux, lignesPortefeuille, surLignesPortefeuille, dessins, surDessins, surDeplacerNiveau, sommets, surSommets }: Props) {
   const sommetsRef = useRef(sommets);
   sommetsRef.current = sommets;
   const enveloppe = useRef<HTMLDivElement>(null);
@@ -171,6 +173,9 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
   const calque = useRef<CalqueDessins | null>(null);
   const marqueurs = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const lignesPortefeuilleRef = useRef<IPriceLine[]>([]);
+  /** Lignes TP / Stop du portefeuille (déplaçables) et glissement en cours. */
+  const lignesNiveaux = useRef<{ champ: "objectif" | "stop"; prix: number; ligne: IPriceLine }[]>([]);
+  const glissementNiveau = useRef<{ champ: "objectif" | "stop"; ancien: number; prix: number; departY: number; bouge: boolean } | null>(null);
   /** Lignes d'alerte de prix par identifiant (pour les déplacer pendant un glissement). */
   const lignesAlertesParId = useRef(new Map<string, IPriceLine>());
   /** Alerte en cours de déplacement à la souris. */
@@ -192,8 +197,8 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
   const lignesRef = useRef(lignesPortefeuille);
   lignesRef.current = lignesPortefeuille;
   /** Rappels du parent, lisibles depuis les écouteurs natifs (créés une seule fois). */
-  const rappels = useRef({ surDessins, surDeplacerAlerte, surEditerAlerte });
-  rappels.current = { surDessins, surDeplacerAlerte, surEditerAlerte };
+  const rappels = useRef({ surDessins, surDeplacerAlerte, surEditerAlerte, surDeplacerNiveau });
+  rappels.current = { surDessins, surDeplacerAlerte, surEditerAlerte, surDeplacerNiveau };
   const graphique = useRef<IChartApi | null>(null);
   const principale = useRef<ISeriesApi<SeriesType> | null>(null);
   const typePrincipale = useRef<TypeGraphique | null>(null);
@@ -394,6 +399,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     lignesAlertesParId.current.clear();
     for (const l of lignesPortefeuilleRef.current) prin.removePriceLine(l);
     lignesPortefeuilleRef.current = [];
+    lignesNiveaux.current = [];
 
     const b = donnees.current;
     if (!b.length) return;
@@ -471,11 +477,16 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     const niv = niveauxRef.current;
     const reperes: SeriesMarker<Time>[] = [];
     if (niv && lignesRef.current) {
-      const niveau = (price: number, title: string, color: string, lineStyle: LineStyle) =>
-        lignesPortefeuilleRef.current.push(prin.createPriceLine({ price, title, color, lineWidth: 1, lineStyle, axisLabelVisible: true }));
+      const niveau = (price: number, title: string, color: string, lineStyle: LineStyle, champ?: "objectif" | "stop") => {
+        // Pendant un glissement, la ligne reste là où la souris l'a posée même si un nouveau prix déclenche un redessin.
+        const affiche = champ && glissementNiveau.current?.champ === champ ? glissementNiveau.current.prix : price;
+        const ligne = prin.createPriceLine({ price: affiche, title, color, lineWidth: 1, lineStyle, axisLabelVisible: true });
+        lignesPortefeuilleRef.current.push(ligne);
+        if (champ) lignesNiveaux.current.push({ champ, prix: price, ligne });
+      };
       if (niv.pamp != null) niveau(niv.pamp, "PAMP", p.accent, LineStyle.LargeDashed);
-      if (niv.objectif != null) niveau(niv.objectif, "TP", p.hausse, LineStyle.LargeDashed);
-      if (niv.stop != null) niveau(niv.stop, "Stop", p.baisse, LineStyle.LargeDashed);
+      if (niv.objectif != null) niveau(niv.objectif, "TP", p.hausse, LineStyle.LargeDashed, "objectif");
+      if (niv.stop != null) niveau(niv.stop, "Stop", p.baisse, LineStyle.LargeDashed, "stop");
       for (const a of niv.achats) niveau(a.prix, a.plateforme ? `Achat · ${a.plateforme}` : "Achat", p.texte, LineStyle.Dotted);
       // Chaque transaction est posée sur la bougie qui la contient (la dernière bougie ouverte avant l'instant de l'ordre).
       for (const m of niv.mouvements) {
@@ -595,6 +606,15 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
     return { temps: tempsDepuisIndice(tempsBougies(), Math.round(logique), SECONDES_INTERVALLE[intervalleRef.current]), prix };
   };
 
+  /** Ligne TP ou Stop du portefeuille qui passe à moins de 6 px de la hauteur y. */
+  const niveauSous = (y: number) => {
+    for (const n of lignesNiveaux.current) {
+      const ligneY = principale.current?.priceToCoordinate(n.prix);
+      if (ligneY != null && Math.abs(ligneY - y) <= 6) return n;
+    }
+    return null;
+  };
+
   /** Alerte de prix dont la ligne passe à moins de 6 px de la hauteur y. */
   const alerteSous = (y: number): Alerte | null => {
     for (const a of alertesRef.current) {
@@ -683,6 +703,13 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         glissement.current = { id: a.id, prix: a.condition.seuil, departY: y, bouge: false };
         return;
       }
+      const nv = niveauSous(y);
+      if (nv) {
+        bloque = true;
+        e.stopPropagation();
+        glissementNiveau.current = { champ: nv.champ, ancien: nv.prix, prix: nv.prix, departY: y, bouge: false };
+        return;
+      }
       // Un tracé existant se déplace à la souris : par une extrémité (pour le redimensionner) ou par le corps (pour le translater).
       const prise = calque.current?.partie(x, y, zonePrix().largeur);
       const original = prise ? dessinsRef.current.find((d) => d.id === prise.id) : undefined;
@@ -702,6 +729,17 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         deplace.bouge = true;
         zone.style.cursor = "grabbing";
         appliquerDeplacement(x, y);
+        return;
+      }
+      const gn = glissementNiveau.current;
+      if (gn) {
+        if (Math.abs(y - gn.departY) > 3) gn.bouge = true;
+        const brut = gn.bouge ? principale.current?.coordinateToPrice(y) : null;
+        const prix = brut != null ? aimanterPrix(x, brut) : null;
+        if (prix != null && prix > 0) {
+          gn.prix = prix;
+          lignesNiveaux.current.find((n) => n.champ === gn.champ)?.ligne.applyOptions({ price: prix });
+        }
         return;
       }
       const g = glissement.current;
@@ -732,7 +770,7 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
         }
         zone.style.cursor = id ? "pointer" : "";
       } else if (o !== "curseur") zone.style.cursor = dans ? "crosshair" : "";
-      else zone.style.cursor = dans && alerteSous(y) ? "ns-resize" : dans && calque.current?.toucher(x, y, zonePrix().largeur) ? "grab" : "";
+      else zone.style.cursor = dans && (alerteSous(y) || niveauSous(y)) ? "ns-resize" : dans && calque.current?.toucher(x, y, zonePrix().largeur) ? "grab" : "";
     };
 
     const haut = (e: PointerEvent) => {
@@ -745,6 +783,12 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           calque.current.dessins = dessinsRef.current;
           calque.current.actualiser();
         }
+      }
+      const gn = glissementNiveau.current;
+      if (gn) {
+        glissementNiveau.current = null;
+        if (gn.bouge) rappels.current.surDeplacerNiveau(gn.champ, gn.ancien, arrondirPrix(gn.prix));
+        else dessinerIndicateurs();
       }
       const g = glissement.current;
       if (g) {
@@ -792,8 +836,9 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           calque.current.actualiser();
         }
       }
-      if (glissement.current) {
+      if (glissement.current || glissementNiveau.current) {
         glissement.current = null;
+        glissementNiveau.current = null;
         dessinerIndicateurs(); // la ligne revient à son seuil d'origine
       }
       if (ancre.current || outilRef.current !== "curseur") finir();

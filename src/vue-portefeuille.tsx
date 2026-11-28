@@ -3,7 +3,7 @@ import { Bell, ChevronDown, ChevronRight, ChevronUp, Download, Plus, Upload, X }
 import { GraphiquePortefeuille } from "./graphique-portefeuille";
 import type { EntreeHistorique, PeriodePortefeuille } from "./historique-portefeuille";
 import { IconeActif } from "./icone-actif";
-import { nomAffiche, nomEstUnePaire, useNomsCryptos } from "./noms-cryptos";
+import { libelleSecondaire, nomAffiche, nomEstUnePaire, useNomsCryptos } from "./noms-cryptos";
 import { symboleAffiche } from "./noms-affiches";
 import { ImportTransactions } from "./import-transactions-panneau";
 import type { ThemeResolu } from "./theme";
@@ -161,6 +161,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   const [taux, setTaux] = useState<Record<string, number>>({ EUR: 1 });
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [filtre, setFiltre] = useState("");
+  const [seulementSansPamp, setSeulementSansPamp] = useState(false);
   const [confirmationTp, setConfirmationTp] = useState<{ actif: Actif; prix: number }[] | null>(null);
   const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; stop: string; plateforme: string; saisie: string } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -270,14 +271,21 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
 
   const affichees = useMemo(() => {
     const f = filtre.trim().toLowerCase();
-    const liste = lignes.filter((l) => !f || l.actif.symbole.toLowerCase().includes(f) || l.actif.nom.toLowerCase().includes(f));
-    const valeur = (l: LignePortefeuille) => (tri.col === "symbole" ? l.actif.symbole : (l[tri.col] ?? -Infinity));
+    const liste = lignes.filter((l) => (!f || l.actif.symbole.toLowerCase().includes(f) || l.actif.nom.toLowerCase().includes(f) || symboleAffiche(l.actif).toLowerCase().includes(f)) && (!seulementSansPamp || (l.pamp == null && l.quantite > 0)));
+    const valeur = (l: LignePortefeuille) => (tri.col === "symbole" ? symboleAffiche(l.actif) : (l[tri.col] ?? -Infinity));
     return liste.sort((a, b) => {
       const x = valeur(a);
       const y = valeur(b);
       return (typeof x === "string" ? x.localeCompare(y as string, "fr") : (x as number) - (y as number)) * tri.sens;
     });
-  }, [lignes, filtre, tri]);
+  }, [lignes, filtre, tri, seulementSansPamp]);
+  /** Positions sans prix d'achat : leur P&L est inconnu, donc absent du P&L latent et de la base de coût. */
+  const sansPamp = useMemo(() => {
+    const l = lignes.filter((x) => x.pamp == null && x.quantite > 0);
+    return { nb: l.length, valeurEur: l.reduce((s, x) => s + (x.valeurEur ?? 0), 0) };
+  }, [lignes]);
+  /** Aucun prix ou taux de change reçu pour l'instant (démarrage) : on montre « … » plutôt qu'un faux « 0 € ». */
+  const enChargement = lignes.length > 0 && tot.nonValorisees === lignes.length;
 
   const entete = (col: Colonne, libelle: string, droite = true) => (
     <th className={`cursor-pointer select-none whitespace-nowrap px-2 py-2 font-normal text-doux hover:text-texte ${droite ? "text-right" : "text-left"}`} onClick={() => surTri({ col, sens: tri.col === col ? (-tri.sens as 1 | -1) : -1 })}>
@@ -343,7 +351,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="carte-info p-4">
           <div className="text-xs text-doux">Valeur totale</div>
-          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{m(tot.valeurEur)}</div>
+          <div className="titre-serif whitespace-nowrap text-[34px] leading-none">{enChargement ? "…" : m(tot.valeurEur)}</div>
           {variationJour && (
             <div className={`text-xs ${classePct(variationJour.pct)}`} title="Variation de la valeur selon la définition choisie dans Réglages (24 h glissantes ou depuis 00:00 UTC)">
               {variationJour.pct >= 0 ? "+" : "−"}{m(Math.abs(variationJour.deltaEur))} · {formaterPct(variationJour.pct)}
@@ -360,11 +368,11 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
             </div>
           )}
           {tauxManquant && <div className="text-xs text-alerte">Taux EUR/USD indisponible : montants non convertis.</div>}
-          {tot.nonValorisees > 0 && <div className="text-xs text-alerte">{tot.nonValorisees} ligne{tot.nonValorisees > 1 ? "s" : ""} non valorisée{tot.nonValorisees > 1 ? "s" : ""} (prix ou change manquant)</div>}
+          {tot.nonValorisees > 0 && !enChargement && <div className="text-xs text-alerte">{tot.nonValorisees} ligne{tot.nonValorisees > 1 ? "s" : ""} non valorisée{tot.nonValorisees > 1 ? "s" : ""} (prix ou change manquant)</div>}
         </div>
         <div className="carte-info p-4">
           <div className="text-xs text-doux" title="Calculé sur les lots dont le prix d'achat moyen (PAMP) est connu">P&amp;L latent</div>
-          <div className={`titre-serif whitespace-nowrap text-[34px] leading-none ${classePct(tot.pnlEur)}`}>{m(tot.pnlEur)}</div>
+          <div className={`titre-serif whitespace-nowrap text-[34px] leading-none ${enChargement ? "" : classePct(tot.pnlEur)}`}>{enChargement ? "…" : m(tot.pnlEur)}</div>
           <div className={`text-xs ${classePct(tot.pnlPct)}`}>{formaterPct(tot.pnlPct)}</div>
           {gainsRealises != null && (
             <div className="mt-0.5 text-xs text-doux" title="Gains réalisés sur les ventes de l'historique de transactions importé (méthode du prix moyen, hors frais)">
@@ -524,6 +532,18 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       )}
       {info && <p className="m-0 text-xs text-doux">{info}</p>}
 
+      {sansPamp.nb > 0 && !enChargement && (
+        <button
+          className={`puce self-start ${seulementSansPamp ? "!border-alerte !bg-alerte/10 !text-alerte" : ""}`}
+          aria-pressed={seulementSansPamp}
+          title="Le prix d'achat moyen (PAMP) de ces positions n'est pas renseigné : leur plus ou moins-value n'est pas comptée dans le P&L latent ni dans la base de coût. Cliquez pour ne voir que celles-ci."
+          onClick={() => setSeulementSansPamp(!seulementSansPamp)}
+        >
+          {sansPamp.nb} position{sansPamp.nb > 1 ? "s" : ""} sans PAMP · {m(sansPamp.valeurEur)}
+          {tot.valeurEur > 0 ? ` (${pourcent(sansPamp.valeurEur / (tot.valeurEur || 1))} du portefeuille)` : ""} · {seulementSansPamp ? "afficher tout" : "les voir"}
+        </button>
+      )}
+
       {lignes.length > 0 && (
         <div className="segments" role="group" aria-label="Contenu du tableau">
           <button aria-pressed={vue === "actifs"} className="segment" onClick={() => setVue("actifs")}>
@@ -595,8 +615,7 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
                 {entete("pnlPct", "P&L %")}
                 {entete("pnlEur", `P&L ${symbole}`)}
                 {entete("poids", "Poids")}
-                {entete("versObjectifPct", "Objectif (TP)")}
-                <th className="whitespace-nowrap px-2 py-2 text-right font-normal text-doux" title="Prix de sortie en cas de baisse ; une alerte « prix ≤ stop » est créée automatiquement">Stop loss</th>
+                {entete("versObjectifPct", "Objectif (TP) · Stop")}
               </tr>
             </thead>
             <tbody>
@@ -607,6 +626,19 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Avancement du prix de la base (prix d'achat, sinon stop) vers l'objectif ; rouge si le prix est sous la base. */
+function BarreVersObjectif({ l }: { l: LignePortefeuille }) {
+  const base = l.pamp ?? l.stop ?? l.prix!;
+  if (l.objectif == null || l.prix == null || !(l.objectif > base)) return null;
+  const sous = l.prix < base;
+  const part = Math.max(0, Math.min(1, (l.prix - base) / (l.objectif - base)));
+  return (
+    <div className="h-1 w-full overflow-hidden rounded-full bg-fond" role="img" aria-label={`${Math.round(part * 100)} % du chemin vers l'objectif`} title={sous ? "Le prix est sous votre prix d'achat" : `${Math.round(part * 100)} % du chemin entre votre prix d'achat et l'objectif`}>
+      <div className={`h-full rounded-full ${sous ? "bg-baisse" : "bg-hausse"}`} style={{ width: `${sous ? 6 : Math.max(4, part * 100)}%` }} />
     </div>
   );
 }
@@ -627,8 +659,8 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
             {symboleAffiche(l.actif)}
           </button>
           {!nomEstUnePaire(nomAffiche(l.actif)) && (
-            <span className="max-w-[210px] truncate text-doux" title={nomAffiche(l.actif)}>
-              {nomAffiche(l.actif)}
+            <span className="max-w-[210px] truncate text-doux" title={`${nomAffiche(l.actif)} · ${libelleSecondaire(l.actif)}`}>
+              {libelleSecondaire(l.actif)}
             </span>
           )}
           {l.lots.length > 1 && <span className="shrink-0 text-xs text-doux">({l.lots.length} lots)</span>}
@@ -639,7 +671,7 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
           {l.estimee && <span title="Quantité estimée à partir du montant importé" className="text-alerte"> ≈</span>}
         </td>
         <td className="whitespace-nowrap px-2 text-right font-mono text-doux">
-          {l.pamp != null ? formaterPrix(l.pamp) : "—"}
+          {l.pamp != null ? formaterPrix(l.pamp) : <span className="rounded-full border border-alerte/50 px-1.5 text-[11px] text-alerte" title="PAMP non renseigné : P&L inconnu pour cette ligne">PAMP ?</span>}
           {l.pampPartiel && <span title="Certains lots n'ont pas de PAMP : le P&L les ignore" className="text-alerte"> *</span>}
         </td>
         <td className="whitespace-nowrap px-2 text-right font-mono">
@@ -649,40 +681,46 @@ function LigneTableau({ taux, l, m, ouverte, surBascule, surOuvrir, majLot, supp
         <td className={`whitespace-nowrap px-2 text-right font-mono ${classePct(l.pnlPct)}`}>{formaterPct(l.pnlPct)}</td>
         <td className={`whitespace-nowrap px-2 text-right font-mono ${classePct(l.pnlEur)}`}>{m(l.pnlEur)}</td>
         <td className="whitespace-nowrap px-2 text-right font-mono">{pourcent(l.poids)}</td>
-        <td className="whitespace-nowrap px-2 text-right font-mono">
-          {l.objectif != null ? (
-            <>
-              {formaterPrix(l.objectif)} <span className={`text-xs ${l.versObjectifPct != null && l.versObjectifPct <= 0 ? "text-hausse" : "text-doux"}`}>{l.versObjectifPct != null ? (l.versObjectifPct <= 0 ? "atteint" : `+${l.versObjectifPct.toFixed(0)} %`) : ""}</span>
-              {l.valeurAuTpEur != null && (
-                <div className="text-xs text-doux" title="Valeur de cette position si le cours atteignait l'objectif">
-                  vaudrait {m(l.valeurAuTpEur)}
-                  {l.valeurEur ? <span className="text-hausse"> ({formaterPct((l.valeurAuTpEur / l.valeurEur - 1) * 100)})</span> : null}
+        <td className="px-2 py-1 text-right font-mono">
+          {l.objectif == null && l.stop == null ? (
+            "—"
+          ) : (
+            <div className="ml-auto flex w-48 flex-col items-end gap-0.5">
+              {l.objectif != null && (
+                <div className="whitespace-nowrap">
+                  <span className="text-[11px] text-doux">TP </span>
+                  {formaterPrix(l.objectif)} <span className={`text-xs ${l.versObjectifPct != null && l.versObjectifPct <= 0 ? "text-hausse" : "text-doux"}`}>{l.versObjectifPct != null ? (l.versObjectifPct <= 0 ? "atteint" : `+${l.versObjectifPct.toFixed(0)} %`) : ""}</span>
                 </div>
               )}
-            </>
-          ) : (
-            "—"
-          )}
-        </td>
-        <td className="whitespace-nowrap px-2 text-right font-mono">
-          {l.stop != null ? (
-            <>
-              {formaterPrix(l.stop)} <span className={`text-xs ${l.versStopPct != null && l.versStopPct >= 0 ? "text-baisse" : "text-doux"}`}>{l.versStopPct != null ? (l.versStopPct >= 0 ? "franchi" : `${l.versStopPct.toFixed(0).replace("-", "−")} %`) : ""}</span>
-              {l.valeurAuStopEur != null && (
-                <div className="text-xs text-doux" title="Valeur de cette position si le cours touchait le stop">
-                  vaudrait {m(l.valeurAuStopEur)}
-                  {l.valeurEur ? <span className="text-baisse"> ({formaterPct((l.valeurAuStopEur / l.valeurEur - 1) * 100)})</span> : null}
+              {l.stop != null && (
+                <div className="whitespace-nowrap">
+                  <span className="text-[11px] text-doux">Stop </span>
+                  {formaterPrix(l.stop)} <span className={`text-xs ${l.versStopPct != null && l.versStopPct >= 0 ? "text-baisse" : "text-doux"}`}>{l.versStopPct != null ? (l.versStopPct >= 0 ? "franchi" : `${l.versStopPct.toFixed(0).replace("-", "−")} %`) : ""}</span>
                 </div>
               )}
-            </>
-          ) : (
-            "—"
+              {l.objectif != null && l.prix != null && <BarreVersObjectif l={l} />}
+              {(l.valeurAuTpEur != null || l.valeurAuStopEur != null) && l.valeurEur ? (
+                <div className="whitespace-nowrap text-[11px] text-doux" title="Valeur de cette position si le cours atteignait l'objectif, ou touchait le stop">
+                  {l.valeurAuTpEur != null && (
+                    <span>
+                      TP → {m(l.valeurAuTpEur)} <span className="text-hausse">({formaterPct((l.valeurAuTpEur / l.valeurEur - 1) * 100)})</span>
+                    </span>
+                  )}
+                  {l.valeurAuTpEur != null && l.valeurAuStopEur != null && " · "}
+                  {l.valeurAuStopEur != null && (
+                    <span>
+                      Stop → {m(l.valeurAuStopEur)} <span className="text-baisse">({formaterPct((l.valeurAuStopEur / l.valeurEur - 1) * 100)})</span>
+                    </span>
+                  )}
+                </div>
+              ) : null}
+            </div>
           )}
         </td>
       </tr>
       {ouverte && (
         <tr className="border-b border-ligne bg-fond">
-          <td colSpan={10} className="px-4 py-2">
+          <td colSpan={9} className="px-4 py-2">
             <div className="space-y-1">
               {l.lots.map((lot) => (
                 <div key={lot.id} className="flex flex-wrap items-center gap-2 text-xs">

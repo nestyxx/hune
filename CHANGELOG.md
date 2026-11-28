@@ -3,6 +3,20 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.17.0] - 2026-11-28
+
+### Ajouté
+- **Noms lisibles pour les actions et ETF** : la liste, le portefeuille, le Marché et les alertes affichent le nom court (« XPeng », « OVHcloud », « LVMH », « Coca-Cola ») au lieu du code (« 9868.HK », « OVH.PA »). Le code et la place de cotation passent en deuxième ligne (« OVH.PA · Paris »), et le suffixe est expliqué : en tête du graphique, « · Paris » (info-bulle : Euronext Paris), « · Hong Kong », « · Xetra »… Les tris A → Z suivent le nom affiché.
+- **ISIN en tête du graphique** pour vérifier d'un coup d'œil qu'on suit la bonne ligne : pastille cliquable (copie l'ISIN) et crayon pour le saisir ou le corriger. Yahoo ne fournit pas l'ISIN : Hune le déduit de Wikidata (une requête par titre, gardée sur le poste, un seul candidat dont la clé de contrôle et le pays correspondent à la place), signalé « ? » à vérifier ; celui que vous saisissez fait foi. Un symbole qui est déjà un ISIN est reconnu.
+- **Objectif (TP) et stop loss tirables à la souris sur le graphique** : le lot qui porte le niveau prend la nouvelle valeur, son alerte suit, l'aimant s'applique, Échap annule.
+- **PAMP manquant** : pastille « PAMP ? » dans le tableau et bandeau « N positions sans PAMP · valeur (part du portefeuille) » qui filtre ces lignes (leur P&L n'est pas compté dans le P&L latent).
+- **Portefeuille plus compact** : objectif et stop dans une seule colonne, avec une barre d'avancement du prix entre votre prix d'achat et l'objectif et la valeur de la position aux deux niveaux.
+- **Alertes** : « Tout replier / Tout déplier », tri « Plus proches du prix » et écart au prix actuel affiché sur chaque alerte de prix.
+- **Noms de cryptos** : repli sur la recherche CoinGecko quand Yahoo ne connaît pas le jeton (AAVE, DYDX, MINA…).
+
+### Corrigé
+- Au démarrage, le portefeuille affiche « … » au lieu d'un faux « 0 € » tant que les cours et les taux ne sont pas arrivés.
+
 ## [0.16.2] - 2026-11-28
 
 ### Corrigé

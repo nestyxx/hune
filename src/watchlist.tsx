@@ -1,4 +1,4 @@
-import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
+import { libelleSecondaire, nomAffiche, useNomsCryptos } from "./noms-cryptos";
 import { symboleAffiche } from "./noms-affiches";
 import { TOUCHE_RACCOURCI } from "./plateforme";
 import { Activity, Bell, Check, ChevronDown, ChevronRight, Ellipsis, Pencil, Plus, Rows3, Search, StretchHorizontal, X } from "lucide-react";
@@ -259,7 +259,7 @@ export function Watchlist(p: Props) {
               >
                 <span className="min-w-0">
                   <span className="font-semibold">{symboleAffiche(a)}</span>
-                  <span className="block max-w-[160px] truncate text-xs text-doux">{nomAffiche(a)}</span>
+                  <span className="block max-w-[160px] truncate text-xs text-doux">{libelleSecondaire(a)}</span>
                 </span>
                 <span className="shrink-0 text-xs text-doux">ouvrir</span>
               </button>
@@ -278,7 +278,7 @@ export function Watchlist(p: Props) {
               >
                 <span className="min-w-0">
                   <span className="font-semibold">{symboleAffiche(r)}</span>
-                  <span className="block max-w-[160px] truncate text-xs text-doux">{r.nom}</span>
+                  <span className="block max-w-[160px] truncate text-xs text-doux">{r.symbole !== symboleAffiche(r) ? `${r.symbole} · ${r.nom}` : r.nom}</span>
                 </span>
                 <span className="max-w-[45%] shrink-0 truncate text-xs text-doux" title={dejaSuivi(r) ? undefined : r.detail}>{dejaSuivi(r) ? "déjà suivi" : r.detail}</span>
               </button>
@@ -376,7 +376,7 @@ export function Watchlist(p: Props) {
                         data-actif={cle}
                         onClick={() => !apresGlisse.current && p.surSelection(cle)}
                         onPointerDown={(e) => demarrerGlisse(e, cle)}
-                        title={p.uneLigne ? `${nomAffiche(a)} (${symboleAffiche(a)})` : undefined}
+                        title={p.uneLigne ? `${nomAffiche(a)} (${libelleSecondaire(a)})` : undefined}
                         className={`group relative flex cursor-pointer select-none items-center justify-between border-b border-ligne px-3 hover:bg-fond/80 ${p.uneLigne ? "py-1" : "py-2"} ${p.selection === cle ? "bg-accent-doux shadow-[inset_3px_0_0_var(--color-accent)]" : ""} ${glisse?.cle === cle ? "opacity-40" : ""} ${glisse?.cible?.cle === cle && glisse.cle !== cle ? (glisse.cible.apres ? "!border-b-2 !border-b-accent" : "shadow-[inset_0_2px_0_var(--color-accent)]") : ""}`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden pr-2">
@@ -390,7 +390,7 @@ export function Watchlist(p: Props) {
                               </span>
                             )}
                           </div>
-                          {!p.uneLigne && <div className="max-w-[130px] truncate text-xs text-doux">{nomAffiche(a)}</div>}
+                          {!p.uneLigne && <div className="max-w-[130px] truncate text-xs text-doux">{libelleSecondaire(a)}</div>}
                         </div>
                         </div>
                         {p.afficherCourbes && <MiniCourbe valeurs={p.courbes[cle]} />}

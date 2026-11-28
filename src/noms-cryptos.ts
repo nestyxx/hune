@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { getJson } from "./donnees/http";
 import type { Actif } from "./donnees/types";
 import { baseCrypto } from "./icones";
-import { nomConnu } from "./noms-affiches";
+import { detailTitre, nomConnu } from "./noms-affiches";
 
 /**
  * Vrais noms des cryptos (BTC → Bitcoin). Binance ne les fournit pas : on les lit une fois par jeton dans la recherche
@@ -50,6 +50,19 @@ export function nomEstUnePaire(nom: string): boolean {
   return /^[A-Z0-9]+\/[A-Z0-9]+$/.test(nom);
 }
 
+/** Parmi les résultats d'une recherche CoinGecko, le jeton de ce symbole le mieux classé en capitalisation (les homonymes sans rang sont écartés). */
+export function choisirCoin(coins: { name?: string; symbol?: string; market_cap_rank?: number | null }[], base: string): string | null {
+  const candidats = coins.filter((c) => c.name && c.symbol?.toUpperCase() === base.toUpperCase() && c.market_cap_rank != null);
+  candidats.sort((a, b) => a.market_cap_rank! - b.market_cap_rank!);
+  return candidats[0]?.name ?? null;
+}
+
+/** Repli quand Yahoo ne connaît pas le jeton : recherche publique CoinGecko (seul le symbole du jeton est envoyé). */
+async function nomCoinGecko(base: string): Promise<string | null> {
+  const rep = await getJson<{ coins?: { name?: string; symbol?: string; market_cap_rank?: number | null }[] }>(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(base)}`);
+  return choisirCoin(rep.coins ?? [], base);
+}
+
 async function charger(base: string): Promise<void> {
   if (enCours.has(base) || noms[base]) return;
   if ((echecs.get(base) ?? 0) >= 2) return;
@@ -58,7 +71,8 @@ async function charger(base: string): Promise<void> {
     const symbole = `${base}-USD`;
     const rep = await getJson<{ quotes?: { symbol: string; shortname?: string; longname?: string }[] }>(`${BASE}/v1/finance/search?q=${encodeURIComponent(symbole)}&quotesCount=3&newsCount=0`);
     const q = rep.quotes?.find((x) => x.symbol === symbole);
-    const nom = nettoyerNom(q?.shortname ?? q?.longname ?? "");
+    let nom = nettoyerNom(q?.shortname ?? q?.longname ?? "");
+    if (!nom || nom.toUpperCase() === base) nom = (await nomCoinGecko(base).catch(() => null)) ?? "";
     if (nom && nom.toUpperCase() !== base) {
       noms = { ...noms, [base]: nom };
       try {
@@ -101,4 +115,9 @@ export function useNomsCryptos(actifs: Pick<Actif, "source" | "symbole" | "nom">
   useEffect(() => {
     if (cle) void chargerManquants([...new Set(cle.split(","))]);
   }, [cle]);
+}
+
+/** Deuxième ligne d'un actif : « OVH.PA · Paris » pour un titre, sinon son nom (Bitcoin, Or, CAC 40…). */
+export function libelleSecondaire(actif: Pick<Actif, "source" | "symbole" | "nom">): string {
+  return detailTitre(actif) ?? nomAffiche(actif);
 }

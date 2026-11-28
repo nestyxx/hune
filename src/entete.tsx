@@ -1,4 +1,4 @@
-import { ExternalLink, Newspaper } from "lucide-react";
+import { Check, ExternalLink, Newspaper, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fournisseur } from "./donnees";
 import { actualiteNouvelle, actualitesActif, nombreNouvelles, type Actualite } from "./donnees/actualites";
@@ -7,7 +7,8 @@ import { classePct, formaterPct, formaterPrix } from "./format";
 import { IconeActif } from "./icone-actif";
 import { liensExternes } from "./liens";
 import { nomAffiche, useNomsCryptos } from "./noms-cryptos";
-import { symboleAffiche } from "./noms-affiches";
+import { bourseDe, natureYahoo, symboleAffiche } from "./noms-affiches";
+import { useIsin } from "./isin";
 import { ecrireVu, lireVus } from "./actualites-vues";
 import { ouvrirLien } from "./ouvrir-lien";
 
@@ -47,6 +48,61 @@ function useActualites(actif: Actif) {
   return { nouvelle, nombre, marquerVu };
 }
 
+/** Pastille ISIN : clic = copier ; crayon = saisir ou corriger. Un ISIN déduit de Wikidata est signalé « à vérifier ». */
+function PastilleIsin({ actif }: { actif: Actif }) {
+  const { isin, definir } = useIsin(actif);
+  const [saisie, setSaisie] = useState<string | null>(null);
+  const [copie, setCopie] = useState(false);
+  if (natureYahoo(actif) !== "titre") return null;
+  if (saisie !== null)
+    return (
+      <span className="inline-flex items-center gap-1">
+        <input
+          autoFocus
+          className="champ w-36 !py-0.5 font-mono text-xs"
+          placeholder="ISIN (ex. FR0000121014)"
+          value={saisie}
+          onChange={(ev) => setSaisie(ev.target.value)}
+          onBlur={() => setSaisie(null)}
+          onKeyDown={(ev) => {
+            if (ev.key === "Escape") setSaisie(null);
+            if (ev.key === "Enter") {
+              if (saisie.trim() === "") definir(null);
+              else if (!definir(saisie)) return;
+              setSaisie(null);
+            }
+          }}
+        />
+        <span className="text-[11px] text-doux">Entrée pour valider, vide pour effacer</span>
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1">
+      {isin ? (
+        <button
+          className="puce !py-0 font-mono text-[11px]"
+          title={`${isin.source === "wikidata" ? "ISIN déduit de Wikidata : à vérifier. " : isin.source === "manuel" ? "ISIN saisi par vous. " : ""}Cliquer pour copier.`}
+          onClick={() => {
+            void navigator.clipboard?.writeText(isin.isin);
+            setCopie(true);
+            setTimeout(() => setCopie(false), 1500);
+          }}
+        >
+          {copie ? <Check size={11} /> : null} {copie ? "copié" : isin.isin}
+          {isin.source === "wikidata" && !copie && <span className="text-alerte">?</span>}
+        </button>
+      ) : (
+        <span className="text-[11px] text-doux">ISIN inconnu</span>
+      )}
+      {(!isin || isin.source !== "symbole") && (
+        <button className="bouton-icone" title={isin ? "Corriger l'ISIN" : "Saisir l'ISIN de ce titre (pour le retrouver sur votre courtier)"} aria-label="Saisir l'ISIN" onClick={() => setSaisie(isin?.isin ?? "")}>
+          <Pencil size={11} />
+        </button>
+      )}
+    </span>
+  );
+}
+
 /** Bandeau au-dessus du graphique : actif, prix, variation et — surtout — nature des données (temps réel ou différées). */
 export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotation?: Cotation; prixLive: number | null }) {
   const f = fournisseur(actif.source);
@@ -56,12 +112,19 @@ export function EnteteActif({ actif, cotation, prixLive }: { actif: Actif; cotat
   return (
     <header className="flex items-end justify-between gap-4 px-6 pb-3 pt-5">
       <div className="min-w-0">
-        <h1 className="m-0 flex items-center gap-2 truncate text-[13px] font-medium text-doux">
+        <h1 className="m-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] font-medium text-doux">
           <IconeActif actif={actif} taille={22} />
           <span className="truncate">
             <span className="text-texte">{symboleAffiche(actif)}</span>
-            {nomAffiche(actif) !== symboleAffiche(actif) && <> · {nomAffiche(actif)}</>}
+            {nomAffiche(actif) !== symboleAffiche(actif) && nomAffiche(actif).toLowerCase() !== symboleAffiche(actif).toLowerCase() && <> · {nomAffiche(actif)}</>}
           </span>
+          {natureYahoo(actif) === "titre" && (
+            <span className="font-mono text-[11px]" title={bourseDe(actif)?.nom ?? "Place de cotation principale (titres américains : NYSE ou Nasdaq)"}>
+              {actif.symbole}
+              {bourseDe(actif) ? ` · ${bourseDe(actif)!.court}` : ""}
+            </span>
+          )}
+          <PastilleIsin actif={actif} />
         </h1>
         <div className="mt-0.5 flex items-baseline gap-3">
           <span className="titre-serif text-[44px] leading-none">{formaterPrix(prix)}</span>

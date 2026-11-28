@@ -1,4 +1,5 @@
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
+import { symboleAffiche } from "./noms-affiches";
 
 /** Catégorie des actifs ajoutés sans choix : à ranger ensuite (par glisser-déposer ou par le menu ⋯). */
 export const NON_CLASSE = "Non classé";
@@ -36,7 +37,7 @@ export function grouper(actifs: Actif[], categories: string[], tri: Tri, cotatio
   const variation = (a: Actif) => cotations[cleActif(a)]?.variationPct ?? -Infinity;
   return noms.map((nom) => {
     const liste = actifs.filter((a) => categorieDe(a, categories) === nom);
-    if (tri === "symbole") liste.sort((a, b) => a.symbole.localeCompare(b.symbole, "fr"));
+    if (tri === "symbole") liste.sort((a, b) => symboleAffiche(a).localeCompare(symboleAffiche(b), "fr"));
     if (tri === "variation") liste.sort((a, b) => variation(b) - variation(a));
     return { nom, actifs: liste };
   });
