@@ -1,3 +1,4 @@
+import { declarerActifsSuivis } from "./noms-affiches";
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { decrire, type Alerte } from "./alertes/moteur";
@@ -126,6 +127,7 @@ export default function App() {
   /** La lecture du fichier de données a échoué ou semble vide malgré des données sur le disque : on n'écrit rien. */
   const [lectureBloquee, setLectureBloquee] = useState(false);
   const [actifs, setActifs] = useState<Actif[]>([]);
+  declarerActifsSuivis(actifs);
   const [categories, setCategories] = useState<string[]>(CATEGORIES_PAR_DEFAUT);
   const [repliees, setRepliees] = useState<string[]>([]);
   const [tri, setTri] = useState<Tri>("manuel");

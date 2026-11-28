@@ -9,7 +9,7 @@ import { ImportTransactions } from "./import-transactions-panneau";
 import type { ThemeResolu } from "./theme";
 import { categorieDe } from "./categories";
 import { EnTete } from "./composants";
-import { fournisseur } from "./donnees";
+import { fournisseur, rechercherTout } from "./donnees";
 import { tauxVersEur } from "./donnees/change";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterMontant, formaterPct, formaterPrix } from "./format";
@@ -163,6 +163,22 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
   const [filtre, setFiltre] = useState("");
   const [seulementSansPamp, setSeulementSansPamp] = useState(false);
   const [confirmationTp, setConfirmationTp] = useState<{ actif: Actif; prix: number }[] | null>(null);
+  /** Symbole non suivi choisi dans le formulaire de position : ajouté à la liste dès que la position est enregistrée. */
+  const [nouvelActif, setNouvelActif] = useState<Actif | null>(null);
+  const [rechercheActif, setRechercheActif] = useState("");
+  const [resultatsActif, setResultatsActif] = useState<{ source: Actif["source"]; symbole: string; nom: string }[]>([]);
+  useEffect(() => {
+    if (rechercheActif.trim().length < 2) return setResultatsActif([]);
+    let annule = false;
+    const t = setTimeout(async () => {
+      const { resultats } = await rechercherTout(rechercheActif);
+      if (!annule) setResultatsActif(resultats.filter((r) => !actifs.some((a) => cleActif(a) === cleActif(r))).slice(0, 8));
+    }, 300);
+    return () => {
+      annule = true;
+      clearTimeout(t);
+    };
+  }, [rechercheActif, actifs]);
   const [formulaire, setFormulaire] = useState<{ cle: string; quantite: string; pamp: string; objectif: string; stop: string; plateforme: string; saisie: string } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -310,12 +326,15 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
     const objectif = lireNombre(formulaire.objectif);
     const stop = lireNombre(formulaire.stop);
     if (!formulaire.cle || q == null || q <= 0 || pamp === null || objectif === null || stop === null) return setInfo("Choisissez un actif et saisissez une quantité positive (PAMP, objectif et stop doivent être des nombres).");
+    if (nouvelActif && cleActif(nouvelActif) === formulaire.cle) surAjouterActifs([nouvelActif]);
     const dCot = devises[formulaire.cle];
     const conv = (v: number | undefined) => (v == null ? v : convertirSaisie(v, formulaire.saisie || dCot, dCot, taux));
     const horsCot = !!formulaire.saisie && !!dCot && formulaire.saisie !== dCot;
     surPositions((l) => [...l, { id: crypto.randomUUID(), cle: formulaire.cle, quantite: q, pamp: conv(pamp), objectif: conv(objectif), stop: conv(stop), ...(horsCot ? { devisePrix: formulaire.saisie, pampSaisi: pamp, objectifSaisi: objectif, stopSaisi: stop } : {}), plateforme: formulaire.plateforme.trim() || undefined }]);
     setFormulaire(null);
-    setInfo(null);
+    setNouvelActif(null);
+    setRechercheActif("");
+    setInfo(nouvelActif && cleActif(nouvelActif) === formulaire.cle ? `${symboleAffiche(nouvelActif)} ajouté à votre liste de suivi.` : null);
   };
 
   /** Export CSV de ce qui est affiché (plateforme et filtre appliqués) : positions, ou transactions avec leurs gains réalisés. */
@@ -491,6 +510,11 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
           <label className="flex flex-col gap-1 text-xs text-doux">
             Actif
             <select className="champ max-w-52" value={formulaire.cle} onChange={(e) => setFormulaire({ ...formulaire, cle: e.target.value })}>
+              {nouvelActif && (
+                <option value={cleActif(nouvelActif)}>
+                  {symboleAffiche(nouvelActif)} — nouveau
+                </option>
+              )}
               {actifs.map((a) => (
                 <option key={cleActif(a)} value={cleActif(a)}>
                   {symboleAffiche(a)} — {nomAffiche(a).slice(0, 22)}
@@ -498,6 +522,30 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
               ))}
             </select>
           </label>
+          <div className="relative flex flex-col gap-1 text-xs text-doux">
+            …ou un symbole non suivi
+            <input className="champ w-52" placeholder="Nom, symbole ou ISIN…" value={rechercheActif} onChange={(e) => setRechercheActif(e.target.value)} />
+            {resultatsActif.length > 0 && (
+              <div className="menu-contextuel absolute left-0 top-full z-30 mt-1 max-h-64 w-72 overflow-auto text-sm">
+                {resultatsActif.map((r) => (
+                  <button
+                    key={cleActif(r)}
+                    className="flex w-full flex-col bg-transparent px-3 py-1.5 text-left text-texte hover:bg-fond"
+                    onClick={() => {
+                      const nouveau: Actif = { source: r.source, symbole: r.symbole, nom: r.nom };
+                      setNouvelActif(nouveau);
+                      setFormulaire((f) => (f ? { ...f, cle: cleActif(nouveau) } : f));
+                      setRechercheActif("");
+                      setResultatsActif([]);
+                    }}
+                  >
+                    <span className="font-semibold">{symboleAffiche(r)}</span>
+                    <span className="truncate text-xs text-doux">{r.symbole !== symboleAffiche(r) ? `${r.symbole} · ${r.nom}` : r.nom}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {(
             [
               ["quantite", "Quantité", "w-28"],

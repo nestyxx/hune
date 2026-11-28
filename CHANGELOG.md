@@ -3,6 +3,12 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.19.0] - 2026-11-28
+
+### Ajouté
+- **Position sur un symbole non suivi** : dans « Ajouter une position », un champ de recherche (nom, symbole ou ISIN) permet de choisir un actif qui n'est pas encore dans la liste ; il y est ajouté automatiquement (et apparaît dans les graphiques) dès que la position est enregistrée.
+- **Noms identiques** : quand deux actifs suivis portent le même nom (« XPeng » à Hong Kong et aux États-Unis), la place de cotation est ajoutée au nom : « XPeng (Hong Kong) », « XPeng (US) ».
+
 ## [0.18.1] - 2026-11-28
 
 ### Corrigé

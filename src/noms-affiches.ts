@@ -132,7 +132,26 @@ export function detailTitre(a: Pick<Actif, "source" | "symbole">): string | null
 }
 
 /** Libellé principal d'un actif : le nom court d'une action (« XPeng »), le nom courant d'un indice (« CAC 40 »), sinon sans le « ^ », sans le « =F » des matières premières, « EUR/USD » pour « EURUSD=X ». */
+/** Noms affichés portés par plusieurs actifs suivis (minuscules) : on y ajoute la place de cotation pour les distinguer. */
+let doublons = new Set<string>();
+export function declarerActifsSuivis(actifs: (Pick<Actif, "source" | "symbole"> & { nom?: string })[]): void {
+  const vus = new Map<string, number>();
+  for (const a of actifs) {
+    const k = libelleBase(a).toLowerCase();
+    vus.set(k, (vus.get(k) ?? 0) + 1);
+  }
+  const suivant = new Set([...vus].filter(([, c]) => c > 1).map(([k]) => k));
+  if (suivant.size !== doublons.size || [...suivant].some((k) => !doublons.has(k))) doublons = suivant;
+}
+
 export function symboleAffiche(a: Pick<Actif, "source" | "symbole"> & { nom?: string }): string {
+  const base = libelleBase(a);
+  if (!doublons.has(base.toLowerCase())) return base;
+  const place = natureYahoo(a) === "titre" ? (bourseDe(a)?.court ?? "US") : null;
+  return place ? `${base} (${place})` : base;
+}
+
+function libelleBase(a: Pick<Actif, "source" | "symbole"> & { nom?: string }): string {
   if (a.source !== "yahoo") return a.symbole;
   const s = a.symbole;
   if (natureYahoo(a) === "titre" && (NOMS_COURTS[s] || (a.nom && a.nom.trim() && a.nom.trim().toUpperCase() !== s.toUpperCase()))) return nomCourt(a.nom ?? s, s);

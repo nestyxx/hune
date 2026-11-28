@@ -48,3 +48,16 @@ describe("noms affichés", () => {
     expect(natureYahoo(y("AAPL"))).toBe("titre");
   });
 });
+
+describe("noms en double", () => {
+  it("ajoute la place de cotation quand deux actifs suivis ont le même nom affiché", async () => {
+    const m = await import("./noms-affiches");
+    const hk = { source: "yahoo" as const, symbole: "9868.HK", nom: "XPeng Inc." };
+    const us = { source: "yahoo" as const, symbole: "XPEV", nom: "XPeng Inc." };
+    m.declarerActifsSuivis([hk, us]);
+    expect(m.symboleAffiche(hk)).toBe("XPeng (Hong Kong)");
+    expect(m.symboleAffiche(us)).toBe("XPeng (US)");
+    m.declarerActifsSuivis([hk]);
+    expect(m.symboleAffiche(hk)).toBe("XPeng");
+  });
+});
