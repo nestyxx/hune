@@ -651,6 +651,12 @@ export default function App() {
                         prevenir(`Alerte créée : ${actifSelectionne.symbole} ${sens === "au-dessus" ? "≥" : "≤"} ${formaterPrix(prix)}`);
                       }}
                       surDeplacerAlerte={(id, seuil, sens) => {
+                        // Alerte née d'un objectif ou d'un stop : la tirer déplace le niveau du portefeuille, et l'alerte suit.
+                        const liee = alertes.find((a) => a.id === id);
+                        if (liee && liee.condition.type === "prix" && (liee.tpLot || liee.slLot)) {
+                          deplacerNiveau(liee.tpLot ? "objectif" : "stop", liee.condition.seuil, seuil);
+                          return;
+                        }
                         // Même effet qu'une modification dans le formulaire : nouvelle condition, alerte réarmée.
                         changerAlertes((l) => l.map((a) => (a.id === id && a.condition.type === "prix" ? { id: a.id, actif: a.actif, condition: { ...a.condition, seuil, sens }, statut: "armee", creeeLe: Date.now() } : a)));
                         prevenir(`Alerte déplacée et réarmée : ${actifSelectionne.symbole} ${sens === "au-dessus" ? "≥" : "≤"} ${formaterPrix(seuil)}`);

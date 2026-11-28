@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.18.1] - 2026-11-28
+
+### Corrigé
+- Sur le graphique, tirer la ligne d'une alerte née d'un objectif (TP) ou d'un stop déplace désormais le niveau du portefeuille lui-même (l'alerte suit), au lieu de détacher l'alerte de sa position.
+
 ## [0.18.0] - 2026-11-28
 
 ### Modifié
