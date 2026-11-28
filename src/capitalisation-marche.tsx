@@ -64,7 +64,23 @@ interface Carte {
 /** Cartes « Capitalisation du marché crypto » de l'écran Marché : dominance du Bitcoin, total, sans Bitcoin, sans Bitcoin ni Ethereum. */
 export function CapitalisationMarche() {
   const { capitalisation: c, historique, erreur } = useCapitalisation();
-  if (!c) return erreur ? <p className="m-0 text-xs text-doux">Capitalisation du marché crypto indisponible ({erreur}).</p> : null;
+  if (!c)
+    return erreur ? (
+      <p className="m-0 text-xs text-doux">Capitalisation du marché crypto indisponible ({erreur}).</p>
+    ) : (
+      <section>
+        <h2 className="m-0 mb-2 text-sm font-semibold uppercase tracking-wide text-doux">Capitalisation du marché crypto</h2>
+        <div className="grid gap-3 md:grid-cols-4" role="status" aria-label="Chargement de la capitalisation">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="carte-info space-y-2 p-4">
+              <div className="squelette h-3 w-24" />
+              <div className="squelette h-6 w-20" />
+              <div className="squelette h-3 w-28" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
   const maintenant = Date.now();
   const J = 24 * 3600_000;
   const varRel = (cle: "total" | "total2" | "total3", actuel: number) => {

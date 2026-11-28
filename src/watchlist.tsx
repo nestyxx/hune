@@ -24,6 +24,8 @@ interface Props {
   surSelection: (cle: string) => void;
   surAjout: (a: Actif) => void;
   surSuppression: (cle: string) => void;
+  /** Positions et alertes rattachées à un actif suivi : le retirer les masque (positions) ou les supprime (alertes). */
+  liens: (cle: string) => { positions: number; alertes: number };
   surDeplacement: (cle: string, categorie: string) => void;
   /** Glisser-déposer : place l'actif devant `avantCle` (ou en fin de catégorie `groupe` si null). */
   surReordonner: (cle: string, avantCle: string | null, groupe: string) => void;
@@ -170,6 +172,7 @@ export function Watchlist(p: Props) {
   const [resultats, setResultats] = useState<ResultatRecherche[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [ouvert, setOuvert] = useState(false);
+  const [retraitAConfirmer, setRetraitAConfirmer] = useState<string | null>(null);
   const [menu, setMenu] = useState<string | null>(null); // clé de l'actif dont le menu « Déplacer » est ouvert
   const [menuHaut, setMenuHaut] = useState(false); // le menu s'ouvre vers le haut quand la ligne est près du bas de la fenêtre
   const [renomme, setRenomme] = useState<string | null>(null);
@@ -198,7 +201,10 @@ export function Watchlist(p: Props) {
   // Ferme le menu « Déplacer » au clic ailleurs.
   useEffect(() => {
     if (!menu) return;
-    const fermer = () => setMenu(null);
+    const fermer = () => {
+      setMenu(null);
+      setRetraitAConfirmer(null);
+    };
     window.addEventListener("click", fermer);
     return () => window.removeEventListener("click", fermer);
   }, [menu]);
@@ -438,15 +444,33 @@ export function Watchlist(p: Props) {
                               </button>
                             ))}
                             <hr className="my-1 border-ligne" />
-                            <button
-                              className="block w-full bg-transparent px-3 py-1.5 text-left text-baisse hover:bg-fond"
-                              onClick={() => {
-                                p.surSuppression(cle);
-                                setMenu(null);
-                              }}
-                            >
-                              Retirer de la liste
-                            </button>
+                            {(() => {
+                              const l = p.liens(cle);
+                              const lie = l.positions > 0 || l.alertes > 0;
+                              const attente = retraitAConfirmer === cle;
+                              return (
+                                <>
+                                  {attente && lie && (
+                                    <div className="mx-2 mb-1 max-w-64 whitespace-normal rounded-lg bg-alerte/10 px-2 py-1.5 text-xs text-alerte">
+                                      Cet actif porte {l.positions > 0 && `${l.positions} position${l.positions > 1 ? "s" : ""}`}
+                                      {l.positions > 0 && l.alertes > 0 && " et "}
+                                      {l.alertes > 0 && `${l.alertes} alerte${l.alertes > 1 ? "s" : ""}`}. Le retirer supprime ses alertes ; ses positions sont conservées mais disparaissent du portefeuille (et de ses totaux) tant que vous ne le suivez pas à nouveau.
+                                    </div>
+                                  )}
+                                  <button
+                                    className="block w-full bg-transparent px-3 py-1.5 text-left text-baisse hover:bg-fond"
+                                    onClick={() => {
+                                      if (lie && !attente) return setRetraitAConfirmer(cle);
+                                      p.surSuppression(cle);
+                                      setRetraitAConfirmer(null);
+                                      setMenu(null);
+                                    }}
+                                  >
+                                    {attente && lie ? "Oui, retirer quand même" : "Retirer de la liste"}
+                                  </button>
+                                </>
+                              );
+                            })()}
                           </div>
                         )}
                       </li>

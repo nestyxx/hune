@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Groupe } from "./categories";
 import { useNouvellesActualites } from "./actualites-vues";
 import { CapitalisationMarche } from "./capitalisation-marche";
-import { EnTete } from "./composants";
+import { Chargeur, EnTete } from "./composants";
 import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donnees/sentiment";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
@@ -31,7 +31,7 @@ function Sentiment() {
     chargerSentiment().then(setPoints).catch(() => setErreur(true));
   }, []);
   if (erreur) return <div className="carte-info p-4 text-xs text-doux">Indice Fear &amp; Greed indisponible.</div>;
-  if (!points?.length) return <div className="carte-info p-4 text-xs text-doux">Chargement de l'indice Fear &amp; Greed…</div>;
+  if (!points?.length) return <div className="carte-info p-4"><Chargeur texte="Chargement de l'indice Fear & Greed…" /></div>;
   const dernier = points[points.length - 1];
   const veille = points[points.length - 2];
   return (
@@ -65,6 +65,16 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
     return { hausses: tri.filter((a) => pct(a) > 0).slice(0, 5), baisses: tri.filter((a) => pct(a) < 0).slice(-5).reverse() };
   }, [tous, cotations]);
 
+  /** Aucune cotation reçue pour l'instant : on montre des barres qui brillent plutôt que des listes vides. */
+  const enChargement = tous.length > 0 && tous.every((a) => cotations[cleActif(a)] == null);
+  const squelettes = (
+    <div className="space-y-2 py-1" role="status" aria-label="Chargement des cotations">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} className="squelette h-5 w-full" />
+      ))}
+    </div>
+  );
+
   const ligne = (a: Actif) => {
     const c = cotations[cleActif(a)];
     return (
@@ -87,11 +97,11 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
         <Sentiment />
         <div className="carte-info p-4">
           <div className="mb-1 text-xs text-doux">Plus fortes hausses (liste suivie)</div>
-          <ul className="m-0 list-none p-0">{variations.hausses.map(ligne)}</ul>
+          {enChargement ? squelettes : <ul className="m-0 list-none p-0">{variations.hausses.map(ligne)}</ul>}
         </div>
         <div className="carte-info p-4">
           <div className="mb-1 text-xs text-doux">Plus fortes baisses (liste suivie)</div>
-          <ul className="m-0 list-none p-0">{variations.baisses.map(ligne)}</ul>
+          {enChargement ? squelettes : <ul className="m-0 list-none p-0">{variations.baisses.map(ligne)}</ul>}
         </div>
       </div>
 
@@ -115,6 +125,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
                       onClick={() => surOuvrir(cleActif(a))}
                       className="relative flex h-16 flex-col items-center justify-center rounded-2xl border border-ligne text-texte transition-all duration-150 hover:scale-[1.04] hover:shadow-lg"
                       style={{ background: couleurTuile(c?.variationPct) }}
+                      data-chargement={c == null ? "" : undefined}
                     >
                       <span className="max-w-full truncate px-1 text-sm font-semibold">{symboleAffiche({ ...a, symbole: a.symbole.replace(/(USDT|USDC|EUR|-USD)$/, "") })}</span>
                       <span className="font-mono text-xs">{formaterPct(c?.variationPct)}</span>

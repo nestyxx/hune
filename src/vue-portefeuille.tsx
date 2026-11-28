@@ -8,7 +8,7 @@ import { symboleAffiche } from "./noms-affiches";
 import { ImportTransactions } from "./import-transactions-panneau";
 import type { ThemeResolu } from "./theme";
 import { categorieDe } from "./categories";
-import { EnTete } from "./composants";
+import { Chargeur, EnTete } from "./composants";
 import { fournisseur, rechercherTout } from "./donnees";
 import { tauxVersEur } from "./donnees/change";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
@@ -58,9 +58,15 @@ function lireNombre(s: string): number | undefined | null {
 }
 
 /** Camembert (anneau) de répartition avec légende : nom, part et montant de chaque tranche. */
-function BarreRepartition({ titre, parts, m }: { titre: string; parts: PartRepartition[]; m: Montant }) {
+function BarreRepartition({ titre, parts, m, enChargement }: { titre: string; parts: PartRepartition[]; m: Montant; enChargement?: boolean }) {
   const couleurs = ["#2f81f7", "#26a69a", "#e08a00", "#8e6bff", "#d3569a", "#6ca6c1", "#9aa75b", "#c2674a"];
-  if (!parts.length) return null;
+  if (!parts.length)
+    return enChargement ? (
+      <div className="carte-info p-4">
+        <div className="mb-2 text-xs text-doux">{titre}</div>
+        <Chargeur texte="Calcul de la répartition…" className="h-[108px]" />
+      </div>
+    ) : null;
   const rayon = 40;
   const circonference = 2 * Math.PI * rayon;
   const segments = segmentsDonut(parts.map((p) => p.valeurEur), circonference);
@@ -425,8 +431,8 @@ export function VuePortefeuille({ actifs, categories, cotations, devise, surDevi
       {lignes.length > 0 && <GraphiquePortefeuille entrees={entreesGraphique} taux={taux} devise={devise} periode={periode} surPeriode={surPeriode} theme={theme} />}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <BarreRepartition titre="Répartition par catégorie" parts={parCategorie} m={m} />
-        {!filtreActif && <BarreRepartition titre="Répartition par plateforme" parts={parPlateforme} m={m} />}
+        <BarreRepartition titre="Répartition par catégorie" parts={parCategorie} m={m} enChargement={enChargement} />
+        {!filtreActif && <BarreRepartition titre="Répartition par plateforme" parts={parPlateforme} m={m} enChargement={enChargement} />}
       </div>
       <p className="m-0 text-xs text-doux" title="Taux utilisés pour convertir les cotations en euros">
         Taux de change : {Object.entries(taux).filter(([d]) => d !== "EUR" && d !== "GBp").map(([d, t]) => `1 ${d} = ${t.toFixed(4).replace(".", ",")} €`).join(" · ") || "—"}

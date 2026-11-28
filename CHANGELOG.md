@@ -3,6 +3,15 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.19.2] - 2026-11-28
+
+### Ajouté
+- **Retirer un actif qui porte des positions ou des alertes** demande maintenant une confirmation qui explique les conséquences : ses alertes sont supprimées, ses positions sont conservées mais masquées du portefeuille (et de ses totaux) jusqu'à ce qu'on le suive à nouveau.
+- **Indicateurs de chargement** sur l'écran Marché (Fear & Greed, plus fortes hausses et baisses, capitalisation crypto) et sur les répartitions du portefeuille.
+
+### Modifié
+- Les animations restent toujours actives, même quand Windows demande de les réduire.
+
 ## [0.19.1] - 2026-11-28
 
 ### Corrigé

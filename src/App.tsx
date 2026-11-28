@@ -528,6 +528,7 @@ export default function App() {
         if (pleineLargeur) setSelection(cleActif(a));
         else ouvrirActif(cleActif(a));
       }}
+      liens={(cle) => ({ positions: positions.filter((x) => x.cle === cle).length, alertes: alertes.filter((x) => cleActif(x.actif) === cle).length })}
       surSuppression={(cle) => {
         const suite = actifs.filter((a) => cleActif(a) !== cle);
         setActifs(suite);
@@ -538,6 +539,7 @@ export default function App() {
           setAlertes(alertes.filter((a) => cleActif(a.actif) !== cle));
           prevenir(`${retirees} alerte${retirees > 1 ? "s" : ""} supprimée${retirees > 1 ? "s" : ""} avec l'actif.`);
         }
+        if (positions.some((x) => x.cle === cle)) prevenir("Ses positions sont conservées mais masquées du portefeuille : suivez à nouveau l'actif pour les retrouver.");
       }}
       surDeplacement={(cle, categorie) => setActifs(actifs.map((a) => (cleActif(a) === cle ? { ...a, categorie } : a)))}
       surReordonner={(cle, avantCle, groupe) => {

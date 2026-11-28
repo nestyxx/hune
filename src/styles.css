@@ -357,15 +357,6 @@ th {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
 /* Icônes (lucide) alignées avec le texte dans les boutons, puces et menus. */
 .bouton,
 .puce,

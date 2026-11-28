@@ -12,3 +12,13 @@ export function EnTete({ titre, sousTitre, actions }: { titre: string; sousTitre
     </div>
   );
 }
+
+/** Roue de chargement avec un libellé : à poser dans une carte pendant qu'une donnée arrive. */
+export function Chargeur({ texte, className = "" }: { texte: string; className?: string }) {
+  return (
+    <div className={`flex items-center gap-3 text-xs text-doux ${className}`} role="status">
+      <div className="chargeur shrink-0" />
+      {texte}
+    </div>
+  );
+}
