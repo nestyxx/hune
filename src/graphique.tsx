@@ -1056,7 +1056,12 @@ export function Graphique({ actif, intervalle, surIntervalle, profondeur, surPro
           </button>
         </div>
         </div>
-        {chargement && <div className="absolute left-14 top-8 text-doux">Chargement…</div>}
+        {chargement && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-carte/60 text-sm text-doux" role="status">
+            <div className="chargeur" />
+            Chargement du graphique…
+          </div>
+        )}
         {erreur && <div className="absolute left-14 top-8 rounded-xl border border-baisse/50 bg-carte px-3 py-2 text-baisse">{erreur}</div>}
         {menu && (
           <div className="menu-contextuel absolute z-20 py-1 text-sm" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>

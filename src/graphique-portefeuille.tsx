@@ -30,8 +30,11 @@ export function GraphiquePortefeuille({ entrees, taux, devise, periode, surPerio
   const [bougies, setBougies] = useState<Record<string, Bougie[]>>({});
   const [fin, setFin] = useState(() => Math.floor(Date.now() / 1000));
   const [chargement, setChargement] = useState(false);
+  const [premierFini, setPremierFini] = useState(false);
   const [survol, setSurvol] = useState<{ temps: number; valeur: number } | null>(null);
   const spec = specPeriode(periode);
+  /** Tant que le premier téléchargement n'est pas fini (ou qu'on change de période), on montre un indicateur plutôt qu'un cadre vide. */
+  const enCours = chargement || (entrees.length > 0 && !premierFini);
 
   const cles = useMemo(() => entrees.map((e) => e.cle).sort().join(","), [entrees]);
 
@@ -63,6 +66,7 @@ export function GraphiquePortefeuille({ entrees, taux, devise, periode, surPerio
       setBougies(resultat);
       setFin(Math.floor(Date.now() / 1000));
       setChargement(false);
+      setPremierFini(true);
     })();
     return () => {
       annule = true;
@@ -138,9 +142,10 @@ export function GraphiquePortefeuille({ entrees, taux, devise, periode, surPerio
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs text-doux">Évolution de la valeur</div>
-          <div className="titre-serif whitespace-nowrap text-[28px] leading-none">{affiche ? formaterMontant(affiche.valeur, devise, 0) : "—"}</div>
+          <div className="titre-serif whitespace-nowrap text-[28px] leading-none">{affiche ? formaterMontant(affiche.valeur, devise, 0) : enCours ? <span className="squelette h-7 w-32 align-middle" aria-label="Chargement" /> : "—"}</div>
           <div className={`mt-1 text-xs ${classePct(variation)}`}>
-            {variation != null ? `${variation >= 0 ? "+" : "−"}${formaterMontant(Math.abs(variation), devise, 0)} · ${formaterPct(variationPct)}` : "—"}
+            {variation == null && enCours ? <span className="squelette h-3 w-40 align-middle" /> : null}
+            {variation != null ? `${variation >= 0 ? "+" : "−"}${formaterMontant(Math.abs(variation), devise, 0)} · ${formaterPct(variationPct)}` : enCours ? null : "—"}
             <span className="ml-2 text-doux">
               {survol
                 ? new Date(survol.temps * 1000).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", ...(spec.intervalle === "1h" ? { hour: "2-digit", minute: "2-digit" } : {}) })
@@ -158,8 +163,13 @@ export function GraphiquePortefeuille({ entrees, taux, devise, periode, surPerio
       </div>
       <div className="relative">
         <div ref={conteneur} className="h-[230px]" />
-        {chargement && <div className="absolute left-2 top-2 text-xs text-doux">Chargement de l'historique…</div>}
-        {!chargement && !points.length && <div className="absolute inset-0 flex items-center justify-center text-sm text-doux">Pas assez de données pour tracer ce graphique.</div>}
+        {enCours && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-xl bg-carte/70 text-sm text-doux" role="status">
+            <div className="chargeur" />
+            Chargement de l'historique…
+          </div>
+        )}
+        {!enCours && !points.length && <div className="absolute inset-0 flex items-center justify-center text-sm text-doux">Pas assez de données pour tracer ce graphique.</div>}
       </div>
       {(calcul.ignores.length > 0 || calcul.quantitesSupposees) && (
         <p className="m-0 mt-2 text-xs text-doux">

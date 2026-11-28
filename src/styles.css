@@ -327,6 +327,36 @@ th {
   outline-offset: 2px;
 }
 
+/* Indicateurs de chargement : roue + squelettes qui brillent doucement. */
+.chargeur {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-ligne);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: tourne 0.8s linear infinite;
+}
+@keyframes tourne {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.squelette {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-fond) 0%, var(--color-ligne) 50%, var(--color-fond) 100%);
+  background-size: 200% 100%;
+  animation: brille 1.4s ease-in-out infinite;
+}
+@keyframes brille {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

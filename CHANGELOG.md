@@ -3,6 +3,11 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.19.1] - 2026-11-28
+
+### Corrigé
+- **Indicateurs de chargement** : le graphique d'évolution du portefeuille et le graphique principal affichent une roue de chargement (et des barres qui brillent à la place des montants) pendant le téléchargement de l'historique, au lieu d'un cadre vide.
+
 ## [0.19.0] - 2026-11-28
 
 ### Ajouté
