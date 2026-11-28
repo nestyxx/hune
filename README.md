@@ -25,9 +25,9 @@
 
 Hune réunit ce qui sert au quotidien (graphiques, indicateurs, alertes, portefeuille) dans une petite application Windows **gratuite, légère et privée** :
 
-- **Lecture seule** : aucune fonction de trading, aucun accès à un compte de courtier, aucune clé API à fournir.
+- **Lecture seule** : aucune fonction de trading, aucun accès à un compte de courtier, aucune clé API obligatoire (les clés des notifications et de l'IA, facultatives, restent dans le coffre de Windows).
 - **Tout reste chez vous** : watchlist, positions et alertes sont dans un fichier local. Pas de compte, pas de serveur, pas de télémétrie.
-- **Ça tourne en arrière-plan** : fermez la fenêtre, Hune continue de surveiller vos alertes depuis la zone de notification et vous prévient par une notification Windows.
+- **Ça tourne en arrière-plan** : fermez la fenêtre, Hune continue de surveiller vos alertes depuis la zone de notification et vous prévient par une notification Windows, et si vous le voulez sur votre téléphone : **ntfy, e-mail (SMTP), SMS (Brevo, OVH), Telegram, Discord ou webhook**, avec un **récap quotidien** (matin et/ou soir) et une **analyse du marché par IA** (OpenRouter), le tout configuré dans Réglages.
 
 ## Ce qu'elle sait faire
 

@@ -6,6 +6,9 @@ import { alertesNiveauxManquantes, cleIgnoreStop, lireAnciensIgnoresTp, synchron
 import { useSynchro } from "./sync/use-synchro";
 import type { EtatSync } from "./sync/moteur";
 import { notifier } from "./alertes/notifier";
+import { diffuser, nomCanal } from "./notifications/canaux";
+import { messageAlerte } from "./notifications/messages";
+import { useNotifications } from "./notifications/use-notifications";
 import { PanneauAlertes } from "./alertes/panneau";
 import { useVerificationAlertes } from "./alertes/verification";
 import { BarreTitre } from "./barre-titre";
@@ -282,6 +285,18 @@ export default function App() {
   cotationsRef.current = cotations;
   const actifsRef = useRef<Actif[]>([]);
   actifsRef.current = actifs;
+  const alertesRef = useRef<Alerte[]>([]);
+  alertesRef.current = alertes;
+  const categoriesRef = useRef<string[]>([]);
+  categoriesRef.current = categories;
+  const reglagesRef = useRef(reglages);
+  reglagesRef.current = reglages;
+  /** État que le récap quotidien et l'analyse IA relisent à chaque envoi (ils tournent même fenêtre fermée). */
+  const lireEntreesRecap = useCallback(
+    () => ({ actifs: actifsRef.current, positions: positionsRef.current, alertes: alertesRef.current, categories: categoriesRef.current, variation: reglagesRef.current.variation, devise: (reglagesRef.current.devise === "USD" ? "USD" : "EUR") as "USD" | "EUR" }),
+    [],
+  );
+  const notifs = useNotifications(pret, lireEntreesRecap, prevenir);
   /** Modifie les positions ; l'alerte « prix ≥ objectif » de chaque lot suit son objectif (voir `synchroniserAlertesTp`). */
   const changerPositions = useCallback(
     (modifier: (liste: Position[]) => Position[]) => {
@@ -309,8 +324,12 @@ export default function App() {
       const t = alerte.condition.type;
       const mesure = t === "variation" ? `${valeur.toFixed(2).replace(".", ",")} %` : t === "rsi" ? valeur.toFixed(1).replace(".", ",") : formaterPrix(valeur);
       void notifier(`Alerte : ${alerte.actif.symbole}`, `${decrire(alerte.condition)} (actuel : ${mesure})`);
+      // Même alerte vers le téléphone (ntfy, e-mail, SMS…) pour les canaux abonnés ; un échec est signalé, jamais bloquant.
+      void diffuser(notifs.configRef.current, messageAlerte(alerte, mesure)).then((rs) => {
+        for (const r of rs) if (!r.ok) prevenir(`Notification ${nomCanal(r.canal)} non envoyée : ${r.erreur}`);
+      });
     },
-    [changerAlertes],
+    [changerAlertes, prevenir, notifs.configRef],
   );
 
   const verification = useVerificationAlertes(pret ? alertes : null, declencher, reglages.periodeAlertesS);
@@ -708,7 +727,7 @@ export default function App() {
                   }}
                 />
               )}
-              {onglet === "marche" && <VueMarche groupes={groupes} cotations={cotations} surOuvrir={ouvrirActif} />}
+              {onglet === "marche" && <VueMarche groupes={groupes} cotations={cotations} surOuvrir={ouvrirActif} config={notifs.config} lireEntrees={lireEntreesRecap} surConfigurer={() => setOnglet("reglages")} />}
               {onglet === "alertes" && (
                 <PanneauAlertes
                   actifs={actifs}
@@ -731,7 +750,7 @@ export default function App() {
                   periodeS={reglages.periodeAlertesS}
                 />
               )}
-              {onglet === "reglages" && <PanneauReglages reglages={reglages} surChangement={setReglages} maj={maj} synchro={synchro} />}
+              {onglet === "reglages" && <PanneauReglages reglages={reglages} surChangement={setReglages} maj={maj} synchro={synchro} notifications={{ config: notifs.config, surChangement: notifs.setConfig, lireEntrees: lireEntreesRecap }} />}
             </main>
           </div>
         </div>

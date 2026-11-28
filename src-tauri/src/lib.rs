@@ -6,6 +6,8 @@
 //! et les mises à jour automatiques (signées, depuis les releases GitHub).
 //! Fermer la fenêtre la masque seulement : la page continue de tourner et vérifie les alertes.
 
+mod envoi;
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -239,7 +241,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![sauvegarde_avant_maj, lister_sauvegardes, lire_sauvegarde, donnees_presentes, sync_lire, sync_ecrire])
+        .invoke_handler(tauri::generate_handler![sauvegarde_avant_maj, lister_sauvegardes, lire_sauvegarde, donnees_presentes, sync_lire, sync_ecrire, envoi::secret_definir, envoi::secret_existe, envoi::http_requete, envoi::envoyer_mail, envoi::envoyer_sms_ovh])
         .on_window_event(|fenetre, evenement| {
             // Croix de la fenêtre : on la masque, l'application reste dans la zone de notification.
             if let WindowEvent::CloseRequested { api, .. } = evenement {

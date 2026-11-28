@@ -3,6 +3,18 @@
 Toutes les évolutions notables de Hune. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent [SemVer](https://semver.org/lang/fr/).
 Le texte de chaque version sert de notes pour la release GitHub (`scripts/publier.ps1`).
 
+## [0.20.0] - 2026-11-28
+
+### Ajouté
+- **Notifications à distance** (Réglages › Notifications à distance) : vos alertes, objectifs (TP) et stop loss peuvent aussi partir sur **ntfy** (serveur public ou le vôtre, jeton possible), **e-mail** (serveur SMTP : SSL, STARTTLS ou sans chiffrement), **SMS Brevo**, **SMS OVH**, **Telegram**, **Discord** ou un **webhook** (Slack, Mattermost, n8n…). Chaque canal s'active à part, choisit ce qu'il reçoit (alertes, TP/stop, récap) et a son bouton « Envoyer un test ». Un canal en panne est signalé sans bloquer les autres. Les SMS ne sont pas abonnés au récap par défaut (chaque envoi est facturé).
+- **Récap quotidien** : valeur du portefeuille et variation, gain latent, meilleure et moins bonne ligne, plus fortes hausses et baisses de la liste, Fear & Greed, capitalisation crypto, alertes déclenchées depuis le dernier récap, objectifs et stops à moins de 5 %. Au choix le matin (7 h par défaut), le soir (20 h) ou les deux, à l'heure que vous voulez. Si l'ordinateur était éteint à l'heure prévue, le récap part au réveil, dans les trois heures. Bouton « Envoyer un récap maintenant » pour l'essayer.
+- **Analyse du marché par IA** (OpenRouter) : bouton « Analyser le marché » dans l'onglet Marché et, au choix, un court commentaire de l'IA dans le récap. Modèle libre (« openrouter/auto » par défaut). Le portefeuille n'est envoyé que sur option expresse, en pourcentages seulement, jamais en montants ni en quantités. Analyse indicative, jamais un conseil.
+
+### Sécurité
+- Mots de passe, jetons et clés d'API sont rangés dans le **coffre du système** (Gestionnaire d'identifiants de Windows, Trousseau sur macOS), écrits par l'interface mais jamais relus : ils ne figurent ni dans `hune.json`, ni dans les sauvegardes, l'export ou la synchronisation, ni dans les messages d'erreur.
+- La configuration des notifications reste **sur ce PC** (hors synchronisation) : deux ordinateurs synchronisés n'envoient pas chacun la même notification.
+- Les envois partent de la coque Rust (aucun changement de la CSP de la page), sans redirection automatique ; seules les adresses http(s) sont acceptées.
+
 ## [0.19.2] - 2026-11-28
 
 ### Ajouté

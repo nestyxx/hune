@@ -9,6 +9,9 @@ import { NOM_SYSTEME, TOUCHE_RACCOURCI, ZONE_ICONE } from "./plateforme";
 import { construireSauvegarde, fusionner, lireSauvegarde, restaurer, telecharger, type Sauvegarde } from "./sauvegarde";
 import type { useMiseAJour } from "./miseajour";
 import { SectionSynchro } from "./sync/section-synchro";
+import { SectionNotifications } from "./notifications/section-notifications";
+import type { ConfigNotifications } from "./notifications/config";
+import type { EntreesRecap } from "./notifications/recap-donnees";
 import type { useSynchro } from "./sync/use-synchro";
 import { definirLogosActions, useLogosActions } from "./icone-actif";
 import { listerCopies, type CopieAuto } from "./restauration";
@@ -46,10 +49,11 @@ interface Props {
   surChangement: (r: Reglages) => void;
   maj: ReturnType<typeof useMiseAJour>;
   synchro: ReturnType<typeof useSynchro>;
+  notifications: { config: ConfigNotifications; surChangement: (c: ConfigNotifications) => void; lireEntrees: () => Omit<EntreesRecap, "depuisMs"> };
 }
 
 /** Onglet « Réglages » : apparence, vérification des alertes, démarrage avec Windows, mises à jour, sauvegarde, raccourcis. */
-export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props) {
+export function PanneauReglages({ reglages, surChangement, maj, synchro, notifications }: Props) {
   const [version, setVersion] = useState<string | null>(null);
   useEffect(() => {
     if (dansTauri()) import("@tauri-apps/api/app").then(({ getVersion }) => getVersion()).then(setVersion).catch(() => {});
@@ -107,7 +111,7 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
   const logos = useLogosActions();
   return (
     <div className="apparait flex-1 space-y-5 overflow-auto p-6">
-      <EnTete titre="Réglages" sousTitre="Apparence, alertes, mises à jour et sauvegardes." />
+      <EnTete titre="Réglages" sousTitre="Apparence, alertes, notifications, IA, mises à jour et sauvegardes." />
       <section className="rounded-2xl border border-ligne bg-carte p-5">
         <h2 className="m-0 mb-3 text-base font-semibold">Apparence</h2>
         <div className="flex gap-1" role="radiogroup" aria-label="Thème">
@@ -162,6 +166,8 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
         </button>
       </section>
 
+      <SectionNotifications config={notifications.config} surChangement={notifications.surChangement} lireEntrees={notifications.lireEntrees} />
+
       <section className="rounded-2xl border border-ligne bg-carte p-5">
         <h2 className="m-0 mb-3 text-base font-semibold">Application</h2>
         <label className="flex items-center gap-3">
@@ -200,7 +206,7 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
 
       <section className="rounded-2xl border border-ligne bg-carte p-5">
         <h2 className="m-0 mb-3 text-base font-semibold">Sauvegarde</h2>
-        <p className="m-0 mb-3 text-xs text-doux">Watchlist, catégories, alertes et réglages dans un fichier JSON : pour changer de PC ou garder une copie. Aucune clé ni donnée de compte n'est stockée. Une copie automatique est aussi faite chaque jour au démarrage (14 jours conservés) dans <code>%APPDATA%\io.github.nestyxx.hune\sauvegardes</code> : pour restaurer, fermez Hune puis recopiez une de ces copies par-dessus <code>hune.json</code>.</p>
+        <p className="m-0 mb-3 text-xs text-doux">Watchlist, catégories, alertes et réglages dans un fichier JSON : pour changer de PC ou garder une copie. Aucun mot de passe, jeton ni clé n'y figure : ils restent dans le coffre du système, et la configuration des notifications reste sur ce PC. Une copie automatique est aussi faite chaque jour au démarrage (14 jours conservés) dans <code>%APPDATA%\io.github.nestyxx.hune\sauvegardes</code> : pour restaurer, fermez Hune puis recopiez une de ces copies par-dessus <code>hune.json</code>.</p>
         <div className="flex flex-wrap items-center gap-2">
           <button className="bouton" onClick={() => void exporter()}>
             Exporter…
@@ -297,7 +303,7 @@ export function PanneauReglages({ reglages, surChangement, maj, synchro }: Props
       </section>
 
       <section className="rounded-2xl border border-ligne bg-carte p-5 text-xs text-doux">
-        Lecture seule : aucune fonction de trading, aucun compte, aucune clé API. Crypto : API publique Binance (temps réel). Actions : Yahoo Finance, endpoint non officiel, données différées. Logos d'actions : Financial Modeling Prep (désactivable).
+        Lecture seule : aucune fonction de trading, aucun compte de courtier. Les notifications et l'IA sont facultatives et n'utilisent que vos propres comptes (ntfy, SMTP, Brevo, OVH, Telegram, OpenRouter…). Crypto : API publique Binance (temps réel). Actions : Yahoo Finance, endpoint non officiel, données différées. Logos d'actions : Financial Modeling Prep (désactivable).
       </section>
     </div>
   );

@@ -140,7 +140,7 @@ async function main() {
       await page(`touche('f'); await sleep(10000);`);
       await capturer(`portefeuille-${theme}`);
 
-      await page(`touche('m'); await sleep(5000);`);
+      await page(`touche('m'); await sleep(5000); touche('Shift'); await sleep(300); /* ferme l'info-bulle restée sous le pointeur après le décalage de la mise en page */`);
       await capturer(`marche-${theme}`);
 
       await page(`touche('a'); await sleep(1500);`);

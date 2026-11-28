@@ -3,6 +3,9 @@ import type { Groupe } from "./categories";
 import { useNouvellesActualites } from "./actualites-vues";
 import { CapitalisationMarche } from "./capitalisation-marche";
 import { Chargeur, EnTete } from "./composants";
+import type { ConfigNotifications } from "./notifications/config";
+import { PanneauAnalyseIA } from "./notifications/panneau-analyse-ia";
+import type { EntreesRecap } from "./notifications/recap-donnees";
 import { chargerSentiment, libelleSentiment, type PointSentiment } from "./donnees/sentiment";
 import { cleActif, type Actif, type Cotation } from "./donnees/types";
 import { classePct, formaterPct, formaterPrix } from "./format";
@@ -13,6 +16,9 @@ interface Props {
   groupes: Groupe[];
   cotations: Record<string, Cotation>;
   surOuvrir: (cle: string) => void;
+  config: ConfigNotifications;
+  lireEntrees: () => Omit<EntreesRecap, "depuisMs">;
+  surConfigurer: () => void;
 }
 
 /** Couleur d'une tuile : intensité proportionnelle à la variation (saturée à ±6 %). */
@@ -54,7 +60,7 @@ function Sentiment() {
 }
 
 /** Onglet « Marché » : carte thermique de la watchlist par catégorie et plus fortes variations. */
-export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
+export function VueMarche({ groupes, cotations, surOuvrir, config, lireEntrees, surConfigurer }: Props) {
   const tous = useMemo(() => groupes.flatMap((g) => g.actifs), [groupes]);
   const nouvelles = useNouvellesActualites(tous, true);
   const variations = useMemo(() => {
@@ -93,6 +99,7 @@ export function VueMarche({ groupes, cotations, surOuvrir }: Props) {
   return (
     <div className="apparait flex-1 space-y-5 overflow-auto p-6">
       <EnTete titre="Marché" sousTitre="Votre liste en un coup d'œil : couleur selon la variation affichée (24 h glissantes ou depuis 00:00 UTC, au choix dans Réglages)." />
+      <PanneauAnalyseIA config={config} lireEntrees={lireEntrees} surConfigurer={surConfigurer} />
       <div className="grid gap-3 md:grid-cols-3">
         <Sentiment />
         <div className="carte-info p-4">
